@@ -1,4 +1,4 @@
-/ Simple authentication middleware without passwords
+// Simple authentication middleware without passwords
 module.exports = function(req, res, next) {
   // Get teacher ID from header
   const teacherId = req.header('x-teacher-id');
