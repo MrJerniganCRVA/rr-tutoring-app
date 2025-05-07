@@ -3,7 +3,40 @@ const router = express.Router();
 const Student = require('../models/Student');
 const Teacher = require('../models/Teacher');
 const auth = require('../middleware/auth');
+const {Op} = require('sequelize');
 
+// @route   GET api/students/teacher/:teacherId
+// @desc    Get all students for a specific teacher
+// @access  Public
+router.get('/teacher/:teacherId', async (req, res) => {
+  try {
+    const teacherId = req.params.teacherId;
+    // Find all students where this teacher is listed in any of the teaching slots
+    const students = await Student.findAll({
+      where: {
+        [Op.or]: [
+          { R1Id: teacherId },
+          { R2Id: teacherId },
+          { RRId: teacherId },
+          { R4Id: teacherId },
+          { R5Id: teacherId }
+        ]
+      },
+      include: [
+        { model: Teacher, as: 'R1' },
+        { model: Teacher, as: 'R2' },
+        { model: Teacher, as: 'RR' },
+        { model: Teacher, as: 'R4' },
+        { model: Teacher, as: 'R5' }
+      ]
+    });
+    
+    res.json(students);
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).send('Server Error');
+  }
+});
 // @route   GET api/students
 // @desc    Get all students
 // @access  Public
