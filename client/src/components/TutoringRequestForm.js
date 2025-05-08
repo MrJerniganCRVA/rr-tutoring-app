@@ -18,7 +18,7 @@ import {
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
-import axios from 'axios';
+import apiService from '../utils/apiService';
 
 const TutoringRequestForm = ({ onRequestAdded }) => {
   const [students, setStudents] = useState([]);
@@ -44,12 +44,12 @@ const TutoringRequestForm = ({ onRequestAdded }) => {
     const fetchStudents = async () => {
       try {
         setFetchingStudents(true);
-        const response = await axios.get('http://localhost:5000/api/students');
+        const response = await apiService.getStudents();
         setStudents(response.data);
         setFetchingStudents(false);
       } catch (err) {
         console.error('Error fetching students:', err);
-        setError('Failed to load students. Please try again later.');
+        setError(apiService.formatError(err));
         setFetchingStudents(false);
       }
     };
@@ -92,19 +92,11 @@ const TutoringRequestForm = ({ onRequestAdded }) => {
     try {
       setLoading(true);
       
-      const response = await axios.post(
-        'http://localhost:5000/api/tutoring',
-        {
-          studentId: selectedStudent,
-          date: selectedDate.toISOString().split('T')[0],
-          lunches
-        },
-        {
-          headers: {
-            'x-teacher-id': teacherId
-          }
-        }
-      );
+      const response = await apiService.createTutoringRequest({
+        studentId: selectedStudent,
+        date: selectedDate.toISOString().split('T')[0],
+        lunches
+      });
       
       setSuccess('Student successfully requested for tutoring');
       
@@ -126,15 +118,11 @@ const TutoringRequestForm = ({ onRequestAdded }) => {
     } catch (err) {
       console.error('Error creating tutoring request:', err);
       
-      if (err.response && err.response.data) {
-        setError(err.response.data.msg || 'Failed to create tutoring request');
-        
-        // Show conflict details if available
-        if (err.response.data.conflicts) {
-          setError(`${err.response.data.msg}. ${err.response.data.conflicts[0].message || ''}`);
-        }
+      // Handle conflict details if available
+      if (err.response && err.response.data && err.response.data.conflicts) {
+        setError(`${err.response.data.msg}. ${err.response.data.conflicts[0].message || ''}`);
       } else {
-        setError('Failed to create tutoring request. Please try again later.');
+        setError(apiService.formatError(err));
       }
     } finally {
       setLoading(false);
