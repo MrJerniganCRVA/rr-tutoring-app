@@ -1,70 +1,112 @@
-# Getting Started with Create React App
+# Tutoring Scheduler
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+A web application for scheduling tutoring sessions at your school. Teachers can request students for specific lunch periods and see who has been requested by other teachers.
 
-## Available Scripts
+## Features
 
-In the project directory, you can run:
+- Teacher selection screen for login
+- Request students for specific lunch periods (A, B, C, D)
+- View all tutoring requests
+- Cancel your own tutoring requests
+- One teacher per student per day restriction
+- Filter and search functionality
 
-### `npm start`
+## Project Structure
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
+This project consists of two main parts:
+- **Server**: A Node.js/Express backend with SQLite database
+- **Client**: A React.js frontend with Material-UI components
 
-The page will reload when you make changes.\
-You may also see any lint errors in the console.
+## Prerequisites
 
-### `npm test`
+- Node.js (v14 or higher)
+- NPM (v6 or higher)
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+## Installation and Setup
 
-### `npm run build`
+### Server Setup
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+1. Navigate to the server directory:
+   ```bash
+   cd server
+   ```
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+2. Install dependencies:
+   ```bash
+   npm install
+   ```
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+3. Start the server:
+   ```bash
+   npm run dev
+   ```
 
-### `npm run eject`
+The server will run on port 5000 and create a SQLite database file (database.sqlite) in the server directory.
 
-**Note: this is a one-way operation. Once you `eject`, you can't go back!**
+### Client Setup
 
-If you aren't satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
+1. Navigate to the client directory:
+   ```bash
+   cd client
+   ```
 
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you're on your own.
+2. Install dependencies:
+   ```bash
+   npm install
+   ```
 
-You don't have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn't feel obligated to use this feature. However we understand that this tool wouldn't be useful if you couldn't customize it when you are ready for it.
+3. Start the client:
+   ```bash
+   npm start
+   ```
 
-## Learn More
+The React app will open in your browser at http://localhost:3000.
 
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
+## API Endpoints
 
-To learn React, check out the [React documentation](https://reactjs.org/).
+### Teachers
+- `GET /api/teachers` - Get all teachers
+- `GET /api/teachers/:id` - Get a specific teacher
+- `POST /api/teachers` - Create a new teacher
 
-### Code Splitting
+### Students
+- `GET /api/students` - Get all students
+- `GET /api/students/:id` - Get a specific student
+- `POST /api/students` - Create a new student
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/code-splitting](https://facebook.github.io/create-react-app/docs/code-splitting)
+### Tutoring Requests
+- `GET /api/tutoring` - Get all tutoring requests
+- `POST /api/tutoring` - Create a new tutoring request
+- `PUT /api/tutoring/cancel/:id` - Cancel a tutoring request
 
-### Analyzing the Bundle Size
+## Running in Production
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size](https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size)
+To build the client for production:
 
-### Making a Progressive Web App
+```bash
+cd client
+npm run build
+```
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app](https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app)
+This will create a `build` folder that can be served by any static file server.
 
-### Advanced Configuration
+## Deploying to a Raspberry Pi
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/advanced-configuration](https://facebook.github.io/create-react-app/docs/advanced-configuration)
+For deploying to a Raspberry Pi, you can:
 
-### Deployment
+1. Clone this repository on your Raspberry Pi
+2. Follow the installation steps above
+3. Use a process manager like PM2 to keep the server running:
+   ```bash
+   npm install -g pm2
+   pm2 start server/server.js
+   ```
+4. Serve the client build folder using a tool like serve:
+   ```bash
+   npm install -g serve
+   serve -s client/build
+   ```
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/deployment](https://facebook.github.io/create-react-app/docs/deployment)
+## License
 
-### `npm run build` fails to minify
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
+This project is licensed under the MIT License.
