@@ -38,9 +38,19 @@ router.get('/:id', async (req, res) => {
 // @desc    Add a new teacher
 // @access  Public
 router.post('/', async (req, res) => {
-  const { name, email, subject } = req.body;
-  
-  try {
+  try{
+    const {name, email, subject} = req.body;
+    //Create table if none exist
+    try{
+      await sequelize.query("SELECT * FROM Teachers LIMIT 1",
+        {type:sequelize.QueryTypes.SELECT}
+      );
+      console.log("Teachers Table Exists!")
+    } catch (err){
+      console.log("No table exists.")
+      await Teacher.sync({force: false});
+      console.log("Table Created")
+    }
     // Check if teacher already exists
     let teacher = await Teacher.findOne({ where: { email } });
     

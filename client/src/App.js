@@ -9,10 +9,10 @@ import Header from './components/Header';
 const theme = createTheme({
   palette: {
     primary: {
-      main: '#1976d2',
+      main: '#ec3a8f',
     },
     secondary: {
-      main: '#dc004e',
+      main: '#8fc644',
     },
     background: {
       default: '#f5f5f5',
@@ -30,6 +30,7 @@ const theme = createTheme({
 });
 
 function App() {
+  console.log("Made it to app");
   return (
     <ThemeProvider theme={theme}>
       <CssBaseline />

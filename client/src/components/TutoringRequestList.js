@@ -55,11 +55,15 @@ const TutoringRequestList = ({ requests, onRequestCancelled }) => {
     }
   };
   
-  // Filter requests by date and search term
+  // Filter requests by date and search term as well as remove any non RR teacher requests
   const filteredRequests = requests.filter(request => {
-    // Date filter
+    // Teacher Filter by local storage
+    if(request.Teacher?.name?.toLowerCase() !== localStorage.getItem('teacherName').toLowerCase()){
+      return false;
+    }
+    const requestDate = new Date(request.date);
+    // Specific Date filter
     if (filterDate) {
-      const requestDate = new Date(request.date);
       const selectedDate = new Date(filterDate);
       
       if (
@@ -70,30 +74,36 @@ const TutoringRequestList = ({ requests, onRequestCancelled }) => {
         return false;
       }
     }
-    
-    // Search filter (student name or teacher name)
+    // Search filter (student name)
     if (searchTerm) {
       const term = searchTerm.toLowerCase();
       const studentName = request.Student?.name?.toLowerCase() || '';
-      const teacherName = request.Teacher?.name?.toLowerCase() || '';
-      
-      return studentName.includes(term) || teacherName.includes(term);
+      return studentName.includes(term);
     }
+    //If no specific date or student then only future dates
+    const today = new Date();
+    today.setHours(0,0,0,0);
+    requestDate.setHours(0,0,0,0);
     
-    return true;
+    return requestDate >= today;
   });
   
-  // Get today's requests
+  // Get today's requests for RR teacher
   const todaysRequests = requests.filter(request => {
     const requestDate = new Date(request.date);
     const today = new Date();
-    
-    return (
+    const isToday = 
+    (
       requestDate.getFullYear() === today.getFullYear() &&
       requestDate.getMonth() === today.getMonth() &&
       requestDate.getDate() === today.getDate() &&
       request.status === 'active'
     );
+
+    const teacherId = localStorage.getItem('teacherId');
+    const isRRteacher = request.Student?.teachers?.RR?.id ===parseInt(teacherId);
+
+    return isToday && isRRteacher;
   });
   
   // Helper function to format date
@@ -116,11 +126,11 @@ const TutoringRequestList = ({ requests, onRequestCancelled }) => {
     <Box>
       {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
       
-      {todaysRequests.length > 0 && (
         <Paper elevation={3} sx={{ p: 3, mb: 3 }}>
           <Typography variant="h6" gutterBottom>
-            Today's Tutoring Sessions
+            RR Tutoring Sessions for Today
           </Typography>
+          {todaysRequests.length>0 ?(
           <TableContainer>
             <Table size="small">
               <TableHead>
@@ -137,30 +147,19 @@ const TutoringRequestList = ({ requests, onRequestCancelled }) => {
                     <TableCell>{request.Student?.name || 'Unknown'}</TableCell>
                     <TableCell>{request.Teacher?.name || 'Unknown'}</TableCell>
                     <TableCell>{getLunchPeriods(request)}</TableCell>
-                    <TableCell align="right">
-                      {request.Teacher?.id === parseInt(teacherId) && (
-                        <IconButton
-                          color="error"
-                          size="small"
-                          onClick={() => handleCancelRequest(request.id)}
-                        >
-                          <Tooltip title="Cancel Request">
-                            <CancelIcon />
-                          </Tooltip>
-                        </IconButton>
-                      )}
-                    </TableCell>
                   </TableRow>
                 ))}
               </TableBody>
             </Table>
           </TableContainer>
+          ) : (
+            <Alert severity="info">No tutoring requests today!</Alert>
+          )}
         </Paper>
-      )}
       
       <Paper elevation={3} sx={{ p: 3 }}>
         <Typography variant="h5" component="h2" gutterBottom>
-          All Tutoring Requests
+          Tutoring Requests by {localStorage.getItem('teacherName')}
         </Typography>
         
         <Box sx={{ display: 'flex', mb: 3, gap: 2 }}>
@@ -215,7 +214,6 @@ const TutoringRequestList = ({ requests, onRequestCancelled }) => {
                 <TableRow>
                   <TableCell>Date</TableCell>
                   <TableCell>Student</TableCell>
-                  <TableCell>Teacher</TableCell>
                   <TableCell>Lunch Periods</TableCell>
                   <TableCell>Status</TableCell>
                   <TableCell align="right">Actions</TableCell>
@@ -226,7 +224,6 @@ const TutoringRequestList = ({ requests, onRequestCancelled }) => {
                   <TableRow key={request.id}>
                     <TableCell>{formatDate(request.date)}</TableCell>
                     <TableCell>{request.Student?.name || 'Unknown'}</TableCell>
-                    <TableCell>{request.Teacher?.name || 'Unknown'}</TableCell>
                     <TableCell>{getLunchPeriods(request)}</TableCell>
                     <TableCell>
                       <Chip 

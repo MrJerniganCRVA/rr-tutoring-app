@@ -15,8 +15,6 @@ const Teacher = sequelize.define('Teacher', {
     type: DataTypes.STRING,
     allowNull: false
   }
-}, {
-  timestamps: true
 });
 
 module.exports = Teacher;

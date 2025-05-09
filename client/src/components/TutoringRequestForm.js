@@ -45,7 +45,16 @@ const TutoringRequestForm = ({ onRequestAdded }) => {
       try {
         setFetchingStudents(true);
         const response = await apiService.getStudents();
-        setStudents(response.data);
+        const filteredStudents = response.data.filter(student =>{
+          console.log(parseInt(teacherId));
+          return(
+            student?.R1Id===parseInt(teacherId) ||
+            student?.R2Id===parseInt(teacherId) ||
+            student?.R4Id===parseInt(teacherId) ||
+            student?.R5Id===parseInt(teacherId)
+          );
+        });
+        setStudents(filteredStudents);
         setFetchingStudents(false);
       } catch (err) {
         console.error('Error fetching students:', err);

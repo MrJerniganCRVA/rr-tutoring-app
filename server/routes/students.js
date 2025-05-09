@@ -63,7 +63,16 @@ router.get('/', async (req, res) => {
 // @access  Public
 router.post('/', async (req, res) => {
   const { name, teachers } = req.body;
-  
+  try{
+    await sequelize.query("SELECT * FROM Student LIMIT 1",
+      {type:sequelize.QueryTypes.SELECT}
+    );
+    console.log("Student Table Exists!")
+  } catch (err){
+    console.log("No table exists.")
+    await Student.sync({force: false});
+    console.log("Table Created")
+  }
   try {
     const studentData = {
       name,
@@ -75,7 +84,11 @@ router.post('/', async (req, res) => {
     };
     
     const student = await Student.create(studentData);
+    let student_exists = await Student.findOne({ where: { name } });
     
+    if (student_exists) {
+      return res.status(400).json({ msg: 'Student already exists. Consider Updating instead of POST' });
+    }
     // Fetch the student with teacher associations
     const newStudent = await Student.findByPk(student.id, {
       include: [
