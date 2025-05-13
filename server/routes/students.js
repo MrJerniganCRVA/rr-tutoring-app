@@ -67,11 +67,8 @@ router.post('/', async (req, res) => {
     await sequelize.query("SELECT * FROM Student LIMIT 1",
       {type:sequelize.QueryTypes.SELECT}
     );
-    console.log("Student Table Exists!")
   } catch (err){
-    console.log("No table exists.")
     await Student.sync({force: false});
-    console.log("Table Created")
   }
   try {
     const studentData = {

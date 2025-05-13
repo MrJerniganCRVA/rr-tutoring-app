@@ -25,7 +25,7 @@ import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import axios from 'axios';
-import { format } from 'date-fns';
+import { format, parseISO } from 'date-fns';
 
 const TutoringRequestList = ({ requests, onRequestCancelled }) => {
   const [filterDate, setFilterDate] = useState(null);
@@ -61,11 +61,12 @@ const TutoringRequestList = ({ requests, onRequestCancelled }) => {
     if(request.Teacher?.name?.toLowerCase() !== localStorage.getItem('teacherName').toLowerCase()){
       return false;
     }
-    const requestDate = new Date(request.date);
+
+    const [year, month, day] = request.date.split('-');
+    const requestDate = new Date(year, month-1, day);
     // Specific Date filter
     if (filterDate) {
       const selectedDate = new Date(filterDate);
-      
       if (
         requestDate.getFullYear() !== selectedDate.getFullYear() ||
         requestDate.getMonth() !== selectedDate.getMonth() ||
@@ -82,9 +83,6 @@ const TutoringRequestList = ({ requests, onRequestCancelled }) => {
     }
     //If no specific date or student then only future dates
     const today = new Date();
-    today.setHours(0,0,0,0);
-    requestDate.setHours(0,0,0,0);
-    
     return requestDate >= today;
   });
   
@@ -108,7 +106,10 @@ const TutoringRequestList = ({ requests, onRequestCancelled }) => {
   
   // Helper function to format date
   const formatDate = (dateString) => {
-    return format(new Date(dateString), 'MMM dd, yyyy');
+    console.log(dateString);
+    const formed = format(new Date(dateString), 'MMM dd, yyyy');
+    console.log(formed);
+    return format(parseISO(dateString), 'MMM dd, yyyy');
   };
   
   // Helper function to show lunch periods

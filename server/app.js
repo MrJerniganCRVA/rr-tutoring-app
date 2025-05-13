@@ -7,10 +7,8 @@ const db = new sqlite3.Database('./test.db', sqlite.OPEN_READWRITE, (err)=>{
 });
 
 sql =`CREATE TABLE Teachers(id INTEGER PRIMARY KEY, name, email, subject)`;
-console.log("something");
 try{
     db.run(sql);
-    console.log("Table Created")
 } catch (err){
     console.error;
 }

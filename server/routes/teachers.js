@@ -45,11 +45,8 @@ router.post('/', async (req, res) => {
       await sequelize.query("SELECT * FROM Teachers LIMIT 1",
         {type:sequelize.QueryTypes.SELECT}
       );
-      console.log("Teachers Table Exists!")
     } catch (err){
-      console.log("No table exists.")
       await Teacher.sync({force: false});
-      console.log("Table Created")
     }
     // Check if teacher already exists
     let teacher = await Teacher.findOne({ where: { email } });

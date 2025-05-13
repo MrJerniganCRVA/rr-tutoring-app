@@ -5,7 +5,23 @@ const TutoringRequest = require('../models/TutoringRequest');
 const Student = require('../models/Student');
 const Teacher = require('../models/Teacher');
 const auth = require('../middleware/auth');
-
+// @route   GET api/teachers/:id
+// @desc    Get teacher by ID
+// @access  Public
+router.get('/:id', async (req, res) => {
+  try {
+    const tutoringevent = await TutoringRequest.findByPk(req.params.id);
+    
+    if (!tutoringevent) {
+      return res.status(404).json({ msg: 'Tutoring Event not found' });
+    }
+    
+    res.json(tutoringevent);
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).send('Server Error');
+  }
+});
 // @route   GET api/tutoring
 // @desc    Get all tutoring requests
 // @access  Public
@@ -49,6 +65,8 @@ router.post('/', auth, async (req, res) => {
     
     // Format the date
     const requestDate = new Date(date);
+    requestDate.setHours(12,0,0,0);
+    console.log(requestDate);
     
     // Check if there are existing requests for this student on the same day
     const existingRequests = await TutoringRequest.findAll({

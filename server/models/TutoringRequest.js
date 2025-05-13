@@ -31,8 +31,6 @@ const TutoringRequest = sequelize.define('TutoringRequest', {
       isIn: [['active', 'cancelled']]
     }
   }
-}, {
-  timestamps: true
 });
 
 // Define associations

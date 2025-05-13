@@ -97,13 +97,17 @@ const TutoringRequestForm = ({ onRequestAdded }) => {
       return;
     }
     
+    //Date still two days behind in front end...one date behind in back end
+
     // Submit request
     try {
       setLoading(true);
-      
+      let constructedDate = new Date(selectedDate.toISOString().split('T')[0]);
+      constructedDate.setDate(constructedDate.getDate()+1);
+      console.log(constructedDate);
       const response = await apiService.createTutoringRequest({
         studentId: selectedStudent,
-        date: selectedDate.toISOString().split('T')[0],
+        date: constructedDate,
         lunches
       });
       
@@ -121,6 +125,7 @@ const TutoringRequestForm = ({ onRequestAdded }) => {
       
       // Notify parent component
       if (onRequestAdded) {
+        console.log(response.data)
         onRequestAdded(response.data);
       }
       

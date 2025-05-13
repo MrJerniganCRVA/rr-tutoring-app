@@ -14,7 +14,11 @@ app.use(cors());
 const sequelize = new Sequelize({
   dialect: 'sqlite',
   storage: './database.sqlite', // This will create a SQLite database file
-  logging: false // Set to true if you want to see SQL queries in console
+  logging: false, // Set to true if you want to see SQL queries in console
+  dialectOptions:{
+    useUTC: false,
+  },
+  timezone: '+00:00',
 });
 
 // Test database connection
