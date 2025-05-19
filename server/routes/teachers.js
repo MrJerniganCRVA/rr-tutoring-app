@@ -39,7 +39,7 @@ router.get('/:id', async (req, res) => {
 // @access  Public
 router.post('/', async (req, res) => {
   try{
-    const {name, email, subject} = req.body;
+    const {name, email, subject, lunch} = req.body;
     //Create table if none exist
     try{
       await sequelize.query("SELECT * FROM Teachers LIMIT 1",
@@ -59,7 +59,8 @@ router.post('/', async (req, res) => {
     teacher = await Teacher.create({
       name,
       email,
-      subject
+      subject,
+      lunch
     });
     
     res.json(teacher);

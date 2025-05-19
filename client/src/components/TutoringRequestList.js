@@ -57,7 +57,10 @@ const TutoringRequestList = ({ requests, onRequestCancelled }) => {
   
   // Filter requests by date and search term as well as remove any non RR teacher requests
   const filteredRequests = requests.filter(request => {
-    // Teacher Filter by local storage
+    if(request.status==='cancelled'){
+      return false;
+    }
+    // Teacher Filter by local storage. Only want their requests on bottom
     if(request.Teacher?.name?.toLowerCase() !== localStorage.getItem('teacherName').toLowerCase()){
       return false;
     }
@@ -106,9 +109,7 @@ const TutoringRequestList = ({ requests, onRequestCancelled }) => {
   
   // Helper function to format date
   const formatDate = (dateString) => {
-    console.log(dateString);
     const formed = format(new Date(dateString), 'MMM dd, yyyy');
-    console.log(formed);
     return format(parseISO(dateString), 'MMM dd, yyyy');
   };
   

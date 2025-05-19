@@ -24,6 +24,7 @@ const TutoringRequestForm = ({ onRequestAdded }) => {
   const [students, setStudents] = useState([]);
   const [selectedStudent, setSelectedStudent] = useState('');
   const [selectedDate, setSelectedDate] = useState(null);
+  const [studentLunchPeriod, setStudentLunchPeriod] = useState(null);
   const [lunches, setLunches] = useState({
     A: false,
     B: false,
@@ -46,7 +47,6 @@ const TutoringRequestForm = ({ onRequestAdded }) => {
         setFetchingStudents(true);
         const response = await apiService.getStudents();
         const filteredStudents = response.data.filter(student =>{
-          console.log(parseInt(teacherId));
           return(
             student?.R1Id===parseInt(teacherId) ||
             student?.R2Id===parseInt(teacherId) ||
@@ -54,7 +54,11 @@ const TutoringRequestForm = ({ onRequestAdded }) => {
             student?.R5Id===parseInt(teacherId)
           );
         });
-        setStudents(filteredStudents);
+        const filteredStudentNames = filteredStudents.map(student =>{
+          student.name = student.lunch ? `[${student.lunch}] ${student.name}` : `N ${student.name}`;
+          return student;
+        });
+        setStudents(filteredStudentNames);
         setFetchingStudents(false);
       } catch (err) {
         console.error('Error fetching students:', err);
@@ -65,14 +69,35 @@ const TutoringRequestForm = ({ onRequestAdded }) => {
     
     fetchStudents();
   }, []);
+
   
+  const handleStudentChange = async (event) =>{
+    const studentId = event.target.value;
+    setSelectedStudent(studentId);
+
+    const student = students.find(s => s.id === studentId);
+    if(student){
+      try{
+        const rrTeacherId = student.RRId;
+        const teacherResponse = await apiService.getTeacher(rrTeacherId);
+        console.log(teacherResponse.data);
+        const teacherLunch = teacherResponse.data.lunch;
+        console.log(teacherLunch);
+        setStudentLunchPeriod(teacherLunch);
+      } catch (error){
+        console.log("Couldn't find lunch of student");
+      }
+    }
+    else{
+      setStudentLunchPeriod(null);
+    }
+  }
   const handleLunchChange = (event) => {
     setLunches({
       ...lunches,
       [event.target.name]: event.target.checked
     });
   };
-  
   const handleSubmit = async (event) => {
     event.preventDefault();
     
@@ -96,8 +121,6 @@ const TutoringRequestForm = ({ onRequestAdded }) => {
       setError('Please select at least one lunch period');
       return;
     }
-    
-    //Date still two days behind in front end...one date behind in back end
 
     // Submit request
     try {
@@ -159,7 +182,7 @@ const TutoringRequestForm = ({ onRequestAdded }) => {
             labelId="student-select-label"
             value={selectedStudent}
             label="Student"
-            onChange={(e) => setSelectedStudent(e.target.value)}
+            onChange={(e) => handleStudentChange(e)}
             disabled={fetchingStudents || loading}
           >
             {fetchingStudents ? (
@@ -194,51 +217,26 @@ const TutoringRequestForm = ({ onRequestAdded }) => {
         </Typography>
         
         <FormGroup>
-          <FormControlLabel 
+          {['A','B','C','D'].map(period => (
+            <FormControlLabel
+            key={period}
             control={
-              <Checkbox 
-                checked={lunches.A} 
-                onChange={handleLunchChange} 
-                name="A" 
-                disabled={loading}
+              <Checkbox
+              checked={lunches[period]}
+              onChange={handleLunchChange}
+              name={period}
+              disabled={period===studentLunchPeriod}
               />
-            } 
-            label="Lunch A" 
-          />
-          <FormControlLabel 
-            control={
-              <Checkbox 
-                checked={lunches.B} 
-                onChange={handleLunchChange} 
-                name="B" 
-                disabled={loading}
-              />
-            } 
-            label="Lunch B" 
-          />
-          <FormControlLabel 
-            control={
-              <Checkbox 
-                checked={lunches.C} 
-                onChange={handleLunchChange} 
-                name="C" 
-                disabled={loading}
-              />
-            } 
-            label="Lunch C" 
-          />
-          <FormControlLabel 
-            control={
-              <Checkbox 
-                checked={lunches.D} 
-                onChange={handleLunchChange} 
-                name="D" 
-                disabled={loading}
-              />
-            } 
-            label="Lunch D" 
-          />
-        </FormGroup>
+            }
+            label={
+              period===studentLunchPeriod
+              ? `Lunch ${period} (Unavailable)`
+              : `Lunch ${period}`
+            }
+            />
+          ))}
+          </FormGroup>
+          
         
         <Button
           type="submit"

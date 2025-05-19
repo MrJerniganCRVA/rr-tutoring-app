@@ -30,13 +30,22 @@ router.get('/teacher/:teacherId', async (req, res) => {
         { model: Teacher, as: 'R5' }
       ]
     });
-    
-    res.json(students);
+    const lunchStudents = addLunch(students);
+    res.json(lunchStudents);
   } catch (err) {
     console.error(err.message);
     res.status(500).send('Server Error');
   }
 });
+
+function addLunch(students){
+  const newStudents = students.map(student =>{
+    const data = student.toJSON();
+    data.lunch = student.RR ? student.RR.lunch : null;
+    return data;
+  });
+  return newStudents;
+}
 // @route   GET api/students
 // @desc    Get all students
 // @access  Public
@@ -51,7 +60,9 @@ router.get('/', async (req, res) => {
         { model: Teacher, as: 'R5' }
       ]
     });
-    res.json(students);
+
+    const lunchStudents = addLunch(students);
+    res.json(lunchStudents);
   } catch (err) {
     console.error(err.message);
     res.status(500).send('Server Error');
@@ -80,12 +91,11 @@ router.post('/', async (req, res) => {
       R5Id: teachers?.R5 || null
     };
     
-    const student = await Student.create(studentData);
     let student_exists = await Student.findOne({ where: { name } });
-    
     if (student_exists) {
       return res.status(400).json({ msg: 'Student already exists. Consider Updating instead of POST' });
     }
+    const student = await Student.create(studentData);
     // Fetch the student with teacher associations
     const newStudent = await Student.findByPk(student.id, {
       include: [

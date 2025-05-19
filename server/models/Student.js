@@ -7,8 +7,6 @@ const Student = sequelize.define('Student', {
     type: DataTypes.STRING,
     allowNull: false
   }
-}, {
-  timestamps: true
 });
 
 // Define associations after the model is defined

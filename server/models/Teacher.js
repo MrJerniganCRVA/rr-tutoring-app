@@ -14,6 +14,12 @@ const Teacher = sequelize.define('Teacher', {
   subject: {
     type: DataTypes.STRING,
     allowNull: false
+  },lunch:{
+    type:DataTypes.STRING,
+    allowNull:true,
+    validate: {
+      isIn: [['A','B','C','D']]
+    }
   }
 });
 
