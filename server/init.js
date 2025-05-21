@@ -13,20 +13,12 @@ if (fs.existsSync(dbPath)) {
   fs.unlinkSync(dbPath);
 }
 
-// Create a new Sequelize instance
-const sequelize = new Sequelize({
-  dialect: 'sqlite',
-  storage: dbPath,
-  logging: console.log
-});
+const sequelize = require('./config/db')
 
 // Define models
 const Teacher = require('./models/Teacher');
 const Student = require('./models/Student');
 const TutoringRequest = require('./models/TutoringRequest');
-Teacher.sync();
-Student.sync();
-TutoringRequest.sync();
 
 // Function to initialize database and add test data
 async function initDatabase() {
@@ -35,20 +27,12 @@ async function initDatabase() {
     await sequelize.sync({ force: true });
     console.log('Database initialized successfully');
 
-    const db = new sqlite3.Database(dbPath, (err)=>{
-        if(err){
-            console.log("Error opening db");
-            process.exit(1);
-        }
-        console.log("Connected to SQLite Databse");
-    });
-
     // Create sample teachers
     const teachers = await Teacher.bulkCreate([
       {
         name: 'Alice Johnson',
         email: 'ajohnson@school.edu',
-        subject: 'Mathematics',
+        subject: 'Math',
         lunch: 'A'
       },
       {
@@ -143,11 +127,12 @@ async function initDatabase() {
     console.log(`Tutoring requests created: ${requests.length}`);
     console.log('\nTeacher details:');
     teachers.forEach(teacher => {
-      console.log(`- ${teacher.name} (${teacher.subject}, Lunch ${teacher.lunchPeriod})`);
+      console.log(`- ${teacher.name} (${teacher.subject}, Lunch ${teacher.lunch})`);
     });
     
     // Close the database connection
-    await sequelize.close();
+    await sequelize.close()
+    .then(()=>console.log("Database Closed"));
     
   } catch (error) {
     console.error('Database initialization failed:', error);

@@ -1,44 +1,35 @@
+
 const express = require('express');
-const { Sequelize } = require('sequelize');
 const cors = require('cors');
+const sequelize = require('./config/db');
+
 require('dotenv').config();
 
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-// Middleware
 app.use(express.json());
 app.use(cors());
-
-// Set up Sequelize with SQLite
-const sequelize = new Sequelize({
-  dialect: 'sqlite',
-  storage: './database.sqlite', // This will create a SQLite database file
-  logging: false, // Set to true if you want to see SQL queries in console
-  dialectOptions:{
-    useUTC: false,
-  },
-  timezone: '+00:00',
-});
-
-// Test database connection
-sequelize.authenticate()
-  .then(() => console.log('Database connected successfully'))
-  .catch(err => console.error('Unable to connect to the database:', err));
-
-// Sync database (create tables based on models)
-sequelize.sync({ alter: true })
-  .then(() => console.log('Database synced'))
-  .catch(err => console.error('Error syncing database:', err));
-
 // Define routes
 app.use('/api/teachers', require('./routes/teachers'));
 app.use('/api/students', require('./routes/students'));
 app.use('/api/tutoring', require('./routes/tutoring'));
 
+// Test database connection
+sequelize.authenticate()
+  .then(() => {
+    console.log('Database connected successfully');
+    sequelize.sync().then(()=>{
+      app.listen(PORT, () => console.log(`Server running on port:${PORT}`));
+      console.log("Listening");
+    })
+    .catch((err)=>{
+      console.error("Unable to connect", err);
+    });
+  })
+  .catch(err => console.error('Unable to connect to the database:', err));
+
 // Simple test route
 app.get('/', (req, res) => {
   res.json({ msg: 'Welcome to the Tutoring Scheduler API' });
 });
-
-app.listen(PORT, () => console.log(`Server running on port ${PORT}`));

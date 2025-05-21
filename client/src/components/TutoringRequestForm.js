@@ -19,6 +19,7 @@ import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import apiService from '../utils/apiService';
+import {isSaturday, isSunday} from 'date-fns';
 
 const TutoringRequestForm = ({ onRequestAdded }) => {
   const [students, setStudents] = useState([]);
@@ -39,7 +40,9 @@ const TutoringRequestForm = ({ onRequestAdded }) => {
   
   // Get the logged in teacher
   const teacherId = localStorage.getItem('teacherId');
-  
+  const isWeekend = (date) =>{
+    return isSaturday(date) || isSunday(date);
+  };
   useEffect(() => {
     // Fetch students
     const fetchStudents = async () => {
@@ -165,7 +168,6 @@ const TutoringRequestForm = ({ onRequestAdded }) => {
       setLoading(false);
     }
   };
-  
   return (
     <Paper elevation={3} sx={{ p: 3 }}>
       <Typography variant="h5" component="h2" gutterBottom>
@@ -209,6 +211,7 @@ const TutoringRequestForm = ({ onRequestAdded }) => {
             )}
             disabled={loading}
             minDate={new Date()} // Can't request dates in the past
+            shouldDisableDate={isWeekend} 
           />
         </LocalizationProvider>
         

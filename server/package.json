@@ -1,15 +1,16 @@
 {
   "name": "server",
   "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
+  "description": "REST API for RR Tutoring for CodeRVA",
+  "main": "server.js",
   "scripts": {
     "start": "node server.js",
     "init": "node init.js",
-    "dev": "nodemon server.js"
+    "dev": "nodemon server.js",
+    "dev-index":"nodemon index.js"
   },
   "keywords": [],
-  "author": "",
+  "author": "Zach Jernigan <zachary.jernigan@coderva.org>",
   "license": "ISC",
   "type": "commonjs",
   "dependencies": {
