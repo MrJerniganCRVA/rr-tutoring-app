@@ -4,6 +4,7 @@ import { Container, CssBaseline, ThemeProvider, createTheme } from '@mui/materia
 import TeacherSelect from './components/TeacherSelect';
 import Dashboard from './components/Dashboard';
 import Header from './components/Header';
+import BulkTutoring from './components/BulkTutoring';
 
 // Create a theme instance
 const theme = createTheme({
@@ -40,6 +41,7 @@ function App() {
           <Routes>
             <Route path="/select-teacher" element={<TeacherSelect />} />
             <Route path="/dashboard" element={<Dashboard />} />
+            <Route path='/bulk-tutoring' element={<BulkTutoring />} />
             <Route path="/" element={<Navigate to="/select-teacher" replace />} />
           </Routes>
         </Container>
