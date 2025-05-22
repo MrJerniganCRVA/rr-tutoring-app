@@ -1,7 +1,7 @@
+// Update src/components/Dashboard.js
 import React, { useState, useEffect } from 'react';
 import { Grid, Box, Typography, Alert, CircularProgress } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
-import TutoringRequestForm from './TutoringRequestForm';
 import TutoringRequestList from './TutoringRequestList';
 import axios from 'axios';
 
@@ -36,10 +36,6 @@ const Dashboard = () => {
     fetchRequests();
   }, [navigate]);
   
-  const handleRequestAdded = (newRequest) => {
-    setRequests([...requests, newRequest]);
-  };
-  
   const handleRequestCancelled = (requestId) => {
     setRequests(
       requests.map(request => 
@@ -66,19 +62,14 @@ const Dashboard = () => {
       
       {error && <Alert severity="error" sx={{ mb: 3 }}>{error}</Alert>}
       
-      <Grid container spacing={3}>
-        <Grid item xs={12} md={5}>
-          <TutoringRequestForm onRequestAdded={handleRequestAdded} />
-        </Grid>
-        <Grid item xs={12} md={7}>
-          <TutoringRequestList 
-            requests={requests} 
-            onRequestCancelled={handleRequestCancelled} 
-          />
-        </Grid>
-      </Grid>
+      {/* You can add more dashboard widgets here */}
+      <TutoringRequestList 
+        requests={requests} 
+        onRequestCancelled={handleRequestCancelled} 
+      />
     </Box>
   );
 };
 
 export default Dashboard;
+

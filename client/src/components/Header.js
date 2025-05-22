@@ -126,7 +126,7 @@ const Header = () => {
           sx={{ flexGrow: 1 }}
         >
           <Tab label="Dashboard" onClick={() => navigate('/dashboard')} />
-          <Tab label="Bulk Tutoring" onClick={() => navigate('/bulk-tutoring')} />
+          <Tab label="Tutoring Requests" onClick={() => navigate('/bulk-tutoring')} />
         </Tabs>
         
         <Box sx={{ display: 'flex', alignItems: 'center' }}>

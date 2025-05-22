@@ -242,9 +242,6 @@ const BulkTutoring = () => {
   
   return (
     <Box>
-      <Typography variant="h4" component="h1" gutterBottom>
-        Bulk Tutoring Scheduler
-      </Typography>
       
       <Paper elevation={3} sx={{ p: 3, mb: 3 }}>
         <Typography variant="h5" component="h2" gutterBottom>
@@ -343,7 +340,7 @@ const BulkTutoring = () => {
                 Student Selection
               </Typography>
               
-              <TextField
+              {/* <TextField
                 fullWidth
                 margin="normal"
                 label="Filter Students"
@@ -351,7 +348,7 @@ const BulkTutoring = () => {
                 onChange={(e) => setStudentFilter(e.target.value)}
                 disabled={loading}
               />
-              
+               */}
               <FormControl fullWidth margin="normal">
                 <InputLabel id="student-select-label">Add Student</InputLabel>
                 <Select
@@ -407,7 +404,7 @@ const BulkTutoring = () => {
                   {selectedStudents.map((student) => (
                     <ListItem
                       key={student.id}
-                      sx={{pr:9}}
+                      sx={{pr:15}}
                       secondaryAction={
                         <Button
                           edge="end"
