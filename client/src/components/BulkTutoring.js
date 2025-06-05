@@ -18,7 +18,6 @@ import {
   ListItem,
   ListItemText,
   ListItemIcon,
-  Divider,
   Chip,
   Grid
 } from '@mui/material';
@@ -32,8 +31,6 @@ import apiService from '../utils/apiService';
 import AddIcon from '@mui/icons-material/Add';
 import RemoveIcon from '@mui/icons-material/Remove';
 import PersonIcon from '@mui/icons-material/Person';
-import CheckCircleIcon from '@mui/icons-material/CheckCircle';
-import SchoolIcon from '@mui/icons-material/School';
 
 const BulkTutoring = () => {
   // State for form fields
@@ -173,17 +170,20 @@ const BulkTutoring = () => {
     
     try {
       // Process each student as a separate request
-      const requests = [];
       const successfulStudents = [];
       const failedStudents = [];
       
       for (const student of selectedStudents) {
         try {
+          let constructedDate = new Date(selectedDate.toISOString().split('T')[0]);
+          constructedDate.setDate(constructedDate.getDate()+1);
+          console.log(constructedDate);
           const response = await apiService.createTutoringRequest({
-            studentId: student.id,
-            date: selectedDate.toISOString().split('T')[0],
-            lunches
+              studentId: student.id,
+              date: constructedDate,
+              lunches
           });
+         
           
           successfulStudents.push({
             student: student.name,
@@ -367,12 +367,6 @@ const BulkTutoring = () => {
                       <MenuItem 
                         key={student.id} 
                         value={student.id}
-                        sx={{
-                          backgroundColor: student.lunchPeriod === 'A' ? 'rgba(255, 0, 0, 0.05)' :
-                                          student.lunchPeriod === 'B' ? 'rgba(0, 255, 0, 0.05)' :
-                                          student.lunchPeriod === 'C' ? 'rgba(0, 0, 255, 0.05)' :
-                                          student.lunchPeriod === 'D' ? 'rgba(255, 255, 0, 0.05)' : 'inherit'
-                        }}
                       >
                         {student.displayName}
                       </MenuItem>
@@ -432,12 +426,7 @@ const BulkTutoring = () => {
                         <Chip 
                           label={`Lunch ${student.lunchPeriod}`} 
                           size="small" 
-                          color={
-                            student.lunchPeriod === 'A' ? 'error' :
-                            student.lunchPeriod === 'B' ? 'success' :
-                            student.lunchPeriod === 'C' ? 'primary' :
-                            student.lunchPeriod === 'D' ? 'warning' : 'default'
-                          }
+                          color="primary"
                           />
                           </Box>  
                       )}
