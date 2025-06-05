@@ -13,9 +13,7 @@ import {
   Chip,
   TextField,
   InputAdornment,
-  Alert,
-  IconButton,
-  Tooltip
+  Alert
 } from '@mui/material';
 import { 
   Search as SearchIcon,
@@ -155,7 +153,7 @@ const TutoringRequestList = ({ requests, onRequestCancelled }) => {
             </Table>
           </TableContainer>
           ) : (
-            <Alert severity="info">No tutoring requests today!</Alert>
+            <Alert severity="info">No one requested from your RR today!</Alert>
           )}
         </Paper>
       
