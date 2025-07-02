@@ -1,11 +1,12 @@
 // Update src/components/Dashboard.js
 import React, { useState, useEffect } from 'react';
-import { Grid, Box, Typography, Alert, CircularProgress } from '@mui/material';
+import { Box, Typography, Alert, CircularProgress } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
-import TutoringRequestList from './TutoringRequestList';
+import TutoringRequestListSimple from './TutoringRequestListSimple';
 import axios from 'axios';
+import RaptorRotationEvents from './RaptorRotationEvents';
 
-const Dashboard = () => {
+const RaptorRotation = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [requests, setRequests] = useState([]);
@@ -57,19 +58,23 @@ const Dashboard = () => {
   return (
     <Box>
       <Typography variant="h4" component="h1" gutterBottom>
-        Tutoring Dashboard
+        Leaving RR Today
       </Typography>
       
       {error && <Alert severity="error" sx={{ mb: 3 }}>{error}</Alert>}
-      
-      {/* You can add more dashboard widgets here */}
-      <TutoringRequestList 
+
+      <RaptorRotationEvents 
         requests={requests} 
-        onRequestCancelled={handleRequestCancelled} 
+      />
+      <Typography variant="h4" component="h1" gutterBottom>
+        Coming For Tutoring
+      </Typography>
+      <TutoringRequestListSimple
+        requests={requests}
       />
     </Box>
   );
 };
 
-export default Dashboard;
+export default RaptorRotation;
 

@@ -2,10 +2,10 @@ import React from 'react';
 import { BrowserRouter as Router, Route, Routes, Navigate } from 'react-router-dom';
 import { Container, CssBaseline, ThemeProvider, createTheme } from '@mui/material';
 import TeacherSelect from './components/TeacherSelect';
-import Dashboard from './components/Dashboard';
+import RaptorRotation from './components/RaptorRotation';
 import Header from './components/Header';
 import Scheduling from './components/Scheduling';
-import BulkTutoring from './components/BulkTutoring';
+import TutoringEvents from './components/TutoringEvents';
 
 // Create a theme instance
 const theme = createTheme({
@@ -32,7 +32,6 @@ const theme = createTheme({
 });
 
 function App() {
-  console.log("Made it to app");
   return (
     <ThemeProvider theme={theme}>
       <CssBaseline />
@@ -41,8 +40,9 @@ function App() {
         <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
           <Routes>
             <Route path="/select-teacher" element={<TeacherSelect />} />
-            <Route path="/dashboard" element={<Dashboard />} />
-            <Route path='/tutoring' element={<Scheduling />} />
+            <Route path="/dashboard" element={<RaptorRotation />} />
+            <Route path="/tutoring" element={<Scheduling />} />
+            <Route path="/calendar" element={<TutoringEvents />} />
             <Route path="/" element={<Navigate to="/select-teacher" replace />} />
           </Routes>
         </Container>

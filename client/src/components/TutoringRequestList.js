@@ -15,10 +15,7 @@ import {
   InputAdornment,
   Alert
 } from '@mui/material';
-import { 
-  Search as SearchIcon,
-  Cancel as CancelIcon 
-} from '@mui/icons-material';
+import { Search as SearchIcon } from '@mui/icons-material';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
@@ -29,7 +26,7 @@ const TutoringRequestList = ({ requests, onRequestCancelled }) => {
   const [filterDate, setFilterDate] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [error, setError] = useState('');
-  
+  const [checked, setChecked] = useState(false);
   const teacherId = localStorage.getItem('teacherId');
   
   const handleCancelRequest = async (requestId) => {
@@ -53,7 +50,7 @@ const TutoringRequestList = ({ requests, onRequestCancelled }) => {
     }
   };
   
-  // Filter requests by date and search term as well as remove any non RR teacher requests
+  // Filter requests by date and search term as well as remove any non teacher requests
   const filteredRequests = requests.filter(request => {
     if(request.status==='cancelled'){
       return false;
@@ -86,28 +83,13 @@ const TutoringRequestList = ({ requests, onRequestCancelled }) => {
     const today = new Date();
     return requestDate >= today;
   });
-  
-  // Get today's requests for RR teacher
-  const todaysRequests = requests.filter(request => {
-    const requestDate = new Date(request.date);
-    const today = new Date();
-    const isToday = 
-    (
-      requestDate.getFullYear() === today.getFullYear() &&
-      requestDate.getMonth() === today.getMonth() &&
-      requestDate.getDate() === today.getDate() &&
-      request.status === 'active'
-    );
-
-    const teacherId = localStorage.getItem('teacherId');
-    const isRRteacher = request.Student?.teachers?.RR?.id ===parseInt(teacherId);
-
-    return isToday && isRRteacher;
-  });
-  
+  //set check box
+  const handleChange = (event, request)=>{
+    setChecked(event.target.checked);
+    //on request send update table
+  };
   // Helper function to format date
   const formatDate = (dateString) => {
-    const formed = format(new Date(dateString), 'MMM dd, yyyy');
     return format(parseISO(dateString), 'MMM dd, yyyy');
   };
   
@@ -125,37 +107,6 @@ const TutoringRequestList = ({ requests, onRequestCancelled }) => {
   return (
     <Box>
       {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
-      
-        <Paper elevation={3} sx={{ p: 3, mb: 3 }}>
-          <Typography variant="h6" gutterBottom>
-            RR Tutoring Sessions for Today
-          </Typography>
-          {todaysRequests.length>0 ?(
-          <TableContainer>
-            <Table size="small">
-              <TableHead>
-                <TableRow>
-                  <TableCell>Student</TableCell>
-                  <TableCell>Teacher</TableCell>
-                  <TableCell>Lunch Periods</TableCell>
-                  <TableCell align="right">Actions</TableCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {todaysRequests.map((request) => (
-                  <TableRow key={request.id}>
-                    <TableCell>{request.Student?.name || 'Unknown'}</TableCell>
-                    <TableCell>{request.Teacher?.name || 'Unknown'}</TableCell>
-                    <TableCell>{getLunchPeriods(request)}</TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </TableContainer>
-          ) : (
-            <Alert severity="info">No one requested from your RR today!</Alert>
-          )}
-        </Paper>
       
       <Paper elevation={3} sx={{ p: 3 }}>
         <Typography variant="h5" component="h2" gutterBottom>
@@ -193,7 +144,6 @@ const TutoringRequestList = ({ requests, onRequestCancelled }) => {
               )}
             />
           </LocalizationProvider>
-          
           <Button 
             variant="outlined" 
             onClick={() => {

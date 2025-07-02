@@ -3,17 +3,15 @@ import {
   Box,
   Paper,
   Typography,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
   TextField,
   Button,
   FormGroup,
   FormControlLabel,
+  Autocomplete,
   Checkbox,
   Alert,
-  CircularProgress
+  CircularProgress,
+  Chip
 } from '@mui/material';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
@@ -32,7 +30,6 @@ const TutoringRequestForm = ({ onRequestAdded }) => {
     C: false,
     D: false
   });
-  
   const [loading, setLoading] = useState(false);
   const [fetchingStudents, setFetchingStudents] = useState(true);
   const [error, setError] = useState('');
@@ -83,9 +80,7 @@ const TutoringRequestForm = ({ onRequestAdded }) => {
       try{
         const rrTeacherId = student.RRId;
         const teacherResponse = await apiService.getTeacher(rrTeacherId);
-        console.log(teacherResponse.data);
         const teacherLunch = teacherResponse.data.lunch;
-        console.log(teacherLunch);
         setStudentLunchPeriod(teacherLunch);
       } catch (error){
         console.log("Couldn't find lunch of student");
@@ -148,6 +143,7 @@ const TutoringRequestForm = ({ onRequestAdded }) => {
         C: false,
         D: false
       });
+      setStudentLunchPeriod(null);
       
       // Notify parent component
       if (onRequestAdded) {
@@ -168,6 +164,7 @@ const TutoringRequestForm = ({ onRequestAdded }) => {
       setLoading(false);
     }
   };
+
   return (
     <Paper elevation={3} sx={{ p: 3 }}>
       <Typography variant="h5" component="h2" gutterBottom>
@@ -178,28 +175,68 @@ const TutoringRequestForm = ({ onRequestAdded }) => {
       {success && <Alert severity="success" sx={{ mb: 2 }}>{success}</Alert>}
       
       <Box component="form" onSubmit={handleSubmit}>
-        <FormControl fullWidth margin="normal">
-          <InputLabel id="student-select-label">Student</InputLabel>
-          <Select
-            labelId="student-select-label"
-            value={selectedStudent}
-            label="Student"
-            onChange={(e) => handleStudentChange(e)}
-            disabled={fetchingStudents || loading}
-          >
-            {fetchingStudents ? (
-              <MenuItem disabled>Loading students...</MenuItem>
-            ) : students.length === 0 ? (
-              <MenuItem disabled>No students available</MenuItem>
-            ) : (
-              students.map((student) => (
-                <MenuItem key={student.id} value={student.id}>
-                  {student.name}
-                </MenuItem>
-              ))
-            )}
-          </Select>
-        </FormControl>
+        
+        <Autocomplete
+          id="student-autocomplete"
+          options={students}
+          getOptionLabel={(option) => option.name || ''}
+          value={students.find(student => student.id === selectedStudent) || null}
+          onChange={(event, newValue) => {
+            const studentId = newValue ? newValue.id : '';
+            handleStudentChange({target: {value: studentId}});
+          }}
+          filterOptions={(options, { inputValue }) => {
+            // Only filter by student name
+            const searchText = inputValue.toLowerCase();
+            return options.filter(option => 
+              option.name.toLowerCase().includes(searchText)
+            );
+          }}
+          renderInput={(params) => (
+            <TextField
+              {...params}
+              label="Select Student"
+              margin="normal"
+              fullWidth
+              placeholder="Type student name..."
+              disabled={fetchingStudents || loading}
+              helperText={fetchingStudents ? "Loading students..." : "Type to search by student name"}
+            />
+          )}
+          renderOption={(props, option) => (
+            <Box component="li" {...props} sx={{ display: 'flex', alignItems: 'center', py: 1 }}>
+              <Box sx={{ flexGrow: 1 }}>
+                <Typography variant="body1">
+                  {option.name}
+                </Typography>
+              </Box>
+              {option.lunchPeriod && (
+                <Chip
+                  label={`Lunch ${option.lunchPeriod}`}
+                  size="small"
+                  color={
+                    option.lunchPeriod === 'A' ? 'error' :
+                    option.lunchPeriod === 'B' ? 'success' :
+                    option.lunchPeriod === 'C' ? 'primary' :
+                    option.lunchPeriod === 'D' ? 'warning' : 'default'
+                  }
+                  sx={{ ml: 1 }}
+                />
+              )}
+            </Box>
+          )}
+          noOptionsText={
+            fetchingStudents ? "Loading students..." : "No students found"
+          }
+          loading={fetchingStudents}
+          disabled={loading}
+          clearOnBlur
+          selectOnFocus
+          handleHomeEndKeys
+          autoHighlight
+          openOnFocus
+        />
+
         
         <LocalizationProvider dateAdapter={AdapterDateFns}>
           <DatePicker
@@ -211,7 +248,7 @@ const TutoringRequestForm = ({ onRequestAdded }) => {
             )}
             disabled={loading}
             minDate={new Date()} // Can't request dates in the past
-            shouldDisableDate={isWeekend} 
+            shouldDisableDate={isWeekend} //here is where I would implement priority using subject
           />
         </LocalizationProvider>
         

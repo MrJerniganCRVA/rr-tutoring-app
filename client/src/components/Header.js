@@ -28,6 +28,7 @@ const Header = () => {
   const getTabValue = () => {
     if (location.pathname === '/dashboard') return 0;
     if (location.pathname === '/tutoring') return 1;
+    if (location.pathname === '/calendar') return 2;
     return false;
   };
   
@@ -59,8 +60,9 @@ const Header = () => {
           indicatorColor="secondary"
           sx={{ flexGrow: 1 }}
         >
-          <Tab label="Dashboard" onClick={() => navigate('/dashboard')} />
-          <Tab label="Tutoring Requests" onClick={() => navigate('/tutoring')} />
+          <Tab label="Raptor Rotation" onClick={() => navigate('/dashboard')} />
+          <Tab label="Requests" onClick={() => navigate('/tutoring')} />
+          <Tab label="Events" onClick={() => navigate('/calendar')} />
         </Tabs>
         
         <Box sx={{ display: 'flex', alignItems: 'center' }}>
