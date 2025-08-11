@@ -1,23 +1,26 @@
 const { Sequelize } = require('sequelize');
-const path = require('path');
+
 let sequelize;
 
-
-if(process.env.DATABASE_URL){
+if (process.env.DATABASE_URL) {
+  console.log('Using PostgreSQL in production');
   sequelize = new Sequelize(process.env.DATABASE_URL, {
     dialect: 'postgresql',
     dialectOptions: {
-      ssl: process.env.NODE_ENV === 'production' ? {
+      ssl: {
         require: true,
         rejectUnauthorized: false
-      } : false
-    }
+      }
+    },
+    logging: false
   });
 } else {
+  console.log('Using SQLite for local development');
+  const sqlite3 = require('sqlite3'); 
   sequelize = new Sequelize({
     dialect: 'sqlite',
-    storage: './database.sqlite',
-    logging:false
+    storage: './database.db',
+    logging: false
   });
 }
 
