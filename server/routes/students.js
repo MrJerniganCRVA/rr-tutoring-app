@@ -4,6 +4,7 @@ const Student = require('../models/Student');
 const Teacher = require('../models/Teacher');
 const auth = require('../middleware/auth');
 const {Op} = require('sequelize');
+//New comment
 
 // @route   GET api/students/teacher/:teacherId
 // @desc    Get all students for a specific teacher
