@@ -28,7 +28,7 @@ const TutoringRequestList = ({ requests, onRequestCancelled }) => {
   const [error, setError] = useState('');
   const [checked, setChecked] = useState(false);
   const teacherId = localStorage.getItem('teacherId');
-  const API_BASE_URL = process.env.API_BASE_URL || 'http://localhost:5000';
+  const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || 'http://localhost:5000';
   
   const handleCancelRequest = async (requestId) => {
     try {
