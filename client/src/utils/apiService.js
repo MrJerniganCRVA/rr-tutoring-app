@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const API_URL = process.env.REACT_APP_API_BASE_URL || 'http://localhost:5000/api';
+const API_URL = process.env.REACT_APP_API_BASE_URL || 'http://localhost:5000';
 
 // Create an axios instance
 const apiClient = axios.create({
@@ -28,41 +28,41 @@ apiClient.interceptors.request.use(
 const apiService = {
   // Teacher endpoints
   getTeachers: async () => {
-    return apiClient.get('/teachers');
+    return apiClient.get('/api/teachers');
   },
   
   getTeacher: async (id) => {
-    return apiClient.get(`/teachers/${id}`);
+    return apiClient.get(`/api/teachers/${id}`);
   },
   
   createTeacher: async (teacherData) => {
-    return apiClient.post('/teachers', teacherData);
+    return apiClient.post('/api/teachers', teacherData);
   },
   
   // Student endpoints
   getStudents: async () => {
-    return apiClient.get('/students');
+    return apiClient.get('/api/students');
   },
   
   getStudent: async (id) => {
-    return apiClient.get(`/students/${id}`);
+    return apiClient.get(`/api/students/${id}`);
   },
   
   createStudent: async (studentData) => {
-    return apiClient.post('/students', studentData);
+    return apiClient.post('/api/students', studentData);
   },
   
   // Tutoring request endpoints
   getTutoringRequests: async () => {
-    return apiClient.get('/tutoring');
+    return apiClient.get('/api/tutoring');
   },
   
   createTutoringRequest: async (requestData) => {
-    return apiClient.post('/tutoring', requestData);
+    return apiClient.post('/api/tutoring', requestData);
   },
   
   cancelTutoringRequest: async (requestId) => {
-    return apiClient.put(`/tutoring/cancel/${requestId}`);
+    return apiClient.put(`/api/tutoring/cancel/${requestId}`);
   },
   
   // Helper method to format errors
