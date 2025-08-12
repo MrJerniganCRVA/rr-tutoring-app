@@ -3,6 +3,11 @@ const sequelize = require('../config/db');
 const Teacher = require('./Teacher');
 
 const Student = sequelize.define('Student', {
+  id: {
+    type: DataTypes.INTEGER,
+    primaryKey: true,
+    allowNull: false
+  },
   name: {
     type: DataTypes.STRING,
     allowNull: false

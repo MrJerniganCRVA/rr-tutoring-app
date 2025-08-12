@@ -11,6 +11,7 @@ const RaptorRotation = () => {
   const [error, setError] = useState('');
   const [requests, setRequests] = useState([]);
   const navigate = useNavigate();
+  const API_BASE_URL = process.env.API_BASE_URL || 'http://localhost:5000';
   
   useEffect(() => {
     // Check if user is logged in
@@ -24,7 +25,7 @@ const RaptorRotation = () => {
     const fetchRequests = async () => {
       try {
         setLoading(true);
-        const response = await axios.get('http://localhost:5000/api/tutoring');
+        const response = await axios.get(`${API_BASE_URL}/api/tutoring`);
         setRequests(response.data);
         setLoading(false);
       } catch (err) {

@@ -20,6 +20,7 @@ const TeacherSelect = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const navigate = useNavigate();
+  const API_BASE_URL = process.env.API_BASE_URL || 'http://localhost:5000';
 
   useEffect(() => {
     // Check if a teacher is already selected
@@ -33,7 +34,7 @@ const TeacherSelect = () => {
     const fetchTeachers = async () => {
       try {
         setLoading(true);
-        const response = await axios.get('http://localhost:5000/api/teachers');
+        const response = await axios.get(`${API_BASE_URL}/api/teachers`);
         setTeachers(response.data);
         setLoading(false);
       } catch (err) {

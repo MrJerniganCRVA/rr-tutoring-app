@@ -28,11 +28,12 @@ const TutoringRequestList = ({ requests, onRequestCancelled }) => {
   const [error, setError] = useState('');
   const [checked, setChecked] = useState(false);
   const teacherId = localStorage.getItem('teacherId');
+  const API_BASE_URL = process.env.API_BASE_URL || 'http://localhost:5000';
   
   const handleCancelRequest = async (requestId) => {
     try {
       await axios.put(
-        `http://localhost:5000/api/tutoring/cancel/${requestId}`,
+        `${API_BASE_URL}/api/tutoring/cancel/${requestId}`,
         {},
         {
           headers: {

@@ -9,7 +9,7 @@ const TutoringEvents = () => {
     //const [students, setStudents] = useState([]);
     const [requests, setRequests] = useState([]);
     const navigate = useNavigate();
-
+    const API_BASE_URL = process.env.API_BASE_URL || 'http://localhost:5000';
 
     useEffect(()=>{
         const teacherId = localStorage.getItem('teacherId');
@@ -21,7 +21,7 @@ const TutoringEvents = () => {
         const fetchRequests = async () =>{
             try{
                 setLoading(true);
-                const response = await axios.get('http://localhost:5000/api/tutoring');
+                const response = await axios.get(`${API_BASE_URL}/api/tutoring`);
                 setRequests(response.data);
                 setLoading(false);
             } catch (err){
