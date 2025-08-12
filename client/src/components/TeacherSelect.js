@@ -79,7 +79,7 @@ const TeacherSelect = () => {
     <Box sx={{ mt: 8, display: 'flex', justifyContent: 'center' }}>
       <Paper elevation={3} sx={{ p: 4, width: '100%', maxWidth: 500 }}>
         <Typography variant="h5" component="h1" align="center" gutterBottom>
-          Select Your Teacher Profile
+          Select Your Name Below:
         </Typography>
         
         {error && <Alert severity="error" sx={{ mb: 3 }}>{error}</Alert>}
