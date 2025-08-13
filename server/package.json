@@ -7,7 +7,8 @@
     "start": "node server.js",
     "init": "node init.js",
     "dev": "nodemon server.js",
-    "dev-index":"nodemon index.js"
+    "dev-index":"nodemon index.js",
+    "migrate": "node migrate.js"
   },
   "keywords": [],
   "author": "Zach Jernigan <zachary.jernigan@coderva.org>",
