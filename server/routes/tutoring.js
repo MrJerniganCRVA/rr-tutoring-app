@@ -68,17 +68,12 @@ router.post('/', auth, async (req, res) => {
     if (!student) {
       return res.status(404).json({ msg: 'Student not found' });
     }
-    
-    // Format the date
-    const requestDate = new Date(date);
-    requestDate.setHours(12,0,0,0);
-    console.log(requestDate);
-    
+  
     // Check if there are existing requests for this student on the same day
     const existingRequests = await TutoringRequest.findAll({
       where: {
         StudentId: studentId,
-        date: requestDate,
+        date: date,
         status: 'active'
       },
       include: [{ model: Teacher }]
@@ -101,7 +96,7 @@ router.post('/', auth, async (req, res) => {
     const newRequest = await TutoringRequest.create({
       TeacherId: req.teacher.id,
       StudentId: studentId,
-      date: requestDate,
+      date: date,
       lunchA: lunches.A || false,
       lunchB: lunches.B || false,
       lunchC: lunches.C || false,

@@ -17,7 +17,7 @@ import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import apiService from '../utils/apiService';
-import {isSaturday, isSunday} from 'date-fns';
+import {isSaturday, isSunday, format} from 'date-fns';
 
 const TutoringRequestForm = ({ onRequestAdded }) => {
   const [students, setStudents] = useState([]);
@@ -123,9 +123,8 @@ const TutoringRequestForm = ({ onRequestAdded }) => {
     // Submit request
     try {
       setLoading(true);
-      let constructedDate = new Date(selectedDate.toISOString().split('T')[0]);
-      constructedDate.setDate(constructedDate.getDate()+1);
-      console.log(constructedDate);
+      let constructedDate = format(selectedDate, 'yyyy-MM-dd');
+      console.log('Sending Date: ', constructedDate);
       const response = await apiService.createTutoringRequest({
         studentId: selectedStudent,
         date: constructedDate,
