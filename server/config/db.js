@@ -23,7 +23,8 @@ if (process.env.DATABASE_URL) {
   console.log('Using SQLite for local development');
   sequelize = new Sequelize({
     dialect: 'sqlite',
-    storage: './database.db'
+    storage: './database.db',
+    logging: false
   });
 }
 

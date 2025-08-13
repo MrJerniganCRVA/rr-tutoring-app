@@ -56,33 +56,31 @@ const TutoringRequestList = ({ requests, onRequestCancelled }) => {
     if(request.status==='cancelled'){
       return false;
     }
-    // Teacher Filter by local storage. Only want their requests on bottom
+
     if(request.Teacher?.name?.toLowerCase() !== localStorage.getItem('teacherName').toLowerCase()){
       return false;
     }
 
-    const [year, month, day] = request.date.split('-');
-    const requestDate = new Date(year, month-1, day);
-    // Specific Date filter
     if (filterDate) {
-      const selectedDate = new Date(filterDate);
-      if (
-        requestDate.getFullYear() !== selectedDate.getFullYear() ||
-        requestDate.getMonth() !== selectedDate.getMonth() ||
-        requestDate.getDate() !== selectedDate.getDate()
-      ) {
+      const selectedDate = filterDate.toISOString().split('T')[0];
+      if (request.date !== selectedDate)
+      {
         return false;
       }
     }
-    // Search filter (student name)
+
     if (searchTerm) {
       const term = searchTerm.toLowerCase();
       const studentName = request.Student?.name?.toLowerCase() || '';
       return studentName.includes(term);
     }
-    //If no specific date or student then only future dates
-    const today = new Date();
-    return requestDate >= today;
+
+    if(!filterDate && !searchTerm){
+      const today = new Date().toISOString().split('T')[0];
+      return request.date >= today;
+    }
+
+    return true;
   });
   //set check box
   const handleChange = (event, request)=>{

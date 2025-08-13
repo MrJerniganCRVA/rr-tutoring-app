@@ -30,18 +30,21 @@ async function initDatabase() {
     // Create sample teachers
     const teachers = await Teacher.bulkCreate([
       {
+        id: 1,
         name: 'Alice Johnson',
         email: 'ajohnson@school.edu',
         subject: 'Math',
         lunch: 'A'
       },
       {
+        id: 2,
         name: 'Bob Smith',
         email: 'bsmith@school.edu',
         subject: 'English',
         lunch: 'B'
       },
       {
+        id: 3,
         name: 'Carol Williams',
         email: 'cwilliams@school.edu',
         subject: 'Science',
@@ -75,6 +78,7 @@ async function initDatabase() {
       const R5Id = teacherIds[Math.floor(Math.random() * teacherIds.length)];
       
       students.push({
+        id: 100000000 + i,
         name: `${firstName} ${lastName}`,
         grade,
         R1Id,

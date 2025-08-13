@@ -29,11 +29,8 @@ const TutoringRequestListSimple = ({ requests, onRequestCancelled }) => {
     if(request.Teacher?.name?.toLowerCase() !== localStorage.getItem('teacherName').toLowerCase()){
       return false;
     }
-
-    const [year, month, day] = request.date.split('-');
-    const requestDate = new Date(year, month-1, day);
-    const today = new Date();
-    return requestDate == today;
+    const today = new Date().toISOString().split('T')[0];
+    return request.date == today;
   });
 
   
