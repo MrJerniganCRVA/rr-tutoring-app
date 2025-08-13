@@ -17,23 +17,16 @@ const RaptorRotationEvents = ({ requests }) => {
   
   const teacherId = localStorage.getItem('teacherId');
  
-  // Get today's requests for RR teacher
+  const today = new Date().toISOString().split('T')[0];
+
   const todaysRequests = requests.filter(request => {
-    const requestDate = new Date(request.date + 'T00:00:00');
-
-    const today = new Date();
-
-    const isToday = 
-    (
-      requestDate.getFullYear() === today.getFullYear() &&
-      requestDate.getMonth() === today.getMonth() &&
-      requestDate.getDate() === today.getDate() 
-    );
+    const isToday = request.date === today;
     const isRRteacher = request.Student?.RR?.id === parseInt(teacherId);
-    console.log(request);
-
+  
+    console.log('Request date:', request.date, 'Today:', today, 'Match:', isToday);
+  
     return isToday && isRRteacher;
-  });
+});
   
   
   // Helper function to show lunch periods
