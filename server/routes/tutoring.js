@@ -42,7 +42,15 @@ router.get('/', async (req, res) => {
         }
       ]
     });
-    
+     // Debug logging
+    if (requests.length > 0) {
+      console.log('=== DATE DEBUG ===');
+      console.log('Raw date from DB:', requests[0].date);
+      console.log('Date type:', typeof requests[0].date);
+      console.log('Date toString:', requests[0].date.toString());
+      console.log('Date toISOString:', requests[0].date.toISOString());
+      console.log('Date toDateString:', requests[0].date.toDateString());
+    }
     res.json(requests);
   } catch (err) {
     console.error(err.message);
