@@ -25,11 +25,20 @@ const TutoringRequest = sequelize.define('TutoringRequest', {
     defaultValue: false
   },
   status: {
+    type: DataTypes.ENUM('active','cancelled', 'conflict'),
+    defaultValue: 'active'
+  },
+  requestedAt :{
+    type: DataTypes.DATE,
+    defaultValue: DataTypes.NOW
+  },
+  priority:{
+    type: DataTypes.INTEGER,
+    defaultValue: 0
+  },
+  conflictReason:{
     type: DataTypes.STRING,
-    defaultValue: 'active',
-    validate: {
-      isIn: [['active', 'cancelled']]
-    }
+    allowNull: true
   }
 });
 
