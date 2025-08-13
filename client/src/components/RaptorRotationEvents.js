@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import {
   Box,
   Paper,
-  Typography,
   Table,
   TableBody,
   TableCell,
@@ -23,10 +22,8 @@ const RaptorRotationEvents = ({ requests }) => {
     const isToday = request.date === today;
     const isRRteacher = request.Student?.RR?.id === parseInt(teacherId);
   
-    console.log('Request date:', request.date, 'Today:', today, 'Match:', isToday);
-  
     return isToday && isRRteacher;
-});
+  });
   
   
   // Helper function to show lunch periods

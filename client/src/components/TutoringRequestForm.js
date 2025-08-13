@@ -68,7 +68,7 @@ const TutoringRequestForm = ({ onRequestAdded }) => {
     };
     
     fetchStudents();
-  }, []);
+  }, [teacherId]);
 
   
   const handleStudentChange = async (event) =>{

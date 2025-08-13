@@ -175,12 +175,11 @@ const BulkTutoring = () => {
       
       for (const student of selectedStudents) {
         try {
-          let constructedDate = new Date(selectedDate.toISOString().split('T')[0]);
-          constructedDate.setDate(constructedDate.getDate()+1);
-          console.log(constructedDate);
+          const dateString = format(selectedDate, 'yyyy-MM-dd');
+          console.log("Sending date for student", student.name, "Date: ", dateString);
           const response = await apiService.createTutoringRequest({
               studentId: student.id,
-              date: constructedDate,
+              date: dateString,
               lunches
           });
          

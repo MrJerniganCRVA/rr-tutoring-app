@@ -26,7 +26,7 @@ const TutoringRequestList = ({ requests, onRequestCancelled }) => {
   const [filterDate, setFilterDate] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [error, setError] = useState('');
-  const [checked, setChecked] = useState(false);
+  
   const teacherId = localStorage.getItem('teacherId');
   const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || 'http://localhost:5000';
   
@@ -82,11 +82,7 @@ const TutoringRequestList = ({ requests, onRequestCancelled }) => {
 
     return true;
   });
-  //set check box
-  const handleChange = (event, request)=>{
-    setChecked(event.target.checked);
-    //on request send update table
-  };
+
   // Helper function to format date
   const formatDate = (dateString) => {
     return format(parseISO(dateString), 'MMM dd, yyyy');
