@@ -6,6 +6,7 @@ import RaptorRotation from './components/RaptorRotation';
 import Header from './components/Header';
 import Scheduling from './components/Scheduling';
 import TutoringEvents from './components/TutoringEvents';
+import Footer from './components/Footer';
 
 // Create a theme instance
 const theme = createTheme({
@@ -47,6 +48,7 @@ function App() {
           </Routes>
         </Container>
       </Router>
+      <Footer />
     </ThemeProvider>
   );
 }

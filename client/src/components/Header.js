@@ -1,4 +1,3 @@
-// client/src/components/Header.js with BulkTutoring navigation
 import React from 'react';
 import { 
   AppBar, 
