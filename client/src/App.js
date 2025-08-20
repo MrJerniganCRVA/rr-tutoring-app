@@ -46,7 +46,7 @@ function App() {
         }}>
         <Header />
 
-        <Container maxWidth="lg" sx={{ mt: 4, mb: 4 , flex: 1}}>
+        <Container maxWidth="lg" sx={{ mt: 4, mb: 4, minHeight:'65vh', flex: 1}}>
         <TutoringProvider>
           <Routes>
             <Route path="/select-teacher" element={<TeacherSelect />} />
