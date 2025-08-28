@@ -10,18 +10,17 @@ import {
   TableRow,
   Alert
 } from '@mui/material';
-import axios from 'axios';
-import { format, parseISO } from 'date-fns';
+import {useTutoring} from '../contexts/TutoringContext';
 
-const TutoringRequestListSimple = ({ requests, onRequestCancelled }) => {
+const TutoringRequestListSimple = () => {
 
-  const [error, setError] = useState('');
+  const {sessions, loading, error} = useTutoring();
 
   const teacherId = localStorage.getItem('teacherId');
   
   
   // Filter requests by date and search term as well as remove any non teacher requests
-  const filteredRequests = requests.filter(request => {
+  const filteredRequests = sessions.filter(request => {
     if(request.status==='cancelled'){
       return false;
     }

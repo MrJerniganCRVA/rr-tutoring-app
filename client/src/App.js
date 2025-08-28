@@ -6,6 +6,7 @@ import RaptorRotation from './components/RaptorRotation';
 import Header from './components/Header';
 import Scheduling from './components/Scheduling';
 import TutoringEvents from './components/TutoringEvents';
+import {TutoringProvider } from './contexts/TutoringContext';
 
 // Create a theme instance
 const theme = createTheme({
@@ -33,11 +34,14 @@ const theme = createTheme({
 
 function App() {
   return (
+
     <ThemeProvider theme={theme}>
       <CssBaseline />
       <Router>
         <Header />
+
         <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
+        <TutoringProvider>
           <Routes>
             <Route path="/select-teacher" element={<TeacherSelect />} />
             <Route path="/dashboard" element={<RaptorRotation />} />
@@ -45,6 +49,7 @@ function App() {
             <Route path="/calendar" element={<TutoringEvents />} />
             <Route path="/" element={<Navigate to="/select-teacher" replace />} />
           </Routes>
+          </TutoringProvider>
         </Container>
       </Router>
     </ThemeProvider>

@@ -11,14 +11,15 @@ import {
   TableRow,
   Alert
 } from '@mui/material';
+import {useTutoring } from '../contexts/TutoringContext';
 
-const RaptorRotationEvents = ({ requests }) => {
-  const [error, setError] = useState('');
+const RaptorRotationEvents = () => {
+  const {sessions, loading, error } = useTutoring();
   
   const teacherId = localStorage.getItem('teacherId');
  
   // Get today's requests for RR teacher
-  const todaysRequests = requests.filter(request => {
+  const todaysRequests = sessions.filter(request => {
     const requestDate = new Date(request.date + 'T00:00:00');
 
     const today = new Date();
@@ -30,7 +31,6 @@ const RaptorRotationEvents = ({ requests }) => {
       requestDate.getDate() === today.getDate() 
     );
     const isRRteacher = request.Student?.RR?.id === parseInt(teacherId);
-    console.log(request);
 
     return isToday && isRRteacher;
   });
