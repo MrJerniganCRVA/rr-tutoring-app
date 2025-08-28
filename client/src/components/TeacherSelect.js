@@ -13,6 +13,7 @@ import {
 } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
+import apiService from '../utils/apiService';
 
 const TeacherSelect = () => {
   const [teachers, setTeachers] = useState([]);
@@ -20,6 +21,7 @@ const TeacherSelect = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const navigate = useNavigate();
+  
   const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || 'http://localhost:5000';
 
   useEffect(() => {
@@ -29,21 +31,17 @@ const TeacherSelect = () => {
       navigate('/dashboard');
       return;
     }
-
     // Fetch teachers from API
-    const fetchTeachers = async () => {
-      try {
-        setLoading(true);
-        const response = await axios.get(`${API_BASE_URL}/api/teachers`);
+    const fetchTeachers = async () =>{
+      try{
+        const response = await apiService.getTeachers();
         setTeachers(response.data);
         setLoading(false);
-      } catch (err) {
-        console.error('Error fetching teachers:', err);
-        setError('Failed to load teachers. Please try again later.');
+      } catch (e){
+        console.error("Error in fetching teachers",e);
         setLoading(false);
       }
     };
-
     fetchTeachers();
   }, [navigate]);
 

@@ -10,15 +10,16 @@ import {
   TableRow,
   Alert
 } from '@mui/material';
+import {useTutoring} from '../contexts/TutoringContext';
 
-const TutoringRequestListSimple = ({ requests, onRequestCancelled }) => {
+const TutoringRequestListSimple = () => {
 
-  const [error, setError] = useState('');
+  const {sessions, loading, error} = useTutoring();
 
   
   
   // Filter requests by date and search term as well as remove any non teacher requests
-  const filteredRequests = requests.filter(request => {
+  const filteredRequests = sessions.filter(request => {
     if(request.status==='cancelled'){
       return false;
     }

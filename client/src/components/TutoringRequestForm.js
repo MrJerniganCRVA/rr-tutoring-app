@@ -13,13 +13,13 @@ import {
   CircularProgress,
   Chip
 } from '@mui/material';
-import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
-import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
-import { DatePicker } from '@mui/x-date-pickers/DatePicker';
+//import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import apiService from '../utils/apiService';
-import {isSaturday, isSunday, format} from 'date-fns';
+import PriorityDatePicker from './PriorityDatePicker.js';
+import {useTutoring} from '../contexts/TutoringContext.js';
 
-const TutoringRequestForm = ({ onRequestAdded }) => {
+const TutoringRequestForm = () => {
+  const { createSession } = useTutoring();
   const [students, setStudents] = useState([]);
   const [selectedStudent, setSelectedStudent] = useState('');
   const [selectedDate, setSelectedDate] = useState(null);
@@ -37,9 +37,6 @@ const TutoringRequestForm = ({ onRequestAdded }) => {
   
   // Get the logged in teacher
   const teacherId = localStorage.getItem('teacherId');
-  const isWeekend = (date) =>{
-    return isSaturday(date) || isSunday(date);
-  };
   useEffect(() => {
     // Fetch students
     const fetchStudents = async () => {
@@ -123,13 +120,11 @@ const TutoringRequestForm = ({ onRequestAdded }) => {
     // Submit request
     try {
       setLoading(true);
-      let constructedDate = format(selectedDate, 'yyyy-MM-dd');
-      console.log('Sending Date: ', constructedDate);
-      const response = await apiService.createTutoringRequest({
-        studentId: selectedStudent,
-        date: constructedDate,
-        lunches
-      });
+      let constructedDate = new Date(selectedDate.toISOString().split('T')[0]);
+      constructedDate.setDate(constructedDate.getDate()+1);
+      const formData = {studentId: selectedStudent, date: constructedDate, lunches};
+      await createSession(formData);
+
       
       setSuccess('Student successfully requested for tutoring');
       
@@ -143,12 +138,7 @@ const TutoringRequestForm = ({ onRequestAdded }) => {
         D: false
       });
       setStudentLunchPeriod(null);
-      
-      // Notify parent component
-      if (onRequestAdded) {
-        console.log(response.data)
-        onRequestAdded(response.data);
-      }
+    
       
     } catch (err) {
       console.error('Error creating tutoring request:', err);
@@ -202,8 +192,10 @@ const TutoringRequestForm = ({ onRequestAdded }) => {
               helperText={fetchingStudents ? "Loading students..." : "Type to search by student name"}
             />
           )}
-          renderOption={(props, option) => (
-            <Box component="li" {...props} sx={{ display: 'flex', alignItems: 'center', py: 1 }}>
+          renderOption={(props, option) => {
+            const { key, ...cleanProps} = props;
+            return (
+              <Box component="li" key={key} {...cleanProps} sx={{ display: 'flex', alignItems: 'center', py: 1 }}>
               <Box sx={{ flexGrow: 1 }}>
                 <Typography variant="body1">
                   {option.name}
@@ -221,9 +213,10 @@ const TutoringRequestForm = ({ onRequestAdded }) => {
                   }
                   sx={{ ml: 1 }}
                 />
-              )}
+            )}
             </Box>
-          )}
+            );
+          }}
           noOptionsText={
             fetchingStudents ? "Loading students..." : "No students found"
           }
@@ -235,21 +228,13 @@ const TutoringRequestForm = ({ onRequestAdded }) => {
           autoHighlight
           openOnFocus
         />
-
-        
-        <LocalizationProvider dateAdapter={AdapterDateFns}>
-          <DatePicker
-            label="Date"
+          <PriorityDatePicker 
+            studentId={selectedStudent}
             value={selectedDate}
             onChange={setSelectedDate}
-            renderInput={(params) => (
-              <TextField {...params} fullWidth margin="normal" />
-            )}
-            disabled={loading}
-            minDate={new Date()} // Can't request dates in the past
-            shouldDisableDate={isWeekend} //here is where I would implement priority using subject
+            label="Select Tutoring Date"
+          
           />
-        </LocalizationProvider>
         
         <Typography variant="subtitle1" gutterBottom sx={{ mt: 2 }}>
           Select Lunch Periods:
