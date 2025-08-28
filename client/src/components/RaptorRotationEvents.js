@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import {
   Box,
   Paper,
-  Typography,
   Table,
   TableBody,
   TableCell,
@@ -21,17 +20,11 @@ const RaptorRotationEvents = () => {
   // Get today's requests for RR teacher
   const todaysRequests = sessions.filter(request => {
     const requestDate = new Date(request.date + 'T00:00:00');
+  const today = new Date().toISOString().split('T')[0];
 
-    const today = new Date();
-
-    const isToday = 
-    (
-      requestDate.getFullYear() === today.getFullYear() &&
-      requestDate.getMonth() === today.getMonth() &&
-      requestDate.getDate() === today.getDate() 
-    );
+  const todaysRequests = requests.filter(request => {
+    const isToday = request.date === today;
     const isRRteacher = request.Student?.RR?.id === parseInt(teacherId);
-
     return isToday && isRRteacher;
   });
   

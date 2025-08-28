@@ -7,6 +7,7 @@ import Header from './components/Header';
 import Scheduling from './components/Scheduling';
 import TutoringEvents from './components/TutoringEvents';
 import {TutoringProvider } from './contexts/TutoringContext';
+import Footer from './components/Footer';
 
 // Create a theme instance
 const theme = createTheme({
@@ -52,6 +53,7 @@ function App() {
           </TutoringProvider>
         </Container>
       </Router>
+      <Footer />
     </ThemeProvider>
   );
 }

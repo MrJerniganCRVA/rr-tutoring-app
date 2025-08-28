@@ -122,9 +122,9 @@ const TutoringRequestForm = () => {
       setLoading(true);
       let constructedDate = new Date(selectedDate.toISOString().split('T')[0]);
       constructedDate.setDate(constructedDate.getDate()+1);
-      console.log(constructedDate);
       const formData = {studentId: selectedStudent, date: constructedDate, lunches};
       await createSession(formData);
+
       
       setSuccess('Student successfully requested for tutoring');
       

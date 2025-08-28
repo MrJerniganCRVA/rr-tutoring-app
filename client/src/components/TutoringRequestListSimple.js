@@ -16,7 +16,6 @@ const TutoringRequestListSimple = () => {
 
   const {sessions, loading, error} = useTutoring();
 
-  const teacherId = localStorage.getItem('teacherId');
   
   
   // Filter requests by date and search term as well as remove any non teacher requests
@@ -29,7 +28,7 @@ const TutoringRequestListSimple = () => {
       return false;
     }
     const today = new Date().toISOString().split('T')[0];
-    return request.date == today;
+    return request.date === today;
   });
 
   
