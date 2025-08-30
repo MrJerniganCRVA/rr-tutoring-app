@@ -61,11 +61,24 @@ const apiService = {
     return apiClient.post('/api/tutoring', requestData);
   },
   
+  // NEW: Create tutoring request with override
+  createTutoringRequestWithOverride: async (requestData) => {
+    return apiClient.post('/api/tutoring', {
+      ...requestData,
+      override: true
+    });
+  },
+  
+  // NEW: Check priority for a specific date
+  checkPriorityForDate: async (date) => {
+    return apiClient.get(`/api/tutoring/priority/${date}`);
+  },
+  
   cancelTutoringRequest: async (requestId) => {
     return apiClient.put(`/api/tutoring/cancel/${requestId}`);
   },
   
-  // Helper method to format errors
+  // Enhanced error formatting to handle conflict responses
   formatError: (error) => {
     let errorMessage = 'An unknown error occurred';
     
@@ -86,6 +99,22 @@ const apiService = {
     }
     
     return errorMessage;
+  },
+
+  // NEW: Helper to check if error is a conflict that can be overridden
+  isOverridableConflict: (error) => {
+    return error.response && 
+           error.response.status === 409 && 
+           error.response.data && 
+           error.response.data.requireOverride === true;
+  },
+
+  // NEW: Get conflict details from error response
+  getConflictDetails: (error) => {
+    if (error.response && error.response.data && error.response.data.conflict) {
+      return error.response.data.conflict;
+    }
+    return null;
   }
 };
 

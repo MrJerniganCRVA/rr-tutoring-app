@@ -40,7 +40,7 @@ async function initDatabase() {
         id: 2,
         name: 'Bob Smith',
         email: 'bsmith@school.edu',
-        subject: 'English',
+        subject: 'Humanities',
         lunch: 'B'
       },
       {
@@ -49,6 +49,13 @@ async function initDatabase() {
         email: 'cwilliams@school.edu',
         subject: 'Science',
         lunch: 'C'
+      },
+      {
+        id: 4,
+        name: 'David Locke',
+        email: 'dlocke@school.edu',
+        subject: 'CS',
+        lunch: 'D'
       }
     ]);
 
