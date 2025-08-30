@@ -1,6 +1,6 @@
 import React from 'react';
 import { BrowserRouter as Router, Route, Routes, Navigate } from 'react-router-dom';
-import { Container, CssBaseline, ThemeProvider, createTheme } from '@mui/material';
+import { Box, Container, CssBaseline, ThemeProvider, createTheme } from '@mui/material';
 import TeacherSelect from './components/TeacherSelect';
 import RaptorRotation from './components/RaptorRotation';
 import Header from './components/Header';
@@ -39,9 +39,14 @@ function App() {
     <ThemeProvider theme={theme}>
       <CssBaseline />
       <Router>
+        <Box sx={{
+          display: 'flex',
+          flexDirection: 'column',
+          minHeight: '100vh'
+        }}>
         <Header />
 
-        <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
+        <Container maxWidth="lg" sx={{ mt: 4, mb: 4 , flex: 1}}>
         <TutoringProvider>
           <Routes>
             <Route path="/select-teacher" element={<TeacherSelect />} />
@@ -52,8 +57,10 @@ function App() {
           </Routes>
           </TutoringProvider>
         </Container>
+       <Footer />
+       </Box>
       </Router>
-      <Footer />
+      
     </ThemeProvider>
   );
 }

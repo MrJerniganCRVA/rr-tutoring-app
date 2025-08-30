@@ -63,6 +63,9 @@ const PriorityDatePicker = ({
   };
 
   const shouldDisableDate = (date) => {
+    const yesteday = new Date();
+    yesteday.setDate(yesteday.getDate()-1);
+    if(date < yesteday) return true;
     const dayOfWeek = date.getDay();
     
     // Disable weekends and Wednesday
