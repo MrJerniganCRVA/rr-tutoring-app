@@ -41,6 +41,9 @@ const TutoringRequestForm = () => {
   
   // Get the logged in teacher
   const teacherId = localStorage.getItem('teacherId');
+  const getFullName = (student) =>{
+    return `${student.first_name} ${student.last_name}`;
+  }
   useEffect(() => {
     // Fetch students
     const fetchStudents = async () => {
@@ -56,7 +59,7 @@ const TutoringRequestForm = () => {
           );
         });
         const filteredStudentNames = filteredStudents.map(student =>{
-          student.name = student.lunch ? `[${student.lunch}] ${student.name}` : `N ${student.name}`;
+          student.name = student.lunch ? `[${student.lunch}] ${getFullName(student)}` : `N ${getFullName(student)}`;
           return student;
         });
         setStudents(filteredStudentNames);
@@ -203,7 +206,7 @@ const TutoringRequestForm = () => {
           <Autocomplete
             id="student-autocomplete"
             options={students}
-            getOptionLabel={(option) => option.name || ''}
+            getOptionLabel={(option) => option.name || `${option.first_name || ''} ${option.last_name || ''}`.trim()}
             value={students.find(student => student.id === selectedStudent) || null}
             onChange={(event, newValue) => {
               const studentId = newValue ? newValue.id : '';
@@ -212,9 +215,10 @@ const TutoringRequestForm = () => {
             filterOptions={(options, { inputValue }) => {
               // Only filter by student name
               const searchText = inputValue.toLowerCase();
-              return options.filter(option => 
-                option.name.toLowerCase().includes(searchText)
-              );
+              return options.filter(option => {
+                const displayName = option.name || `${option.first_name || ''} ${option.last_name || ''}`.trim();
+                return displayName.toLowerCase().includes(searchText);
+              });
             }}
             renderInput={(params) => (
               <TextField
@@ -233,7 +237,7 @@ const TutoringRequestForm = () => {
                 <Box component="li" key={key} {...cleanProps} sx={{ display: 'flex', alignItems: 'center', py: 1 }}>
                 <Box sx={{ flexGrow: 1 }}>
                   <Typography variant="body1">
-                    {option.name}
+                    {option.name || `${option.first_name || ''} ${option.last_name || ''}`.trim()}
                   </Typography>
                 </Box>
                 {option.lunchPeriod && (

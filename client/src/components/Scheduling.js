@@ -39,7 +39,16 @@ const Scheduling = () => {
       <Typography variant="h4" component="h1" gutterBottom>
         Schedule Tutoring Sessions
       </Typography>
-      
+      <Typography variant="body1" sx={{ 
+          fontStyle: 'italic', 
+          fontSize: '0.9rem',
+          backgroundColor: 'grey.50',
+          p: 1.5,
+          borderRadius: 1,
+          mb: 2
+        }}>
+        <strong>Note:</strong> Multiple students uses first come, first serve. For priority overrides, use the individual request form at the moment.
+      </Typography>
       <Paper elevation={2} sx={{ mb: 3 }}>
         <Tabs 
           value={tabValue} 

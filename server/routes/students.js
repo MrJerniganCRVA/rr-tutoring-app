@@ -4,7 +4,6 @@ const Student = require('../models/Student');
 const Teacher = require('../models/Teacher');
 const auth = require('../middleware/auth');
 const {Op} = require('sequelize');
-const sequelize = require('../config/db');
 
 //New comment
 

@@ -19,6 +19,7 @@ const RaptorRotationEvents = () => {
  
   // Get today's requests for RR teacher
   const todaysRequests = sessions.filter(request => {
+    if(request.status === 'cancelled') return false;
     const requestDate = new Date(request.date + 'T00:00:00');
     const today = new Date();
 
@@ -42,7 +43,10 @@ const RaptorRotationEvents = () => {
     
     return periods.join(', ');
   };
-  
+  const getFullName = (person) => {
+    if(!person?.first_name || !person?.last_name) return 'Unknown';
+    return `${person.first_name} ${person.last_name}`;
+  };
   return (
     <Box>
       {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
@@ -61,8 +65,8 @@ const RaptorRotationEvents = () => {
               <TableBody>
                 {todaysRequests.map((request) => (
                   <TableRow key={request.id}>
-                    <TableCell>{request.Student?.name || 'Unknown'}</TableCell>
-                    <TableCell>{request.Teacher?.name || 'Unknown'}</TableCell>
+                    <TableCell>{getFullName(request.Student)}</TableCell>
+                    <TableCell>{getFullName(request.Teacher)}</TableCell>
                     <TableCell>{getLunchPeriods(request)}</TableCell>
                   </TableRow>
                 ))}

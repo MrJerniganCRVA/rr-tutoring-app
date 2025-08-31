@@ -1,4 +1,3 @@
-import React, { useState } from 'react';
 import {
   Box,
   Paper,
@@ -14,17 +13,21 @@ import {useTutoring} from '../contexts/TutoringContext';
 
 const TutoringRequestListSimple = () => {
 
-  const {sessions, loading, error} = useTutoring();
-
+  const {sessions, error} = useTutoring();
+  const getFullName = (person) => {
+    if (!person?.first_name || !person?.last_name) return '';
+    return `${person.first_name} ${person.last_name}`;
+  };
   
-  
-  // Filter requests by date and search term as well as remove any non teacher requests
+  // Filter requests by date 
   const filteredRequests = sessions.filter(request => {
     if(request.status==='cancelled'){
       return false;
     }
-    // Teacher Filter by local storage. Only want their requests on bottom
-    if(request.Teacher?.name?.toLowerCase() !== localStorage.getItem('teacherName').toLowerCase()){
+    const requestTeacherName = getFullName(request.Teacher).toLowerCase();
+    const currentTeacherName = (localStorage.getItem('teacherName') || '').toLowerCase();
+
+    if(requestTeacherName !== currentTeacherName){
       return false;
     }
     const today = new Date().toISOString().split('T')[0];
@@ -50,7 +53,7 @@ const TutoringRequestListSimple = () => {
       <Paper elevation={3} sx={{ p: 3 }}>
 
         {filteredRequests.length === 0 ? (
-          <Alert severity="info">No tutoring requests found.</Alert>
+          <Alert severity="info">You have no students coming for tutoring today.</Alert>
         ) : (
           <TableContainer>
             <Table>
@@ -63,7 +66,7 @@ const TutoringRequestListSimple = () => {
               <TableBody>
                 {filteredRequests.map((request) => (
                   <TableRow key={request.id}>
-                    <TableCell>{request.Student?.name || 'Unknown'}</TableCell>
+                    <TableCell>{getFullName(request.Student) || 'Unknown'}</TableCell>
                     <TableCell>{getLunchPeriods(request)}</TableCell>
                   </TableRow>
                 ))}

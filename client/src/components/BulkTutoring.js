@@ -65,9 +65,10 @@ const BulkTutoring = () => {
   }, []);
   
   // Filter students when search term changes
-  const filteredStudents = allStudents.filter(student => 
-    student.name.toLowerCase().includes(studentFilter.toLowerCase())
-  );
+  const filteredStudents = allStudents.filter(student => {
+    const fullName = `${student.first_name} ${student.last_name}`.toLowerCase();
+    return fullName.includes(studentFilter.toLowerCase());
+});
   
   // Fetch all students from API
   const fetchStudents = async () => {
@@ -86,11 +87,11 @@ const BulkTutoring = () => {
         } else if (student.lunchPeriod) {
           lunchPeriod = student.lunchPeriod;
         }
-        
+        const fullName = `${student.first_name} ${student.last_name}`;
         return {
           ...student,
           lunchPeriod,
-          displayName: lunchPeriod ? `[${lunchPeriod}] ${student.name}` : student.name
+          displayName: lunchPeriod ? `[${lunchPeriod}] ${fullName}` : fullName
         };
       });
       
@@ -120,7 +121,8 @@ const BulkTutoring = () => {
     
     // Check if student is already selected
     if (selectedStudents.some(s => s.id === selectedStudentId)) {
-      setError(`${studentToAdd.name} is already in your selection.`);
+      const studentName = `${studentToAdd.first_name} ${studentToAdd.last_name}`;
+      setError(`${studentName} is already in your selection.`);
       return;
     }
     
@@ -176,7 +178,6 @@ const BulkTutoring = () => {
       for (const student of selectedStudents) {
         try {
           const dateString = format(selectedDate, 'yyyy-MM-dd');
-          console.log("Sending date for student", student.name, "Date: ", dateString);
           const response = await apiService.createTutoringRequest({
               studentId: student.id,
               date: dateString,
@@ -185,12 +186,12 @@ const BulkTutoring = () => {
          
           
           successfulStudents.push({
-            student: student.name,
+            student: `${student.first_name} ${student.last_name}`,
             id: response.data.id
           });
         } catch (studentError) {
           failedStudents.push({
-            student: student.name,
+            student: `${student.first_name} ${student.last_name}`,
             error: apiService.formatError(studentError)
           });
         }
@@ -235,8 +236,9 @@ const BulkTutoring = () => {
   };
   
   // Function to check if a date should be disabled
-  const isWeekend = (date) => {
-    return isSaturday(date) || isSunday(date);
+  const isBlocked = (date) => {
+    const dayOfWeek = date.getDay();
+    return dayOfWeek === 0 || dayOfWeek ===3 || dayOfWeek === 6;
   };
   
   return (
@@ -303,7 +305,7 @@ const BulkTutoring = () => {
                   renderInput={(params) => (
                     <TextField {...params} fullWidth margin="normal" />
                   )}
-                  shouldDisableDate={isWeekend}
+                  shouldDisableDate={isBlocked}
                   minDate={new Date()}
                   disabled={loading}
                 />
@@ -414,7 +416,7 @@ const BulkTutoring = () => {
                         <PersonIcon />
                       </ListItemIcon>
                       <ListItemText 
-                        primary={student.name} 
+                        primary={`${student.first_name} ${student.last_name}`}
                         secondary={
                           student.lunchPeriod ? `Lunch: ${student.lunchPeriod}` : 'No lunch info'
                         } 

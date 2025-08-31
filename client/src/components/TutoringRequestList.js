@@ -21,43 +21,32 @@ import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import axios from 'axios';
 import { format, parseISO } from 'date-fns';
+import {useTutoring} from '../contexts/TutoringContext';
 
-const TutoringRequestList = ({ requests, onRequestCancelled }) => {
+const TutoringRequestList = () => {
   const [filterDate, setFilterDate] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
-  const [error, setError] = useState('');
   
   const teacherId = localStorage.getItem('teacherId');
-  const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || 'http://localhost:5000';
-  
+  const {sessions, error, cancelSession} = useTutoring();
+  const getFullName = (person) => {
+    if (!person?.first_name || !person?.last_name) return '';
+    return `${person.first_name} ${person.last_name}`;
+  };
   const handleCancelRequest = async (requestId) => {
-    try {
-      await axios.put(
-        `${API_BASE_URL}/api/tutoring/cancel/${requestId}`,
-        {},
-        {
-          headers: {
-            'x-teacher-id': teacherId
-          }
-        }
-      );
-      
-      if (onRequestCancelled) {
-        onRequestCancelled(requestId);
-      }
-    } catch (err) {
-      console.error('Error cancelling request:', err);
-      setError('Failed to cancel the request. Please try again.');
-    }
+    cancelSession(requestId);
   };
   
   // Filter requests by date and search term as well as remove any non teacher requests
-  const filteredRequests = requests.filter(request => {
+  const filteredRequests = sessions.filter(request => {
     if(request.status==='cancelled'){
       return false;
     }
 
-    if(request.Teacher?.name?.toLowerCase() !== localStorage.getItem('teacherName').toLowerCase()){
+    const requestTeacherName = getFullName(request.Teacher).toLowerCase();
+    const currentTeacherName = (localStorage.getItem('teacherName') || '').toLowerCase();
+
+    if(requestTeacherName !== currentTeacherName){
       return false;
     }
 
@@ -71,7 +60,7 @@ const TutoringRequestList = ({ requests, onRequestCancelled }) => {
 
     if (searchTerm) {
       const term = searchTerm.toLowerCase();
-      const studentName = request.Student?.name?.toLowerCase() || '';
+      const studentName = getFullName(request.Student).toLowerCase();
       return studentName.includes(term);
     }
 
@@ -168,7 +157,7 @@ const TutoringRequestList = ({ requests, onRequestCancelled }) => {
                 {filteredRequests.map((request) => (
                   <TableRow key={request.id}>
                     <TableCell>{formatDate(request.date)}</TableCell>
-                    <TableCell>{request.Student?.name || 'Unknown'}</TableCell>
+                    <TableCell>{getFullName(request.Student) || 'Unknown'}</TableCell>
                     <TableCell>{getLunchPeriods(request)}</TableCell>
                     <TableCell>
                       <Chip 

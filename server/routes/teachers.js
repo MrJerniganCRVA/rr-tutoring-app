@@ -2,7 +2,6 @@ const express = require('express');
 const router = express.Router();
 const Teacher = require('../models/Teacher');
 const auth = require('../middleware/auth');
-const sequelize = require('..config/db');
 
 // @route   GET api/teachers
 // @desc    Get all teachers

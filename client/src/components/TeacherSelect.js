@@ -12,7 +12,6 @@ import {
   CircularProgress 
 } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
-import axios from 'axios';
 import apiService from '../utils/apiService';
 
 const TeacherSelect = () => {
@@ -21,9 +20,11 @@ const TeacherSelect = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const navigate = useNavigate();
-  
-  const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || 'http://localhost:5000';
 
+  const getFullName = (teacher) => {
+    if (!teacher?.first_name || !teacher?.last_name) return 'Unknown Teacher';
+    return `${teacher.first_name} ${teacher.last_name}`;
+  };
   useEffect(() => {
     // Check if a teacher is already selected
     const savedTeacherId = localStorage.getItem('teacherId');
@@ -52,7 +53,7 @@ const TeacherSelect = () => {
     // Find the teacher name
     const teacher = teachers.find(t => t.id === teacherId);
     if (teacher) {
-      localStorage.setItem('teacherName', teacher.name);
+      localStorage.setItem('teacherName', getFullName(teacher));
     }
   };
 
@@ -98,7 +99,7 @@ const TeacherSelect = () => {
               >
                 {teachers.map((teacher) => (
                   <MenuItem key={teacher.id} value={teacher.id}>
-                    {teacher.name} - {teacher.subject}
+                    {getFullName(teacher)} - {teacher.subject}
                   </MenuItem>
                 ))}
               </Select>
