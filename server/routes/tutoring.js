@@ -164,7 +164,7 @@ router.post('/', auth, async (req, res) => {
         return res.status(409).json({
           msg:'Student already requested by another teacher, but you have priority',
           conflict:{
-            existingTeacher: existingTeacher.name,
+            existingTeacher: `${existingTeacher.first_name} ${existingTeacher.last_name}`,
             existingSubject: existingTeacher.subject,
             canOverride: true,
             reason: `${requestingTeacher.subject} has priority on ${new Date(date).toLocaleDateString('en-US', {weekday: 'long'})}`
@@ -174,7 +174,7 @@ router.post('/', auth, async (req, res) => {
       }
       //have confirmed override so cancel existing and create new
       existingRequest.status = 'cancelled';
-      existingRequest.conflictReason = `Overriden by ${requestingTeacher.name}. Priority given`;
+      existingRequest.conflictReason = `Overriden by ${requestingTeacher.last_name}. Priority given`;
       await existingRequest.save();
 
       const newRequest = await TutoringRequest.create({
@@ -206,7 +206,7 @@ router.post('/', auth, async (req, res) => {
       return res.json({
         request,
         overrideInfo: {
-          overriddenTeacher: existingTeacher.name,
+          overriddenTeacher: `${existingTeacher.first_name} ${existingTeacher.last_name}`,
           overriddenSubject: existingTeacher.subject,
           reason: 'Priority day override'
         }
@@ -218,7 +218,7 @@ router.post('/', auth, async (req, res) => {
        return res.status(403).json({
         msg: 'Request denied - existing teacher has priority for this day',
         conflict: {
-          existingTeacher: existingTeacher.name,
+          existingTeacher: `${existingTeacher.first_name} ${existingTeacher.last_name}`,
           existingSubject: existingTeacher.subject,
           canOverride: false,
           reason: `${existingTeacher.subject} has priority on ${new Date(date).toLocaleDateString('en-US', { weekday: 'long' })}s`
@@ -229,7 +229,7 @@ router.post('/', auth, async (req, res) => {
       return res.status(400).json({
         msg: 'Student already requested by another teacher from the same priority subject',
         conflict: {
-          existingTeacher: existingTeacher.name,
+          existingTeacher: `${existingTeacher.first_name} ${existingTeacher.last_name}`,
           existingSubject: existingTeacher.subject,
           canOverride: false,
           reason: `Both teachers have ${requestingTeacher.subject} priority for this day`
@@ -240,7 +240,7 @@ router.post('/', auth, async (req, res) => {
       return res.status(400).json({ 
         msg: 'Student already requested by another teacher',
         conflict: {
-          existingTeacher: existingTeacher.name,
+          existingTeacher: `${existingTeacher.first_name} ${existingTeacher.last_name}`,
           existingSubject: existingTeacher.subject,
           canOverride: false,
           reason: 'First come, first served (no priority subjects involved)'

@@ -31,28 +31,32 @@ async function initDatabase() {
     const teachers = await Teacher.bulkCreate([
       {
         id: 1,
-        name: 'Alice Johnson',
+        first_name: 'Alice',
+        last_name:'Johnson',
         email: 'ajohnson@school.edu',
         subject: 'Math',
         lunch: 'A'
       },
       {
         id: 2,
-        name: 'Bob Smith',
+        first_name: 'Bob',
+        last_name: 'Smith',
         email: 'bsmith@school.edu',
         subject: 'Humanities',
         lunch: 'B'
       },
       {
         id: 3,
-        name: 'Carol Williams',
+        first_name: 'Carol',
+        last_name: 'Williams',
         email: 'cwilliams@school.edu',
         subject: 'Science',
         lunch: 'C'
       },
       {
         id: 4,
-        name: 'David Locke',
+        first_name: 'David',
+        last_name: 'Locke',
         email: 'dlocke@school.edu',
         subject: 'CS',
         lunch: 'D'
@@ -86,7 +90,8 @@ async function initDatabase() {
       
       students.push({
         id: 100000000 + i,
-        name: `${firstName} ${lastName}`,
+        first_name: firstName,
+        last_name: lastName,
         grade,
         R1Id,
         R2Id,
@@ -138,7 +143,7 @@ async function initDatabase() {
     console.log(`Tutoring requests created: ${requests.length}`);
     console.log('\nTeacher details:');
     teachers.forEach(teacher => {
-      console.log(`- ${teacher.name} (${teacher.subject}, Lunch ${teacher.lunch})`);
+      console.log(`- ${teacher.last_name} (${teacher.subject}, Lunch ${teacher.lunch})`);
     });
     
     // Close the database connection

@@ -4,6 +4,8 @@ const Student = require('../models/Student');
 const Teacher = require('../models/Teacher');
 const auth = require('../middleware/auth');
 const {Op} = require('sequelize');
+const sequelize = require('../config/db');
+
 //New comment
 
 // @route   GET api/students/teacher/:teacherId
@@ -74,7 +76,7 @@ router.get('/', async (req, res) => {
 // @desc    Add a new student
 // @access  Public
 router.post('/', async (req, res) => {
-  const { name, teachers } = req.body;
+  const { first_name, last_name, teachers } = req.body;
   try{
     await sequelize.query("SELECT * FROM Student LIMIT 1",
       {type:sequelize.QueryTypes.SELECT}
@@ -84,7 +86,8 @@ router.post('/', async (req, res) => {
   }
   try {
     const studentData = {
-      name,
+      first_name,
+      last_name,
       R1Id: teachers?.R1 || null,
       R2Id: teachers?.R2 || null,
       RRId: teachers?.RR || null,
@@ -92,7 +95,7 @@ router.post('/', async (req, res) => {
       R5Id: teachers?.R5 || null
     };
     
-    let student_exists = await Student.findOne({ where: { name } });
+    let student_exists = await Student.findOne({ where: { first_name:first_name, last_name:last_name } });
     if (student_exists) {
       return res.status(400).json({ msg: 'Student already exists. Consider Updating instead of POST' });
     }

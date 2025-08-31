@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const Teacher = require('../models/Teacher');
 const auth = require('../middleware/auth');
+const sequelize = require('..config/db');
 
 // @route   GET api/teachers
 // @desc    Get all teachers
@@ -39,7 +40,7 @@ router.get('/:id', async (req, res) => {
 // @access  Public
 router.post('/', async (req, res) => {
   try{
-    const {name, email, subject, lunch} = req.body;
+    const {first_name, last_name, email, subject, lunch} = req.body;
     //Create table if none exist
     try{
       await sequelize.query("SELECT * FROM Teachers LIMIT 1",
@@ -57,7 +58,8 @@ router.post('/', async (req, res) => {
     
     // Create teacher
     teacher = await Teacher.create({
-      name,
+      first_name,
+      last_name,
       email,
       subject,
       lunch

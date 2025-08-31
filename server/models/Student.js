@@ -8,10 +8,14 @@ const Student = sequelize.define('Student', {
     primaryKey: true,
     allowNull: false
   },
-  name: {
+  first_name: {
+    type:DataTypes.STRING,
+    allowNull: false
+  },
+  last_name: {
     type: DataTypes.STRING,
     allowNull: false
-  }
+  },
 });
 
 // Define associations after the model is defined
