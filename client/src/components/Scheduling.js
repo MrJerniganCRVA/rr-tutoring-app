@@ -65,7 +65,16 @@ const Scheduling = () => {
         </TabPanel>
         
         <TabPanel value={tabValue} index={1}>
-          <BulkTutoring />
+          <Typography variant="body1" sx={{ 
+          fontStyle: 'italic', 
+          fontSize: '0.9rem',
+          backgroundColor: 'grey.50',
+          p: 1.5,
+          borderRadius: 1,
+          mb: 2
+        }}>
+        <strong>Note:</strong> The ability to request multiple students is currently being updated and will be reenabled when finished. Thank you for understanding. 
+      </Typography>
         </TabPanel>
       </Paper>
     </Box>
