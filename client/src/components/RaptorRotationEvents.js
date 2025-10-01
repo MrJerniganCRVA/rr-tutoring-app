@@ -14,8 +14,26 @@ import {useTutoring } from '../contexts/TutoringContext';
 
 const RaptorRotationEvents = () => {
   const {sessions, loading, error } = useTutoring();
-  
-  const teacherId = localStorage.getItem('teacherId');
+
+  //RRs point to one main teacher so these are groups. 
+  //Doesn't change local storage just for this component maps to the "main" teacher
+  const getRRMainTeacherID = (teacherId) => {
+    const RR_GROUPS = {
+      '10038':'10026',
+      '10036':'10026',
+      '10006':'10015',
+      '10003':'10015',
+      '10010':'10032',
+      '10027':'10032',
+      '10037':'10018',
+      '10014':'10018',
+      '10031':'10002',
+      '10011':'10002'
+    };
+    return RR_GROUPS[teacherId] || teacherId;
+  };
+
+  const teacherId = getRRMainTeacherID(localStorage.getItem('teacherId'));
  
   // Get today's requests for RR teacher
   const todaysRequests = sessions.filter(request => {
