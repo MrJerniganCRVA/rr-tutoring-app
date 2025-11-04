@@ -51,7 +51,6 @@ const BulkTutoring = () => {
   // State for API interactions
   const [loading, setLoading] = useState(false);
   const [fetchingStudents, setFetchingStudents] = useState(true);
-  const [students, setStudents] = useState([]);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [results, setResults] = useState([]);
@@ -95,7 +94,7 @@ const BulkTutoring = () => {
                displayName: lunchPeriod ? `[${lunchPeriod}] ${fullName}` : fullName
                };
              });
-             setStudents(processedStudents);
+             setAllStudents(processedStudents);
              setFetchingStudents(false);
            } catch (err) {
              console.error('Error fetching students:', err);
@@ -111,10 +110,6 @@ const BulkTutoring = () => {
     const fullName = `${student.first_name} ${student.last_name}`.toLowerCase();
     return fullName.includes(studentFilter.toLowerCase());
 });
-  const getFullName = (student) =>{
-  return `${student.first_name} ${student.last_name}`;
-}
-
   
   // Handler for lunch checkbox changes
   const handleLunchChange = (event) => {
@@ -141,6 +136,13 @@ const BulkTutoring = () => {
     // Add to selected students
     setSelectedStudents([...selectedStudents, studentToAdd]);
     
+    //Clear out any lunches that have been selected
+    if (studentToAdd.lunchPeriod){
+      setLunches(prevLunches =>({
+        ...prevLunches,
+        [studentToAdd.lunchPeriod]: false
+      }));
+    }
     // Reset selection
     setSelectedStudentId('');
     setError('');
@@ -388,10 +390,10 @@ const BulkTutoring = () => {
                 >
                   {fetchingStudents ? (
                     <MenuItem disabled>Loading students...</MenuItem>
-                  ) : filteredStudents.length === 0 ? (
+                  ) : allStudents.length === 0 ? (
                     <MenuItem disabled>No students match your filter</MenuItem>
                   ) : (
-                    filteredStudents.map((student) => (
+                    allStudents.map((student) => (
                       <MenuItem 
                         key={student.id} 
                         value={student.id}
