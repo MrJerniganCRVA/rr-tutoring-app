@@ -24,8 +24,9 @@ import {
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
-import { isSaturday, isSunday, format } from 'date-fns';
+import { format } from 'date-fns';
 import apiService from '../utils/apiService';
+import {useTutoring} from '../contexts/TutoringContext.js'
 
 // Icons
 import AddIcon from '@mui/icons-material/Add';
@@ -34,6 +35,7 @@ import PersonIcon from '@mui/icons-material/Person';
 
 const BulkTutoring = () => {
   // State for form fields
+  const {createSession} = useTutoring();
   const [selectedDate, setSelectedDate] = useState(null);
   const [lunches, setLunches] = useState({
     A: false,
@@ -191,22 +193,28 @@ const BulkTutoring = () => {
       
       for (const student of selectedStudents) {
         try {
-          const dateString = format(selectedDate, 'yyyy-MM-dd');
-          const response = await apiService.createTutoringRequest({
-              studentId: student.id,
-              date: dateString,
-              lunches
-          });
-         
-          
-          successfulStudents.push({
-            student: `${student.first_name} ${student.last_name}`,
-            id: response.data.id
-          });
+          const dateObject = new Date(selectedDate.toISOString().split('T')[0]);
+          const formData = {
+            studentId: student.id,
+            date: dateObject,
+            lunches
+          };
+          const result = await createSession(formData);
+          if(result.success){
+            successfulStudents.push({
+              student: `${student.first_name} ${student.last_name}`,
+              id: result.session.id
+            });
+          } else{
+            failedStudents.push({
+              student:`${student.first_name} ${student.last_name}`,
+              error: result.message || 'Failed to create session'
+            });
+          }
         } catch (studentError) {
           failedStudents.push({
             student: `${student.first_name} ${student.last_name}`,
-            error: apiService.formatError(studentError)
+            error: studentError.message || apiService.formatError(studentError)
           });
         }
       }
