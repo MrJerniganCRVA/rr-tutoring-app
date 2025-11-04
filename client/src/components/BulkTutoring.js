@@ -59,50 +59,57 @@ const BulkTutoring = () => {
   const teacherId = localStorage.getItem('teacherId');
   const teacherName = localStorage.getItem('teacherName');
   
+
+
   // Load all students when component mounts
   useEffect(() => {
+    // Fetch all students from API
+  const fetchStudents = async () => {
+           try {
+             setFetchingStudents(true);
+             const response = await apiService.getStudents();
+             const filteredStudents = response.data.filter(student =>{
+               return(
+                 student?.R1Id===parseInt(teacherId) ||
+                 student?.R2Id===parseInt(teacherId) ||
+                 student?.R4Id===parseInt(teacherId) ||
+                 student?.R5Id===parseInt(teacherId)
+               );
+             });
+             const processedStudents = filteredStudents.map(student =>{
+               let lunchPeriod = null;
+               if(student.teachers && student.teachers.RR && student.teachers.RR.lunch){
+                 lunchPeriod = student.teachers.RR.lunch;
+               } else if (student.RR && student.RR.lunch){
+                 lunchPeriod = student.RR.lunch;
+               } else if (student.lunchPeriod){
+                 lunchPeriod = student.lunchPeriod;
+               } else if (student.lunch){
+                 lunchPeriod = student.lunch;
+               }
+               const fullName = `${student.first_name} ${student.last_name}`;
+             return {
+               ...student,
+               lunchPeriod,
+               displayName: lunchPeriod ? `[${lunchPeriod}] ${fullName}` : fullName
+               };
+             });
+             setAllStudents(processedStudents);
+             setFetchingStudents(false);
+           } catch (err) {
+             console.error('Error fetching students:', err);
+             setError(apiService.formatError(err));
+             setFetchingStudents(false);
+           }
+         };
     fetchStudents();
   }, []);
-  
+
   // Filter students when search term changes
   const filteredStudents = allStudents.filter(student => {
     const fullName = `${student.first_name} ${student.last_name}`.toLowerCase();
     return fullName.includes(studentFilter.toLowerCase());
 });
-  
-  // Fetch all students from API
-  const fetchStudents = async () => {
-    try {
-      setFetchingStudents(true);
-      const response = await apiService.getStudents();
-      
-      // Process students to add display info
-      const processedStudents = response.data.map(student => {
-        // Get lunch period from RR teacher if available
-        let lunchPeriod = null;
-        if (student.teachers && student.teachers.RR && student.teachers.RR.lunch) {
-          lunchPeriod = student.teachers.RR.lunch;
-        } else if (student.RR && student.RR.lunch) {
-          lunchPeriod = student.RR.lunch;
-        } else if (student.lunchPeriod) {
-          lunchPeriod = student.lunchPeriod;
-        }
-        const fullName = `${student.first_name} ${student.last_name}`;
-        return {
-          ...student,
-          lunchPeriod,
-          displayName: lunchPeriod ? `[${lunchPeriod}] ${fullName}` : fullName
-        };
-      });
-      
-      setAllStudents(processedStudents);
-      setFetchingStudents(false);
-    } catch (err) {
-      console.error('Error fetching students:', err);
-      setError(apiService.formatError(err));
-      setFetchingStudents(false);
-    }
-  };
   
   // Handler for lunch checkbox changes
   const handleLunchChange = (event) => {
@@ -129,6 +136,13 @@ const BulkTutoring = () => {
     // Add to selected students
     setSelectedStudents([...selectedStudents, studentToAdd]);
     
+    //Clear out any lunches that have been selected
+    if (studentToAdd.lunchPeriod){
+      setLunches(prevLunches =>({
+        ...prevLunches,
+        [studentToAdd.lunchPeriod]: false
+      }));
+    }
     // Reset selection
     setSelectedStudentId('');
     setError('');
@@ -234,7 +248,17 @@ const BulkTutoring = () => {
       setLoading(false);
     }
   };
-  
+      // Helper function to disable lunches
+  // Returns a set
+  const getDisabledLunches = () => {
+    const disabledLunches = new Set();
+    selectedStudents.forEach(student => {
+      if(student.lunchPeriod){
+        disabledLunches.add(student.lunchPeriod);
+      }
+    });
+    return disabledLunches;
+  }
   // Function to check if a date should be disabled
   const isBlocked = (date) => {
     const dayOfWeek = date.getDay();
@@ -317,7 +341,11 @@ const BulkTutoring = () => {
               
               <FormGroup>
                 <Grid container spacing={1}>
-                  {['A', 'B', 'C', 'D'].map((period) => (
+                  {['A', 'B', 'C', 'D'].map((period) => {
+                    const disabledLunches = getDisabledLunches();
+                    const isDisabled = disabledLunches.has(period);
+                    
+                  return (
                     <Grid item xs={6} key={period}>
                       <FormControlLabel 
                         control={
@@ -325,13 +353,14 @@ const BulkTutoring = () => {
                             checked={lunches[period]} 
                             onChange={handleLunchChange} 
                             name={period} 
-                            disabled={loading}
+                            disabled={loading || isDisabled}
                           />
                         } 
                         label={`Lunch ${period}`} 
                       />
                     </Grid>
-                  ))}
+                  );
+                })}
                 </Grid>
               </FormGroup>
             </Grid>
@@ -361,10 +390,10 @@ const BulkTutoring = () => {
                 >
                   {fetchingStudents ? (
                     <MenuItem disabled>Loading students...</MenuItem>
-                  ) : filteredStudents.length === 0 ? (
+                  ) : allStudents.length === 0 ? (
                     <MenuItem disabled>No students match your filter</MenuItem>
                   ) : (
-                    filteredStudents.map((student) => (
+                    allStudents.map((student) => (
                       <MenuItem 
                         key={student.id} 
                         value={student.id}

@@ -73,7 +73,7 @@ const Scheduling = () => {
           borderRadius: 1,
           mb: 2
         }}>
-        <strong>Note:</strong> The ability to request multiple students is currently being updated and will be reenabled when finished. Thank you for understanding. 
+        <BulkTutoring />
       </Typography>
         </TabPanel>
       </Paper>
