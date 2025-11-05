@@ -17,9 +17,7 @@ A comprehensive web application for managing tutoring programs in educational in
 - **Session Overview** - Track all tutoring activities
 
 ### System Features
-- **Responsive Design** - Works seamlessly on desktop and mobile devices
 - **Real-time Updates** - Live data synchronization
-- **Secure Authentication** - Teacher-based access control
 - **Data Persistence** - Reliable PostgreSQL database storage
 
 ## Tech Stack
@@ -72,14 +70,16 @@ This application is deployed on Railway with automatic builds from the main bran
 
 ### Teachers
 - ID (Primary Key)
-- Name
+- First Name
+- Last Name
 - Subject
 - Email
 - Created/Updated timestamps
 
 ### Students  
 - ID (Primary Key, 9-digit student ID)
-- Name
+- First Name
+- Last Name
 - Teacher Associations (R1, R2, RR, R4, R5)
 - Created/Updated timestamps
 
@@ -88,7 +88,7 @@ This application is deployed on Railway with automatic builds from the main bran
 - Student ID (Foreign Key)
 - Teacher ID (Foreign Key)
 - Session Date
-- Period
+- Lunches
 - Status
 - Notes
 
@@ -115,9 +115,6 @@ This application is deployed on Railway with automatic builds from the main bran
 - [ ] Email notifications for tutoring sessions
 - [ ] Calendar integration
 - [ ] Advanced reporting and analytics
-- [ ] Mobile app development
-- [ ] Parent/guardian portal
-- [ ] Automated session reminders
 
 ## 📝 License
 
