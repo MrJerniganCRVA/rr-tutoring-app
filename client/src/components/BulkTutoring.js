@@ -19,7 +19,8 @@ import {
   ListItemText,
   ListItemIcon,
   Chip,
-  Grid
+  Grid,
+  Autocomplete
 } from '@mui/material';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
@@ -387,31 +388,64 @@ const BulkTutoring = () => {
                 disabled={loading}
               />
                */}
-              <FormControl fullWidth margin="normal">
-                <InputLabel id="student-select-label">Add Student</InputLabel>
-                <Select
-                  labelId="student-select-label"
-                  value={selectedStudentId}
-                  label="Add Student"
-                  onChange={(e) => setSelectedStudentId(e.target.value)}
-                  disabled={fetchingStudents || loading}
-                >
-                  {fetchingStudents ? (
-                    <MenuItem disabled>Loading students...</MenuItem>
-                  ) : allStudents.length === 0 ? (
-                    <MenuItem disabled>No students match your filter</MenuItem>
-                  ) : (
-                    allStudents.map((student) => (
-                      <MenuItem 
-                        key={student.id} 
-                        value={student.id}
-                      >
-                        {student.displayName}
-                      </MenuItem>
-                    ))
-                  )}
-                </Select>
-              </FormControl>
+            <Autocomplete
+  id="student-autocomplete"
+  options={allStudents}
+  getOptionLabel={(option) => option.displayName || `${option.first_name || ''} ${option.last_name || ''}`.trim()}
+  value={allStudents.find(student => student.id === selectedStudentId) || null}
+  onChange={(event, newValue) => {
+    const studentId = newValue ? newValue.id : '';
+    setSelectedStudentId(studentId);
+  }}
+  filterOptions={(options, { inputValue }) => {
+    const searchText = inputValue.toLowerCase();
+    return options.filter(option => {
+      const displayName = option.displayName || `${option.first_name || ''} ${option.last_name || ''}`.trim();
+      return displayName.toLowerCase().includes(searchText);
+    });
+  }}
+  renderInput={(params) => (
+    <TextField
+      {...params}
+      label="Add Student"
+      margin="normal"
+      fullWidth
+      placeholder="Type student name..."
+      disabled={fetchingStudents || loading}
+      helperText={fetchingStudents ? "Loading students..." : "Type to search by student name"}
+    />
+  )}
+  renderOption={(props, option) => {
+    const { key, ...cleanProps} = props;
+    return (
+      <Box component="li" key={key} {...cleanProps} sx={{ display: 'flex', alignItems: 'center', py: 1 }}>
+        <Box sx={{ flexGrow: 1 }}>
+          <Typography variant="body1">
+            {option.displayName || `${option.first_name || ''} ${option.last_name || ''}`.trim()}
+          </Typography>
+        </Box>
+        {option.lunchPeriod && (
+          <Chip
+            label={`Lunch ${option.lunchPeriod}`}
+            size="small"
+            color="primary"
+            sx={{ ml: 1 }}
+          />
+        )}
+      </Box>
+    );
+  }}
+  noOptionsText={
+    fetchingStudents ? "Loading students..." : "No students found"
+  }
+  loading={fetchingStudents}
+  disabled={loading}
+  clearOnBlur
+  selectOnFocus
+  handleHomeEndKeys
+  autoHighlight
+  openOnFocus
+/>
               
               <Button
                 variant="outlined"
