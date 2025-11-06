@@ -424,14 +424,6 @@ const BulkTutoring = () => {
             {option.displayName || `${option.first_name || ''} ${option.last_name || ''}`.trim()}
           </Typography>
         </Box>
-        {option.lunchPeriod && (
-          <Chip
-            label={`Lunch ${option.lunchPeriod}`}
-            size="small"
-            color="primary"
-            sx={{ ml: 1 }}
-          />
-        )}
       </Box>
     );
   }}
