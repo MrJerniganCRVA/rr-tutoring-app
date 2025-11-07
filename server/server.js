@@ -13,9 +13,11 @@ const runMigration = process.env.RUN_MIGRATION === 'true';
 app.use(express.json());
 app.use(cors());
 // Define routes
+app.use('/api/analytics', require('./routes/analytics'));
 app.use('/api/teachers', require('./routes/teachers'));
 app.use('/api/students', require('./routes/students'));
 app.use('/api/tutoring', require('./routes/tutoring'));
+
 
 if(runMigration){
 
