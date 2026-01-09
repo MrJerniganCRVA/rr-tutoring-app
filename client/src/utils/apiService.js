@@ -118,10 +118,10 @@ const apiService = {
   },
 
   getTeacherAnalytics: async (teacherId) => {
-    return await api.get(`/analytics/${teacherId}`);
+    return await apiClient.get(`/analytics/${teacherId}`);
   },
   getStudentHistory: async (teacherId, studentId) => {
-    return await api.get(`/analytics/${teacherId}/student/${studentId}`);
+    return await apiClient.get(`/analytics/${teacherId}/student/${studentId}`);
   }
 };
 
