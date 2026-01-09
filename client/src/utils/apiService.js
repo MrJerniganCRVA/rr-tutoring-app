@@ -115,6 +115,13 @@ const apiService = {
       return error.response.data.conflict;
     }
     return null;
+  },
+
+  getTeacherAnalytics: async (teacherId) => {
+    return await api.get(`/analytics/${teacherId}`);
+  },
+  getStudentHistory: async (teacherId, studentId) => {
+    return await api.get(`/analytics/${teacherId}/student/${studentId}`);
   }
 };
 
