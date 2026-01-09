@@ -8,6 +8,35 @@ const {Op} = require('sequelize');
 const sequelize = require('../config/db');
 const auth = require('../middleware/auth');
 
+router.get('/:teacherId/student/:studentId', async (req, res) => {
+    const teacherId = req.params.teacherId;
+    const studentId = req.params.studentId;
+    try{
+        const teacherRequestsForStudent = await TutoringRequest.findAll({
+            where:{
+                TeacherId: teacherId,
+                StudentId: studentId
+            }, 
+            raw:true
+        });
+        let count = 0;
+        let dates = [];
+        teacherRequestsForStudent.forEach(row=>{
+            dates.push(row['date']);
+            count++;
+        });
+
+        res.json({
+            studentId: studentId,
+            count: count,
+            dates: dates
+        });
+    } catch (error){
+        console.error('Analytics Error:',error);
+        res.status(500).json({error: error.message});
+    }
+});
+
 //Personal Stats work
 //Need to work on getting Group Stats
 
@@ -15,20 +44,27 @@ const auth = require('../middleware/auth');
 router.get('/:teacherId', async (req, res)=>{
     const {teacherId} = req.params;
     try{
-        const totalSessions = await TutoringRequest.count({
-            where:{
-                id:teacherId,
+        //All requests
+        const allRequests = await TutoringRequest.findAll({
+            where: {
                 status: 'active'
+            },
+            include:[{
+                model:Teacher
+            },{
+                model:Student
+            }],
+            raw:true
+        });
+        //Personal Info - Total Tutoring Count
+        let totalSessions = 0;
+        allRequests.forEach(row => {
+            const teachId = row['TeacherId'];
+            if (teachId==teacherId) {
+                totalSessions++;
             }
         });
-        const uniqueStudents = await TutoringRequest.count({
-            where: {
-                teacherId: teacherId,
-                status:'active'
-            }, 
-            distinct: true,
-            col: 'studentId'
-        });
+        
         
         //Last 4 Weeks - Personal
         const fourWeeksAgo = new Date();
@@ -36,7 +72,7 @@ router.get('/:teacherId', async (req, res)=>{
 
         const weeklyData = await TutoringRequest.findAll({
             where:{
-                teacherId: teacherId,
+                TeacherId: teacherId,
                 status: 'active',
                 date: {
                     [Op.gte]: fourWeeksAgo
@@ -55,36 +91,25 @@ router.get('/:teacherId', async (req, res)=>{
             if(!weekCounts[weekKey]){
                 weekCounts[weekKey] = 0;
             }
-            weekCount[weekKey]++;
+            weekCounts[weekKey]++;
         });
         const monthNames = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
         const lastFourWeeks = Object.keys(weekCounts)
             .sort()
             .map(weekKey => {
                 const date = new Date(weekKey);
-                const formmatedDate = `${monthNames[date.getMonth()]} ${date.getDate()}`;
+                const formattedDate = `${monthNames[date.getMonth()]} ${date.getDate()}`;
                 return {
                     week: `Week of ${formattedDate}`,
-                    seesions: weekCounts[weekKeys]
+                    seesions: weekCounts[weekKey]
                 };
             });
 
         const personalStats = {
             totalSessions,
-            uniqueStudents
+            lastFourWeeks
         };
-        //School Stats
-        const allRequests = await TutoringRequest.findAll({
-            where: {
-                status: 'active'
-            },
-            include: [{
-                model:Teacher,
-                attribute:['subject']
-            }],
-            attributes: ['Teacher.subject'],
-            raw:true
-        });
+        //School stats - 
         const subjectBreakdown = {
             'CS':0,
             'Math':0,
@@ -95,12 +120,12 @@ router.get('/:teacherId', async (req, res)=>{
             const subject = row['Teacher.subject'];
             subjectBreakdown[subject]++;
         });
-        
-
+        const schoolStats ={
+            subjectBreakdown
+        }
         res.json({
             personalStats,
-            subjectBreakdown,
-            lastFourWeeks
+            schoolStats
         });
     } catch (error){
         console.error('Analytics Error:', error);
