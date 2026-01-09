@@ -44,6 +44,12 @@ router.get('/:teacherId/student/:studentId', async (req, res) => {
 router.get('/:teacherId', async (req, res)=>{
     const {teacherId} = req.params;
     try{
+        const totalSessions = await TutoringRequest.count({
+            where: {
+                TeacherId: teacherId,
+                status:'active'
+            }
+        });
         //All requests
         const allRequests = await TutoringRequest.findAll({
             where: {
@@ -57,13 +63,6 @@ router.get('/:teacherId', async (req, res)=>{
             raw:true
         });
         //Personal Info - Total Tutoring Count
-        let totalSessions = 0;
-        allRequests.forEach(row => {
-            const teachId = row['TeacherId'];
-            if (teachId==teacherId) {
-                totalSessions++;
-            }
-        });
         
         
         //Last 4 Weeks - Personal
@@ -101,13 +100,59 @@ router.get('/:teacherId', async (req, res)=>{
                 const formattedDate = `${monthNames[date.getMonth()]} ${date.getDate()}`;
                 return {
                     week: `Week of ${formattedDate}`,
-                    seesions: weekCounts[weekKey]
+                    sessions: weekCounts[weekKey]
                 };
             });
+        
+        const lastFourWeeksTotal = weeklyData.length;
+        const allTeachersCount = await TutoringRequest.findAll({
+            where: {status: 'active'},
+            attributes: [
+                'TeacherId',
+                [sequelize.fn('COUNT', sequelize.col('id')),'sessionCount']
+            ],
+            group: ['TeacherId'],
+            raw: true
+        });
+
+        const teacherCounts = allTeachersCount.map(t=> parseInt(t.sessionCount));
+        teacherCounts.sort((a,b)=>a -b);
+
+        const teacherSessionsCounts = totalSessions;
+        const teacherBelowCount = teacherCounts.filter(count=> count<teacherSessionsCounts).length;
+        const percentile = teacherCounts.length > 0
+            ? Math.round((teacherBelowCount / teacherCounts.length)*100)
+            : 0;
+            
+        const topStudents = await TutoringRequest.findAll({
+            where:{
+                TeacherId: teacherId,
+                status:'active'
+            },
+            attributes: [
+                'StudentId',
+                [sequelize.fn('COUNT', sequelize.col('TutoringRequest.id')), 'sessionCount']
+            ],
+            include:[{
+                model: Student,
+                attriubutes: ['firstName','lastName']
+            }],
+            group:['StudentId', 'Student.id','Student.first_name','Student.last_name'],
+            order:[[sequelize.fn('COUNT', sequelize.col('TutoringRequest.id')),'DESC']],
+            limit:10,
+            raw: true
+        });
+        const topStudentsFormatted = topStudents.map(row => ({
+            studentName: `${row['Student.first_name']} ${row['Student.last_name']}`,
+            sessions: parseInt(row.sessionCount)
+        }));
 
         const personalStats = {
             totalSessions,
-            lastFourWeeks
+            lastFourWeeksTotal,
+            percentile,
+            lastFourWeeks,
+            topStudents: topStudentsFormatted
         };
         //School stats - 
         const subjectBreakdown = {
