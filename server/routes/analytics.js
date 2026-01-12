@@ -135,24 +135,52 @@ router.get('/:teacherId', async (req, res)=>{
             ],
             include:[{
                 model: Student,
-                attriubutes: ['firstName','lastName']
+                attributes: ['first_name','last_name']
             }],
             group:['StudentId', 'Student.id','Student.first_name','Student.last_name'],
             order:[[sequelize.fn('COUNT', sequelize.col('TutoringRequest.id')),'DESC']],
             limit:10,
             raw: true
         });
+
         const topStudentsFormatted = topStudents.map(row => ({
             studentName: `${row['Student.first_name']} ${row['Student.last_name']}`,
             sessions: parseInt(row.sessionCount)
         }));
 
+        const allTeacherSessions = await TutoringRequest.findAll({
+            where: {
+                TeacherId: teacherId,
+                status: 'active'
+            },
+            attributes: ['date'],
+            raw: true
+        });
+
+        const dayOfWeekCounts = {
+            'Monday': 0,
+            'Tuesday': 0,
+            'Wedneday': 0,
+            'Thursday': 0,
+            'Friday': 0
+        };
+        const dayNames = ['Monday', 'Tuesday','Wednesday','Thursday','Friday'];
+        allTeacherSessions.forEach(row=>{
+            const date = new Date(row.date);
+            const dayName = dayNames[date.getDay()];
+            dayOfWeekCounts[dayName]++;
+        });
+        const dayOfWeekData = Object.keys(dayOfWeekCounts).map(day=>({
+            day: day,
+            sessions: dayOfWeekCounts[day]
+        }));
         const personalStats = {
             totalSessions,
             lastFourWeeksTotal,
             percentile,
             lastFourWeeks,
-            topStudents: topStudentsFormatted
+            topStudents: topStudentsFormatted,
+            dayOfWeekData
         };
         //School stats - 
         const subjectBreakdown = {

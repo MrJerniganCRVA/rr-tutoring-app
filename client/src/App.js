@@ -3,6 +3,7 @@ import { BrowserRouter as Router, Route, Routes, Navigate } from 'react-router-d
 import { Box, Container, CssBaseline, ThemeProvider, createTheme } from '@mui/material';
 import TeacherSelect from './components/TeacherSelect';
 import RaptorRotation from './components/RaptorRotation';
+import TeacherDashboard from './components/TeacherDashboard';
 import Header from './components/Header';
 import Scheduling from './components/Scheduling';
 import TutoringEvents from './components/TutoringEvents';
@@ -55,6 +56,7 @@ function App() {
               <Route path="/dashboard" element={<RaptorRotation />} />
               <Route path="/tutoring" element={<Scheduling />} />
               <Route path="/calendar" element={<TutoringEvents />} />
+              <Route path="/analytics" element={<TeacherDashboard />} />
               <Route path="/" element={<Navigate to="/select-teacher" replace />} />
             </Routes>
           </AnalyticsProvider>

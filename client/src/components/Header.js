@@ -62,6 +62,7 @@ const Header = () => {
           <Tab label="Raptor Rotation" onClick={() => navigate('/dashboard')} />
           <Tab label="Requests" onClick={() => navigate('/tutoring')} />
           <Tab label="Events" onClick={() => navigate('/calendar')} />
+          <Tab label="Analytics" onClick={()=> navigate('/analytics')} />
         </Tabs>
         
         <Box sx={{ display: 'flex', alignItems: 'center' }}>

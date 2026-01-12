@@ -12,7 +12,7 @@ export const AnalyticsProvider = ({children}) => {
         setLoading(true);
         setError(null);
         try{
-            const response = await apiService.getTutoringRequests();
+            const response = await apiService.getTeacherAnalytics();
             setAnalytics(response.data);
         } catch(e){
             const errorMessage = apiService.formatError(e);

@@ -3,23 +3,28 @@ import React, { useEffect } from 'react';
 import { Chart as ChartJS, ArcElement, CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend } from 'chart.js';
 import { Pie, Bar } from 'react-chartjs-2';
 import { useAnalytics } from '../contexts/AnalyticsContext';
-import './TeacherDashboard.css';
+import '../assets/css/TeacherDashboard.css';
 
 ChartJS.register(ArcElement, CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend);
 
-const TeacherDashboard = ({ teacherId }) => {
+const TeacherDashboard = () => {
+    const teacherId = localStorage.getItem('teacherId');
+    console.log("Pulling teacherId from storage", teacherId);
     const { analytics, loading, error, fetchAnalytics } = useAnalytics();
 
     useEffect(() => {
         if (teacherId) {
+            console.log("Fetching analysis for", teacherId);
             fetchAnalytics(teacherId);
         }
     }, [teacherId]);
+    console.log('analytics', analytics);
 
     if (loading) return <div className="dashboard-loading">Loading analytics...</div>;
     if (error) return <div className="dashboard-error">Error: {error}</div>;
     if (!analytics) return null;
-
+    if(!analytics.personalStats) return <div className="dashboard-error">No personal stats found</div>;
+    if(!analytics.schoolStats) return <div className="dashboard-error">No school stats found</div>;
     const { personalStats, schoolStats } = analytics;
 
     // Pie Chart Data - Subject Breakdown
