@@ -164,17 +164,22 @@ router.get('/:teacherId', async (req, res)=>{
             'Thursday': 0,
             'Friday': 0
         };
-        const dayNames = ['Monday', 'Tuesday','Wednesday','Thursday','Friday'];
+        const dayIndexToNames = {
+            1: 'Monday',
+            2: 'Tuesday',
+            3: 'Wednesday',
+            4: 'Thursday',
+            5: 'Friday'
+        };
         allTeacherSessions.forEach(row=>{
             const dateStr = typeof row.date === 'string' ? row.date : row.date.toISOString().split('T')[0];
             const [year, month, day] = dateStr.split('-').map(Number);
             const date = new Date(year, month-1, day);
-            console.log('Date variable',date);
-            console.log('Date from row', row.date)
             if(isNaN(date.getTime())){
                 console.warn('Invalid date found', row.date);
             }
-            const dayName = dayNames[date.getDay()];
+            const dayIndex = date.getDay();
+            const dayName = dayIndexToNames[dayIndex];
             if(dayName && dayOfWeekCounts[dayName]!== undefined){
                 dayOfWeekCounts[dayName]++;
             }
