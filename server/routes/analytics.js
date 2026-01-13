@@ -166,7 +166,11 @@ router.get('/:teacherId', async (req, res)=>{
         };
         const dayNames = ['Monday', 'Tuesday','Wednesday','Thursday','Friday'];
         allTeacherSessions.forEach(row=>{
-            const date = new Date(row.date);
+            const dateStr = typeof row.date === 'string' ? row.date : row.date.toISOString().split('T')[0];
+            const [year, month, day] = dateStr.split('-').map(Number);
+            const date = new Date(year, month-1, day);
+            console.log('Date variable',date);
+            console.log('Date from row', row.date)
             if(isNaN(date.getTime())){
                 console.warn('Invalid date found', row.date);
             }
