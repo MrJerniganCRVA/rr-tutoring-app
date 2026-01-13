@@ -1,81 +1,73 @@
-//TeacherDashboard from backend API data
 import React, { useEffect } from 'react';
+import { Box, Card, CardContent, Typography, Grid } from '@mui/material';
 import { Chart as ChartJS, ArcElement, CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend } from 'chart.js';
 import { Pie, Bar } from 'react-chartjs-2';
 import { useAnalytics } from '../contexts/AnalyticsContext';
-import '../assets/css/TeacherDashboard.css';
 
 ChartJS.register(ArcElement, CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend);
 
 const TeacherDashboard = () => {
     const teacherId = localStorage.getItem('teacherId');
-    console.log("Pulling teacherId from storage", teacherId);
+    console.log('TEacher Id Type', typeof teacherId);
+
     const { analytics, loading, error, fetchAnalytics } = useAnalytics();
 
     useEffect(() => {
         if (teacherId) {
-            console.log("Fetching analysis for", teacherId);
             fetchAnalytics(teacherId);
         }
-    }, [teacherId]);
-    console.log('analytics', analytics);
+    }, [teacherId, fetchAnalytics]);
 
-    if (loading) return <div className="dashboard-loading">Loading analytics...</div>;
-    if (error) return <div className="dashboard-error">Error: {error}</div>;
+    if (loading) return <Box sx={{ textAlign: 'center', p: 4 }}>Loading analytics...</Box>;
+    if (error) return <Box sx={{ textAlign: 'center', p: 4, color: 'error.main' }}>Error: {error}</Box>;
     if (!analytics) return null;
-    if(!analytics.personalStats) return <div className="dashboard-error">No personal stats found</div>;
-    if(!analytics.schoolStats) return <div className="dashboard-error">No school stats found</div>;
-    const { personalStats, schoolStats } = analytics;
 
-    // Pie Chart Data - Subject Breakdown
+    const { personalStats, schoolStats } = analytics;
+    console.log('Personal Stats', personalStats);
+    console.log('Total Sessions', personalStats.totalSessions);
+
+    // Chart data definitions stay the same...
     const pieChartData = {
         labels: Object.keys(schoolStats.subjectBreakdown),
         datasets: [{
             label: 'Sessions by Department',
             data: Object.values(schoolStats.subjectBreakdown),
             backgroundColor: [
-                'rgba(54, 162, 235, 0.8)',
-                'rgba(255, 99, 132, 0.8)',
-                'rgba(75, 192, 192, 0.8)',
-                'rgba(255, 206, 86, 0.8)',
+                'rgba(36, 157, 215, 0.8)',
+                'rgba(236, 57, 132, 0.8)',
+                'rgba(143, 199, 69, 0.8)',
+                'rgba(121, 193, 241, 0.8)',
             ],
-            borderColor: [
-                'rgba(54, 162, 235, 1)',
-                'rgba(255, 99, 132, 1)',
-                'rgba(75, 192, 192, 1)',
-                'rgba(255, 206, 86, 1)',
-            ],
+            borderColor: ['#249DD7', '#EC3984', '#8FC745', '#79C1F1'],
             borderWidth: 2
         }]
     };
 
-    // Bar Chart Data - Top 10 Students
     const topStudentsChartData = {
         labels: personalStats.topStudents.map(s => s.studentName),
         datasets: [{
             label: 'Sessions',
             data: personalStats.topStudents.map(s => s.sessions),
-            backgroundColor: 'rgba(75, 192, 192, 0.8)',
-            borderColor: 'rgba(75, 192, 192, 1)',
+            backgroundColor: 'rgba(143, 199, 69, 0.8)',
+            borderColor: '#8FC745',
             borderWidth: 2
         }]
     };
 
-    // Bar Chart Data - Day of Week
     const dayOfWeekChartData = {
         labels: personalStats.dayOfWeekData.map(d => d.day),
         datasets: [{
             label: 'Sessions',
             data: personalStats.dayOfWeekData.map(d => d.sessions),
-            backgroundColor: 'rgba(153, 102, 255, 0.8)',
-            borderColor: 'rgba(153, 102, 255, 1)',
+            backgroundColor: 'rgba(36, 157, 215, 0.8)',
+            borderColor: '#249DD7',
             borderWidth: 2
         }]
     };
 
     const chartOptions = {
         responsive: true,
-        maintainAspectRatio: true,
+        maintainAspectRatio: false,
         plugins: {
             legend: {
                 position: 'top',
@@ -84,56 +76,103 @@ const TeacherDashboard = () => {
     };
 
     return (
-        <div className="teacher-dashboard">
-            <h1>Analytics Dashboard</h1>
+        <Box sx={{ p: 3, maxWidth: 1400, mx: 'auto' }}>
+            <Typography variant="h4" sx={{ mb: 4, fontWeight: 600 }}>
+                Analytics Dashboard
+            </Typography>
             
             {/* Stats Cards */}
-            <div className="stats-cards">
-                <div className="stat-card">
-                    <h3>Total Tutoring Sessions</h3>
-                    <div className="stat-number">{personalStats.totalSessions}</div>
-                </div>
+            <Grid container spacing={3} sx={{ mb: 5 }}>
+                <Grid item xs={12} md={4}>
+                    <Card sx={{ borderTop: 4, borderColor: '#249DD7' }}>
+                        <CardContent sx={{ textAlign: 'center' }}>
+                            <Typography variant="overline" color="text.secondary" sx={{ fontWeight: 600 }}>
+                                Total Tutoring Sessions
+                            </Typography>
+                            <Typography variant="h2" sx={{ color: '#249DD7', fontWeight: 'bold', my: 2 }}>
+                                {personalStats.totalSessions}
+                            </Typography>
+                        </CardContent>
+                    </Card>
+                </Grid>
                 
-                <div className="stat-card">
-                    <h3>Last 4 Weeks</h3>
-                    <div className="stat-number">{personalStats.last4WeeksTotal}</div>
-                </div>
+                <Grid item xs={12} md={4}>
+                    <Card sx={{ borderTop: 4, borderColor: '#8FC745' }}>
+                        <CardContent sx={{ textAlign: 'center' }}>
+                            <Typography variant="overline" color="text.secondary" sx={{ fontWeight: 600 }}>
+                                Last 4 Weeks
+                            </Typography>
+                            <Typography variant="h2" sx={{ color: '#8FC745', fontWeight: 'bold', my: 2 }}>
+                                {personalStats.lastFourWeeksTotal}
+                            </Typography>
+                        </CardContent>
+                    </Card>
+                </Grid>
                 
-                <div className="stat-card">
-                    <h3>Percentile</h3>
-                    <div className="stat-number">{personalStats.percentile}th</div>
-                    <div className="stat-subtitle">compared to other teachers</div>
-                </div>
-            </div>
+                <Grid item xs={12} md={4}>
+                    <Card sx={{ borderTop: 4, borderColor: '#EC3984' }}>
+                        <CardContent sx={{ textAlign: 'center' }}>
+                            <Typography variant="overline" color="text.secondary" sx={{ fontWeight: 600 }}>
+                                Percentile
+                            </Typography>
+                            <Typography variant="h2" sx={{ color: '#EC3984', fontWeight: 'bold', my: 2 }}>
+                                {personalStats.percentile}th
+                            </Typography>
+                            <Typography variant="caption" color="text.secondary">
+                                compared to other teachers
+                            </Typography>
+                        </CardContent>
+                    </Card>
+                </Grid>
+            </Grid>
 
             {/* Charts Section */}
-            <div className="charts-container">
-                <div className="chart-card">
-                    <h3>Sessions by Department</h3>
-                    <div className="chart-wrapper">
-                        <Pie data={pieChartData} options={chartOptions} />
-                    </div>
-                </div>
+            <Grid container spacing={3}>
+                <Grid item xs={12} md={6}>
+                    <Card>
+                        <CardContent>
+                            <Typography variant="h6" sx={{ mb: 2, pb: 1, borderBottom: 2, borderColor: '#D0E9FA' }}>
+                                Sessions by Department
+                            </Typography>
+                            <Box sx={{ height: 350, position: 'relative' }}>
+                                <Pie data={pieChartData} options={chartOptions} />
+                            </Box>
+                        </CardContent>
+                    </Card>
+                </Grid>
 
-                <div className="chart-card chart-card-wide">
-                    <h3>Top 10 Most Tutored Students</h3>
-                    <div className="chart-wrapper">
-                        <Bar data={topStudentsChartData} options={{
-                            ...chartOptions,
-                            indexAxis: 'y',
-                        }} />
-                    </div>
-                </div>
+                <Grid item xs={12} md={6}>
+                    <Card>
+                        <CardContent>
+                            <Typography variant="h6" sx={{ mb: 2, pb: 1, borderBottom: 2, borderColor: '#D0E9FA' }}>
+                                Your Sessions by Day of Week
+                            </Typography>
+                            <Box sx={{ height: 350, position: 'relative' }}>
+                                <Bar data={dayOfWeekChartData} options={chartOptions} />
+                            </Box>
+                        </CardContent>
+                    </Card>
+                </Grid>
 
-                <div className="chart-card">
-                    <h3>Sessions by Day of Week</h3>
-                    <div className="chart-wrapper">
-                        <Bar data={dayOfWeekChartData} options={chartOptions} />
-                    </div>
-                </div>
-            </div>
-        </div>
+                <Grid item xs={12}>
+                    <Card>
+                        <CardContent>
+                            <Typography variant="h6" sx={{ mb: 2, pb: 1, borderBottom: 2, borderColor: '#D0E9FA' }}>
+                                Your Top 10 Most Tutored Students
+                            </Typography>
+                            <Box sx={{ height: 400, position: 'relative' }}>
+                                <Bar data={topStudentsChartData} options={{
+                                    ...chartOptions,
+                                    indexAxis: 'y',
+                                }} />
+                            </Box>
+                        </CardContent>
+                    </Card>
+                </Grid>
+            </Grid>
+        </Box>
     );
 };
 
 export default TeacherDashboard;
+

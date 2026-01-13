@@ -58,6 +58,7 @@ function App() {
               <Route path="/calendar" element={<TutoringEvents />} />
               <Route path="/analytics" element={<TeacherDashboard />} />
               <Route path="/" element={<Navigate to="/select-teacher" replace />} />
+              <Route path="*" element={<div>Page Not Found</div>} />
             </Routes>
           </AnalyticsProvider>
           </TutoringProvider>

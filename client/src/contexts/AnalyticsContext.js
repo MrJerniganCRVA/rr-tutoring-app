@@ -1,4 +1,4 @@
-import React, {createContext, useContext, useState } from 'react';
+import React, {createContext, useContext, useState, useCallback } from 'react';
 import apiService from '../utils/apiService';
 
 const AnalyticsContext = createContext();
@@ -8,20 +8,20 @@ export const AnalyticsProvider = ({children}) => {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
 
-    const fetchAnalytics = async (teacherId) =>{
+    const fetchAnalytics = useCallback(async (teacherId) =>{
         setLoading(true);
         setError(null);
         try{
-            const response = await apiService.getTeacherAnalytics();
+            const response = await apiService.getTeacherAnalytics(teacherId);
             setAnalytics(response.data);
         } catch(e){
             const errorMessage = apiService.formatError(e);
-            console.error('Error fetching analytics: ', e);
+            console.error('Error fetching analytics: ', errorMessage);
         } finally {
             setLoading(false);
         }
-    };
-    const fetchStudentHistory = async (teacherId, studentId) =>{
+    }, []); //this function doesn't change
+    const fetchStudentHistory = useCallback(async (teacherId, studentId) =>{
         setLoading(true);
         setError(null);
         try{
@@ -34,7 +34,7 @@ export const AnalyticsProvider = ({children}) => {
         } finally{
             setLoading(false);
         }
-    };
+    }, []); //this function doesn't change
     const value = {
         analytics,
         loading,

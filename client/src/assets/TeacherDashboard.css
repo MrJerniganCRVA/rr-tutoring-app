@@ -14,19 +14,21 @@
 }
 .stats-card {
     display: grid;
-    grid-template-columns: repeat(3,  1fr);
+    grid-template-columns: repeat(3,  1fr) !important;
     gap: 24px;
     margin-bottom: 40px;
+    min-width:0;
 }
 .stat-card {
     background:white;
     padding:30px;
     text-align: center;
+    min-width: 0;
 }
 
 .charts-container{
     display: grid;
-    grid-template-columns: repeate(2,1fr);
+    grid-template-columns: repeat(2,1fr) !important;
     gap:20px;
 }
 .chart-card{
