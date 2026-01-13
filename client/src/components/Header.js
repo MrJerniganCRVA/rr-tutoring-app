@@ -28,6 +28,7 @@ const Header = () => {
     if (location.pathname === '/dashboard') return 0;
     if (location.pathname === '/tutoring') return 1;
     if (location.pathname === '/calendar') return 2;
+    if (location.pathname === '/analytics') return 3;
     return false;
   };
   
