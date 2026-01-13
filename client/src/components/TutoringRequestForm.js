@@ -58,11 +58,25 @@ const TutoringRequestForm = () => {
             student?.R5Id===parseInt(teacherId)
           );
         });
-        const filteredStudentNames = filteredStudents.map(student =>{
-          student.name = student.lunch ? `[${student.lunch}] ${getFullName(student)}` : `N ${getFullName(student)}`;
-          return student;
+        const processedStudents = filteredStudents.map(student =>{
+          let lunchPeriod = null;
+          if(student.teachers && student.teachers.RR && student.teachers.RR.lunch){
+            lunchPeriod = student.teachers.RR.lunch;
+          } else if (student.RR && student.RR.lunch){
+            lunchPeriod = student.RR.lunch;
+          } else if (student.lunchPeriod){
+            lunchPeriod = student.lunchPeriod;
+          } else if (student.lunch){
+            lunchPeriod = student.lunch;
+          }
+          const fullName = `${student.first_name} ${student.last_name}`;
+        return {
+          ...student,
+          lunchPeriod,
+          displayName: lunchPeriod ? `[${lunchPeriod}] ${fullName}` : fullName
+          };
         });
-        setStudents(filteredStudentNames);
+        setStudents(processedStudents);
         setFetchingStudents(false);
       } catch (err) {
         console.error('Error fetching students:', err);

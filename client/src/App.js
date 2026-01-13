@@ -3,10 +3,12 @@ import { BrowserRouter as Router, Route, Routes, Navigate } from 'react-router-d
 import { Box, Container, CssBaseline, ThemeProvider, createTheme } from '@mui/material';
 import TeacherSelect from './components/TeacherSelect';
 import RaptorRotation from './components/RaptorRotation';
+import TeacherDashboard from './components/TeacherDashboard';
 import Header from './components/Header';
 import Scheduling from './components/Scheduling';
 import TutoringEvents from './components/TutoringEvents';
 import {TutoringProvider } from './contexts/TutoringContext';
+import { AnalyticsProvider } from './contexts/AnalyticsContext';
 import Footer from './components/Footer';
 
 // Create a theme instance
@@ -48,13 +50,17 @@ function App() {
 
         <Container maxWidth="lg" sx={{ mt: 4, mb: 4, minHeight:'65vh', flex: 1}}>
         <TutoringProvider>
-          <Routes>
-            <Route path="/select-teacher" element={<TeacherSelect />} />
-            <Route path="/dashboard" element={<RaptorRotation />} />
-            <Route path="/tutoring" element={<Scheduling />} />
-            <Route path="/calendar" element={<TutoringEvents />} />
-            <Route path="/" element={<Navigate to="/select-teacher" replace />} />
-          </Routes>
+          <AnalyticsProvider>
+            <Routes>
+              <Route path="/select-teacher" element={<TeacherSelect />} />
+              <Route path="/dashboard" element={<RaptorRotation />} />
+              <Route path="/tutoring" element={<Scheduling />} />
+              <Route path="/calendar" element={<TutoringEvents />} />
+              <Route path="/analytics" element={<TeacherDashboard />} />
+              <Route path="/" element={<Navigate to="/select-teacher" replace />} />
+              <Route path="*" element={<div>Page Not Found</div>} />
+            </Routes>
+          </AnalyticsProvider>
           </TutoringProvider>
         </Container>
        <Footer />

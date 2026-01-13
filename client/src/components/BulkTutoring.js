@@ -49,7 +49,7 @@ const BulkTutoring = () => {
   const [allStudents, setAllStudents] = useState([]);
   const [selectedStudents, setSelectedStudents] = useState([]);
   const [selectedStudentId, setSelectedStudentId] = useState('');
-  const [studentFilter, setStudentFilter] = useState('');
+  // const [studentFilter, setStudentFilter] = useState('');
   
   // State for API interactions
   const [loading, setLoading] = useState(false);
@@ -60,9 +60,6 @@ const BulkTutoring = () => {
   
   // Get the logged in teacher
   const teacherId = localStorage.getItem('teacherId');
-  const teacherName = localStorage.getItem('teacherName');
-  
-
 
   // Load all students when component mounts
   useEffect(() => {
@@ -106,13 +103,13 @@ const BulkTutoring = () => {
            }
          };
     fetchStudents();
-  }, []);
+  }, [teacherId]);
 
-  // Filter students when search term changes
-  const filteredStudents = allStudents.filter(student => {
-    const fullName = `${student.first_name} ${student.last_name}`.toLowerCase();
-    return fullName.includes(studentFilter.toLowerCase());
-});
+//   // Filter students when search term changes
+//   const filteredStudents = allStudents.filter(student => {
+//     const fullName = `${student.first_name} ${student.last_name}`.toLowerCase();
+//     return fullName.includes(studentFilter.toLowerCase());
+// });
   
   // Handler for lunch checkbox changes
   const handleLunchChange = (event) => {

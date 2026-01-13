@@ -8,6 +8,7 @@ import {
     Link,
     Divider
 } from '@mui/material';
+import packageJson from '../../package.json';
 import {
     BugReport as BugReportIcon,
     GitHub as GitHubIcon,
@@ -54,7 +55,7 @@ const Footer = () => {
                     </Box>
                     <Box sx={{textAlign:'center'}}>
                         <Typography variant="body2" sx={{opacity:0.8}}>
-                            &copy; 2025 RR Tutoring App v.0.1
+                            &copy; 2025 RR Tutoring App v.{packageJson.version}
                         </Typography>
 
                     </Box>
