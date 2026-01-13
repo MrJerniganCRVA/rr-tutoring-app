@@ -1,9 +1,6 @@
-import React, { useState, useEffect } from 'react';
-import { Box, Typography, CircularProgress } from '@mui/material';
-import { useNavigate } from 'react-router-dom';
-import axios from 'axios';
+import React from 'react';
+import { Box, Typography } from '@mui/material';
 import TutoringRequestList from './TutoringRequestList';
-import {useTutoring} from '../contexts/TutoringContext';
 
 const TutoringEvents = () => {
 
@@ -12,7 +9,6 @@ const TutoringEvents = () => {
     //automated would be nice but would create many event
     //all in one would be better imo
     
-
     return (
     <Box>
         <Typography variant="h4" component="h1" gutterBottom>

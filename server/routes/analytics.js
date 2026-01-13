@@ -160,15 +160,20 @@ router.get('/:teacherId', async (req, res)=>{
         const dayOfWeekCounts = {
             'Monday': 0,
             'Tuesday': 0,
-            'Wedneday': 0,
+            'Wednesday': 0,
             'Thursday': 0,
             'Friday': 0
         };
         const dayNames = ['Monday', 'Tuesday','Wednesday','Thursday','Friday'];
         allTeacherSessions.forEach(row=>{
             const date = new Date(row.date);
+            if(isNaN(date.getTime())){
+                console.warn('Invalid date found', row.date);
+            }
             const dayName = dayNames[date.getDay()];
-            dayOfWeekCounts[dayName]++;
+            if(dayName && dayOfWeekCounts[dayName]!== undefined){
+                dayOfWeekCounts[dayName]++;
+            }
         });
         const dayOfWeekData = Object.keys(dayOfWeekCounts).map(day=>({
             day: day,

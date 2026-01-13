@@ -8,7 +8,6 @@ ChartJS.register(ArcElement, CategoryScale, LinearScale, BarElement, Title, Tool
 
 const TeacherDashboard = () => {
     const teacherId = localStorage.getItem('teacherId');
-    console.log('TEacher Id Type', typeof teacherId);
 
     const { analytics, loading, error, fetchAnalytics } = useAnalytics();
 
@@ -23,8 +22,6 @@ const TeacherDashboard = () => {
     if (!analytics) return null;
 
     const { personalStats, schoolStats } = analytics;
-    console.log('Personal Stats', personalStats);
-    console.log('Total Sessions', personalStats.totalSessions);
 
     // Chart data definitions stay the same...
     const pieChartData = {
