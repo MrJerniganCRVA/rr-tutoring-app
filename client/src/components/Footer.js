@@ -5,14 +5,11 @@ import {
     Typography,
     Button,
     Box,
-    Link,
     Divider
 } from '@mui/material';
 import packageJson from '../../package.json';
 import {
     BugReport as BugReportIcon,
-    GitHub as GitHubIcon,
-    Email as EmailIcon,
     Code as CodeIcon
 } from '@mui/icons-material';
 
@@ -20,12 +17,6 @@ const Footer = () => {
     const GOOGLE_FORM_URL = "https://forms.gle/buBuDvvj4vpe3Fm96";
     const handleReportIssue = () => {
        window.open(GOOGLE_FORM_URL, '_blank');
-    };
-    const handleGitHub = () => {
-        window.open('https://github.com/MrJerniganCRVA', '_blank');
-    };
-    const handleEmail = () =>{
-        window.open('mailto:zachary.jernigan@coderva.org', '_blank');
     };
 
     return (

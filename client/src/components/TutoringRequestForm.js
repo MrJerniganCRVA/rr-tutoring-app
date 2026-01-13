@@ -41,9 +41,6 @@ const TutoringRequestForm = () => {
   
   // Get the logged in teacher
   const teacherId = localStorage.getItem('teacherId');
-  const getFullName = (student) =>{
-    return `${student.first_name} ${student.last_name}`;
-  }
   useEffect(() => {
     // Fetch students
     const fetchStudents = async () => {

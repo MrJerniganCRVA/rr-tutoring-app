@@ -1,5 +1,5 @@
 // Update src/components/Dashboard.js
-import React, { useState, useEffect } from 'react';
+import React, { useEffect } from 'react';
 import { Box, Typography, Alert, CircularProgress } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 import TutoringRequestListSimple from './TutoringRequestListSimple';
@@ -8,7 +8,6 @@ import { useTutoring } from '../contexts/TutoringContext';
 
 const RaptorRotation = () => {
   const navigate = useNavigate();
-  const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || 'http://localhost:5000';
   const { loading, error} = useTutoring();
   
   useEffect(() => {
