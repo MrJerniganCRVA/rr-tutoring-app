@@ -29,6 +29,11 @@ const Teacher = sequelize.define('Teacher', {
     validate: {
       isIn: [['A','B','C','D']]
     }
+  },
+  google_id:{
+    type: DataTypes.STRING,
+    allowNull: true,
+    unique: true
   }
 });
 
