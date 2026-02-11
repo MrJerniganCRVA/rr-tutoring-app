@@ -87,9 +87,9 @@ const Login = () =>{
                         py:1.2,
                         textTransform: 'none',
                         fontSize:'16px',
-                        backgroundClor:'#4285f4',
                         '&:hover':{
-                            backgroundColor:'#357ae8'
+                            backgroundColor:'#79c1f1',
+                            color:'#222222'
                         }
                     }}
                 >
