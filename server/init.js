@@ -60,7 +60,14 @@ async function initDatabase() {
         email: 'dlocke@school.edu',
         subject: 'CS',
         lunch: 'D'
-      }
+      }, {
+        id:10015,
+        first_name: 'Zachary',
+        last_name:'Jernigan',
+        email: 'zachary.jernigan@coderva.org',
+        subject:'CS',
+        lunch: 'C'
+      }  
     ]);
 
     console.log('Sample teachers created');

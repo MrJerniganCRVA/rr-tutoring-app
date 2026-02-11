@@ -1,8 +1,8 @@
-
 const express = require('express');
 const cors = require('cors');
+const session = require('express-session');
 const sequelize = require('./config/db');
-
+const passport = require('passport');
 require('dotenv').config();
 
 const app = express();
@@ -11,7 +11,39 @@ const runMigration = process.env.RUN_MIGRATION === 'true';
 
 
 app.use(express.json());
-app.use(cors());
+app.use(cors({
+  origin: 'http://localhost:3000',
+  credentials: true
+}));
+app.use(
+  session({
+    secret: process.env.SESSION_SECRET,
+    resave: false,
+    saveUninitialized: false,
+    cookie: {
+      maxAge: 7*24*60*60*1000,
+      secure: process.env.NODE_ENV === 'production',
+      httpOnly: true,
+      sameSite: process.env.NODE_ENV ==='production' ? 'none': 'lax'
+    }
+  })
+);
+
+//passport init
+app.use(passport.initialize());
+app.use(passport.session());
+
+// load passport
+require('./config/passport')(passport);
+
+// Simple test route
+app.get('/', (req, res) => {
+  res.json({ msg: 'Welcome to the RR Tutoring Scheduler API' });
+});
+//Auth Routes
+app.use('/auth', require('./routes/auth'));
+
+
 // Define routes
 app.use('/api/analytics', require('./routes/analytics'));
 app.use('/api/teachers', require('./routes/teachers'));
@@ -48,7 +80,3 @@ sequelize.authenticate()
   })
   .catch(err => console.error('Unable to connect to the database:', err));
 }
-// Simple test route
-app.get('/', (req, res) => {
-  res.json({ msg: 'Welcome to the RR Tutoring Scheduler API' });
-});

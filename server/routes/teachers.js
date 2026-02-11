@@ -6,7 +6,7 @@ const auth = require('../middleware/auth');
 // @route   GET api/teachers
 // @desc    Get all teachers
 // @access  Public
-router.get('/', async (req, res) => {
+router.get('/', auth, async (req, res) => {
   try {
     const teachers = await Teacher.findAll();
     res.json(teachers);
@@ -19,7 +19,7 @@ router.get('/', async (req, res) => {
 // @route   GET api/teachers/:id
 // @desc    Get teacher by ID
 // @access  Public
-router.get('/:id', async (req, res) => {
+router.get('/:id', auth, async (req, res) => {
   try {
     const teacher = await Teacher.findByPk(req.params.id);
     
@@ -37,7 +37,7 @@ router.get('/:id', async (req, res) => {
 // @route   POST api/teachers
 // @desc    Add a new teacher
 // @access  Public
-router.post('/', async (req, res) => {
+router.post('/', auth, async (req, res) => {
   try{
     const {first_name, last_name, email, subject, lunch} = req.body;
     //Create table if none exist
