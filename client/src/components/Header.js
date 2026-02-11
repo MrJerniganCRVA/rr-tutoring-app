@@ -18,10 +18,20 @@ const Header = () => {
   const teacherId = localStorage.getItem('teacherId');
   const teacherName = localStorage.getItem('teacherName');
   
-  const handleLogout = () => {
-    localStorage.removeItem('teacherId');
-    localStorage.removeItem('teacherName');
-    navigate('/select-teacher');
+  const handleLogout = async () => {
+    try{
+      await fetch('http://localhost:5000/auth/logout', {
+        credentials: 'include',
+        method: 'GET'
+      });
+
+      localStorage.removeItem('teacherId');
+      localStorage.removeItem('teacherName');
+      navigate('/select-teacher');
+    } catch (err){
+      console.error("Logout failed", err);
+      navigate('/select-teacher');
+    }
   };
 
   const getTabValue = () => {

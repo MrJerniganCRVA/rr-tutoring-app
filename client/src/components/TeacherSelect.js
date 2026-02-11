@@ -76,7 +76,7 @@ const TeacherSelect = () => {
 
   return (
     <Box sx={{ mt: 8, display: 'flex', justifyContent: 'center' }}>
-      <Paper elevation={3} sx={{ p: 4, width: '100%', maxWidth: 500 }}>
+      <Paper elevation={3} sx={{ p: 4, width: '100%', maxWidth: 500, marginTop:10, marginBottom:10}}>
         <Typography variant="h5" component="h1" align="center" gutterBottom>
           Select Your Name Below:
         </Typography>

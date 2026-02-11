@@ -60,7 +60,7 @@ const Login = () =>{
     }
     return (
         <Box sx={{
-            minHeight:'100vh',
+            minHeight:'60vh',
             display:'flex',
             justifyContent:'center',
             alignItems:'center',
@@ -68,14 +68,14 @@ const Login = () =>{
 
 
         }}>
-            <Paper elevation={3} sx={{ p:4, width:'100%', maxWidth:450, textAlign:'center'}}>
+            <Paper elevation={3} sx={{ p:3, width:'85%', maxWidth:380, textAlign:'center'}}>
                 <Typography variant="h4" component="h1" gutterBottom>
                     RR Tutoring Scheduler
                 </Typography>
-                <Typography variant="body1" color="text.secondary" sx={{mb:4}}>
+                <Typography variant="body1" color="text.secondary" sx={{mb:3}}>
                     Sign in with your CodeRVA Google Account to access the Tutoring Page.
                 </Typography>
-                {error && <Alert severity="error" sx={{mb:3}}>{error}</Alert>}
+                {error && <Alert severity="error" sx={{mb:2}}>{error}</Alert>}
                 <Button 
                     variant="contained"
                     color="primary"
@@ -84,7 +84,7 @@ const Login = () =>{
                     startIcon={<GoogleIcon />}
                     onClick={handleGoogleLogin}
                     sx={{
-                        py:1.5,
+                        py:1.2,
                         textTransform: 'none',
                         fontSize:'16px',
                         backgroundClor:'#4285f4',
