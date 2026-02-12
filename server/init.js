@@ -77,7 +77,18 @@ async function initDatabase() {
     
     // Create sample students with random teacher assignments
     const students = [];
-    
+    students.push({
+      id:24000001,
+      first_name: 'Testing',
+      last_name: 'StudentA',
+      email: 'zachary.jernigan@coderva.org',
+      grade:'12',
+      R1Id: 1,
+      R2Id: 10015,
+      RRId:10015,
+      R4Id:2,
+      R5Id:3
+    });
     const firstNames = ['Emma', 'Liam', 'Olivia', 'Noah', 'Ava', 'Ethan', 'Sophia', 'Lucas', 'Isabella', 'Mason'];
     const lastNames = ['Smith', 'Johnson', 'Brown', 'Davis', 'Wilson', 'Miller', 'Taylor', 'Anderson', 'Thomas', 'Jackson'];
     const grades = ['9', '10', '11', '12'];
@@ -87,6 +98,7 @@ async function initDatabase() {
       const lastName = lastNames[Math.floor(Math.random() * lastNames.length)];
       const grade = grades[Math.floor(Math.random() * grades.length)];
       
+      const email = `${firstName.toLowerCase()}.${lastName.toLowerCase()}@students.coderva.org`;
       // Randomly assign teachers
       // For simplicity, we'll assign the same teacher for multiple periods sometimes
       const R1Id = teacherIds[Math.floor(Math.random() * teacherIds.length)];
@@ -99,6 +111,7 @@ async function initDatabase() {
         id: 100000000 + i,
         first_name: firstName,
         last_name: lastName,
+        email: email,
         grade,
         R1Id,
         R2Id,
