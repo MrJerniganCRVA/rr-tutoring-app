@@ -81,7 +81,7 @@ const Header = () => {
             {teacherName || 'Login'}
           </Typography>
           <Button color="inherit" onClick={handleLogout}>
-            Change Teacher
+            Log Out
           </Button>
         </Box>
       </Toolbar>
