@@ -6,7 +6,9 @@ module.exports = function(passport) {
         new GoogleStrategy({
             clientID: process.env.GOOGLE_CLIENT_ID,
             clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-            callbackURL: process.env.CALLBACK_URL
+            callbackURL: process.env.CALLBACK_URL,
+            accessType: 'offline',
+            prompt:'consent'
         },
         async (accessToken, refreshToken, Profiler, done) => {
             try{
@@ -24,13 +26,17 @@ module.exports = function(passport) {
                 let teacher = await Teacher.findOne({
                     where: {google_id: id}
                 });
-
+                const tokenExpiry = new Date();
+                tokenExpiry.setHours(tokenExpiry.getHours()+1);
                 //if teacher exists, update info
                 if(teacher){
                     await teacher.update({
                         email: email,
                         first_name: name.givenName,
-                        last_name: name.familyName
+                        last_name: name.familyName,
+                        access_token: accessToken,
+                        refresh_token: refreshToken || teacher.refresh_token,
+                        token_expiry: tokenExpiry
                     });
                     return done(null, teacher);
                 }
@@ -43,7 +49,10 @@ module.exports = function(passport) {
                     await teacher.update({
                         google_id: id,
                         first_name: name.givenName,
-                        last_name: name.familyName
+                        last_name: name.familyName,
+                        access_token: accessToken,
+                        refresh_token: refreshToken,
+                        token_expiry: tokenExpiry
                     });
                     return done(null, teacher);
                 }

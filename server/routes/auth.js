@@ -9,7 +9,9 @@ const passport = require('passport');
 router.get(
     '/google',
     passport.authenticate('google',{
-        scope: ['profile', 'email']
+        scope: ['profile', 'email','https://www.googleapis.com/auth/calendar.events'],
+        accessType: 'offline',
+        prompt: 'consent'
     })
 );
 
