@@ -34,6 +34,18 @@ const Teacher = sequelize.define('Teacher', {
     type: DataTypes.STRING,
     allowNull: true,
     unique: true
+  },
+  access_token:{
+    type:DataTypes.TEXT,
+    allowNull:true
+  },
+  refresh_token:{
+    type:DataTypes.TEXT,
+    allowNull:true
+  },
+  token_expiry:{
+    type:DataTypes.DATE,
+    allowNull:true
   }
 });
 

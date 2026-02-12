@@ -39,6 +39,18 @@ const TutoringRequest = sequelize.define('TutoringRequest', {
   conflictReason:{
     type: DataTypes.STRING,
     allowNull: true
+  },
+  calendar_event_id:{
+    type:DataTypes.STRING,
+    allowNull: true
+  },
+  invite_sent:{
+    type: DataTypes.BOOLEAN,
+    defaultValue:false
+  },
+  invite_sent_at:{
+    type:DataTypes.DATE,
+    allowNull:true
   }
 });
 
