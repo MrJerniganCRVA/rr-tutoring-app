@@ -61,8 +61,7 @@ async function upsertCalendarEvent(teacherId, eventDetails, existingEventId = nu
     reminders: {
       useDefault: false,
       overrides: [
-        { method: 'email', minutes: 24 * 60 },  // 1 day before
-        { method: 'popup', minutes: 10 },       // 10 minutes before
+        { method: 'popup', minutes: 10 }       // 10 minutes before
       ],
     },
     sendUpdates: 'all', // Send email invites to attendees
@@ -77,7 +76,7 @@ async function upsertCalendarEvent(teacherId, eventDetails, existingEventId = nu
         resource: event,
         sendUpdates: 'all'
       });
-      console.log('✅ Updated calendar event:', existingEventId);
+      console.log('Updated calendar event:', existingEventId);
       return response.data;
     } else {
       // CREATE new event
@@ -86,11 +85,11 @@ async function upsertCalendarEvent(teacherId, eventDetails, existingEventId = nu
         resource: event,
         sendUpdates: 'all'
       });
-      console.log('✅ Created calendar event:', response.data.id);
+      console.log('Created calendar event:', response.data.id);
       return response.data;
     }
   } catch (error) {
-    console.error('❌ Calendar API error:', error.message);
+    console.error('Calendar API error:', error.message);
     throw error;
   }
 }

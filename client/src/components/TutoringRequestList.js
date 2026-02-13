@@ -21,6 +21,7 @@ import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { format, parseISO } from 'date-fns';
 import {useTutoring} from '../contexts/TutoringContext';
+import CalendarInviteButton from './CalendarInviteButton';
 
 const TutoringRequestList = () => {
   const [filterDate, setFilterDate] = useState(null);
@@ -136,6 +137,9 @@ const TutoringRequestList = () => {
           >
             Clear Filters
           </Button>
+          <Box sx={{display:'flex', alignItems:  'center'}}>
+            <CalendarInviteButton />
+          </Box>
         </Box>
         
         {filteredRequests.length === 0 ? (

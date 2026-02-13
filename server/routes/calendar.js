@@ -35,7 +35,7 @@ router.post('/send-invites', auth, async (req, res) => {
       });
     }
 
-    // Group requests by date AND time slot
+    // Group requests by date AND time slot (merging contiguous lunches)
     const groupedByDateAndTime = groupByDateAndTimeSlot(pendingRequests);
 
     const results = [];
@@ -46,8 +46,8 @@ router.post('/send-invites', auth, async (req, res) => {
       const existingEventId = group.requests.find(r => r.calendar_event_id)?.calendar_event_id;
 
       const eventDetails = {
-        summary: `Tutoring - ${group.students.length} student(s)`,
-        description: `Tutoring session with: ${group.students.map(s => `${s.first_name} ${s.last_name}`).join(', ')}`,
+        summary: `RR Tutoring - ${req.user.subject}`,
+        description: `Tutoring session today during Raptor Rotation.`,
         startDateTime: group.startDateTime,
         endDateTime: group.endDateTime,
         attendees: group.students.map(student => ({
@@ -116,7 +116,7 @@ router.get('/pending-count', auth, async (req, res) => {
   }
 });
 
-// Helper: Group requests by date AND time slot
+// Helper: Group requests by date AND merge ONLY contiguous lunch periods
 function groupByDateAndTimeSlot(requests) {
   const groups = {};
 
@@ -127,14 +127,17 @@ function groupByDateAndTimeSlot(requests) {
     if (request.lunchC) lunchPeriods.push('C');
     if (request.lunchD) lunchPeriods.push('D');
 
-    lunchPeriods.forEach(lunch => {
-      const timeSlot = getLunchTimeSlot(lunch, request.date);
+    // Break into contiguous chunks
+    const chunks = getContiguousChunks(lunchPeriods);
+
+    chunks.forEach(chunk => {
+      const timeSlot = getMergedTimeSlot(chunk, request.date);
       const key = `${request.date}-${timeSlot.start}-${timeSlot.end}`;
 
       if (!groups[key]) {
         groups[key] = {
           date: request.date,
-          timeSlot: lunch,
+          timeSlot: chunk.join('+'), // e.g., "A", "A+B", "B+C+D"
           startDateTime: timeSlot.start,
           endDateTime: timeSlot.end,
           students: [],
@@ -154,8 +157,38 @@ function groupByDateAndTimeSlot(requests) {
   return Object.values(groups);
 }
 
-// Helper: Get time slot for lunch period
-function getLunchTimeSlot(lunchPeriod, date) {
+// Helper: Break lunch periods into contiguous chunks
+// Example: ['A', 'B', 'D'] becomes [['A', 'B'], ['D']]
+function getContiguousChunks(lunchPeriods) {
+  if (lunchPeriods.length === 0) return [];
+  
+  const order = { 'A': 0, 'B': 1, 'C': 2, 'D': 3 };
+  const sorted = [...lunchPeriods].sort((a, b) => order[a] - order[b]);
+  
+  const chunks = [];
+  let currentChunk = [sorted[0]];
+  
+  for (let i = 1; i < sorted.length; i++) {
+    const current = sorted[i];
+    const previous = sorted[i - 1];
+    
+    // Check if contiguous (e.g., A->B is contiguous, A->C is not)
+    if (order[current] === order[previous] + 1) {
+      currentChunk.push(current);
+    } else {
+      // Gap detected, start new chunk
+      chunks.push(currentChunk);
+      currentChunk = [current];
+    }
+  }
+  
+  // Don't forget the last chunk
+  chunks.push(currentChunk);
+  return chunks;
+}
+
+// Helper: Get merged time slot spanning multiple lunch periods
+function getMergedTimeSlot(lunchPeriods, date) {
   // TODO: Update these times to match your actual school schedule
   const times = {
     'A': { start: '11:02', end: '11:25' },
@@ -164,11 +197,18 @@ function getLunchTimeSlot(lunchPeriod, date) {
     'D': { start: '12:20', end: '12:44' }
   };
 
-  const time = times[lunchPeriod];
-  
+  // Get earliest start time
+  const firstLunch = lunchPeriods[0];
+  const startTime = times[firstLunch].start;
+
+  // Get latest end time
+  const lastLunch = lunchPeriods[lunchPeriods.length - 1];
+  const endTime = times[lastLunch].end;
+
   return {
-    start: `${date}T${time.start}:00-05:00`, // ISO format with EST timezone
-    end: `${date}T${time.end}:00-05:00`
+    start: `${date}T${startTime}:00-05:00`, // ISO format with EST timezone
+    end: `${date}T${endTime}:00-05:00`
   };
 }
+
 module.exports = router;

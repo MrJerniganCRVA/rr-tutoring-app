@@ -123,6 +123,12 @@ const apiService = {
   },
   getStudentHistory: async (teacherId, studentId) => {
     return await apiClient.get(`/api/analytics/${teacherId}/student/${studentId}`);
+  },
+  getPendingInviteCount: async () => {
+    return await apiClient.get('/api/calendar/pending-count');
+  },
+  sendCalendarInvites: async () => {
+    return await apiClient.post('/api/calendar/send-invites');
   }
 };
 
