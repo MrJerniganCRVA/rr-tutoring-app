@@ -80,9 +80,10 @@ const Header = () => {
           <Typography variant="subtitle1" sx={{ mr: 2 }}>
             {teacherName || 'Login'}
           </Typography>
-          <Button color="inherit" onClick={handleLogout}>
+          {teacherName &&(
+            <Button color="inherit" onClick={handleLogout}>
             Log Out
-          </Button>
+          </Button>)}
         </Box>
       </Toolbar>
     </AppBar>

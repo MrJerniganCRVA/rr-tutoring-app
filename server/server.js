@@ -1,6 +1,7 @@
 const express = require('express');
 const cors = require('cors');
 const session = require('express-session');
+const SequelizeStore = require('connect-session-sequelize')(session.Store);
 const sequelize = require('./config/db');
 const passport = require('passport');
 require('dotenv').config();
@@ -9,7 +10,28 @@ const app = express();
 const PORT = process.env.PORT || 5000;
 const runMigration = process.env.RUN_MIGRATION === 'true';
 
+const sessionStore = new SequelizeStore({
+  db: sequelize,
+  tableName: 'sessions',
+  checkExpirationInterval: 24*60*60*1000,
+  expiration: 30*24*60*60*1000
+});
+app.use(
+  session({
+    store: sessionStore,
+    secret: process.env.SESSION_SECRET,
+    resave:false,
+    saveUninitialized: false,
+    cookie:{
+      maxAge: 30*24*60*60*1000,
+      secure: process.env.NODE_ENV === 'production',
+      httpOnly: true,
+      sameSite: process.env.NODE_ENV === 'production' ? 'none' :'lax'
+    }
+  })
+);
 
+sessionStore.sync();
 app.use(express.json());
 app.use(cors({
   origin: 'http://localhost:3000',
