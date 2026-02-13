@@ -7,8 +7,7 @@ module.exports = function(passport) {
             clientID: process.env.GOOGLE_CLIENT_ID,
             clientSecret: process.env.GOOGLE_CLIENT_SECRET,
             callbackURL: process.env.CALLBACK_URL,
-            accessType: 'offline',
-            prompt:'consent'
+            accessType: 'offline'
         },
         async (accessToken, refreshToken, Profiler, done) => {
             try{

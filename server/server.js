@@ -49,6 +49,7 @@ app.use('/api/analytics', require('./routes/analytics'));
 app.use('/api/teachers', require('./routes/teachers'));
 app.use('/api/students', require('./routes/students'));
 app.use('/api/tutoring', require('./routes/tutoring'));
+app.use('/api/calendar', require('./routes/calendar'));
 
 
 if(runMigration){

@@ -133,7 +133,20 @@ async function initDatabase() {
     
     // Create a few sample tutoring requests
     const requests = [];
-    
+    const tomorrow = new Date(today);
+    tomorrow.setDate(tomorrow.getDate()+1);
+    const formatDate = (date) => date.toISOString().split('T')[0];
+    requests.push({
+      TeacherId: 10015,
+      StudentId: 24000001,
+      date: formatDate(tomorrow),
+      lunchA: false,
+      lunchB: true,
+      lunchC: false,
+      lunchD: false,
+      status:'active',
+      invite_sent: false
+    });
     for (let i = 0; i < 5; i++) {
       const student = allStudents[Math.floor(Math.random() * allStudents.length)];
       const teacher = teachers[Math.floor(Math.random() * teachers.length)];
@@ -146,7 +159,8 @@ async function initDatabase() {
         lunchB: Math.random() > 0.5,
         lunchC: Math.random() > 0.5,
         lunchD: Math.random() > 0.5,
-        status: 'active'
+        status: 'active',
+        invite_sent: false
       });
     }
     
