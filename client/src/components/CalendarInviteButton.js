@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Button, Badge, CircularProgress, Snackbar, Alert } from '@mui/material';
+import { Button, CircularProgress, Snackbar, Alert } from '@mui/material';
 import CalendarTodayIcon from '@mui/icons-material/CalendarToday';
 import apiService from '../utils/apiService';
 
@@ -54,11 +54,6 @@ function CalendarInviteButton() {
 
   return (
     <>
-      <Badge 
-        badgeContent={pendingCount} 
-        color="error"
-        invisible={pendingCount === 0}
-      >
         <Button
           variant="contained"
           color="primary"
@@ -69,7 +64,6 @@ function CalendarInviteButton() {
         >
           {sending ? 'Sending...' : 'Send Calendar Invites'}
         </Button>
-      </Badge>
 
       <Snackbar
         open={snackbar.open}

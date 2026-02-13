@@ -88,6 +88,17 @@ async function initDatabase() {
       RRId:10015,
       R4Id:2,
       R5Id:3
+    }, {
+      id:250000001,
+      first_name:'Test',
+      last_name:'StudentB',
+      email:'zachary.jernigan@coderva.org',
+      grade:11,
+      R1Id:2,
+      R2Id: 10015,
+      RRId:3,
+      R4Id:1,
+      R5Id:3
     });
     const firstNames = ['Emma', 'Liam', 'Olivia', 'Noah', 'Ava', 'Ethan', 'Sophia', 'Lucas', 'Isabella', 'Mason'];
     const lastNames = ['Smith', 'Johnson', 'Brown', 'Davis', 'Wilson', 'Miller', 'Taylor', 'Anderson', 'Thomas', 'Jackson'];

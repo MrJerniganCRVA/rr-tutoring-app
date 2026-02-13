@@ -16,9 +16,6 @@ import {
   Alert
 } from '@mui/material';
 import { Search as SearchIcon } from '@mui/icons-material';
-import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
-import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
-import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { format, parseISO } from 'date-fns';
 import {useTutoring} from '../contexts/TutoringContext';
 import CalendarInviteButton from './CalendarInviteButton';
@@ -97,7 +94,7 @@ const TutoringRequestList = () => {
           Tutoring Requests by {localStorage.getItem('teacherName')}
         </Typography>
         
-        <Box sx={{ display: 'flex', mb: 3, gap: 2 }}>
+        <Box sx={{ display: 'flex', mb: 3, gap: 2, alignItems:'center' }}>
           <TextField
             label="Search by name"
             variant="outlined"
@@ -114,7 +111,7 @@ const TutoringRequestList = () => {
             sx={{ flexGrow: 1 }}
           />
           
-          <LocalizationProvider dateAdapter={AdapterDateFns}>
+          {/* <LocalizationProvider dateAdapter={AdapterDateFns}>
             <DatePicker
               label="Filter by date"
               value={filterDate}
@@ -127,7 +124,7 @@ const TutoringRequestList = () => {
                 />
               )}
             />
-          </LocalizationProvider>
+          </LocalizationProvider> */}
           <Button 
             variant="outlined" 
             onClick={() => {
@@ -137,9 +134,7 @@ const TutoringRequestList = () => {
           >
             Clear Filters
           </Button>
-          <Box sx={{display:'flex', alignItems:  'center'}}>
-            <CalendarInviteButton />
-          </Box>
+          <CalendarInviteButton />
         </Box>
         
         {filteredRequests.length === 0 ? (
@@ -153,7 +148,8 @@ const TutoringRequestList = () => {
                   <TableCell>Student</TableCell>
                   <TableCell>Lunch Periods</TableCell>
                   <TableCell>Status</TableCell>
-                  <TableCell align="right">Actions</TableCell>
+                  <TableCell>Invite Status</TableCell>
+                  <TableCell align="right">Cancel Event?</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
@@ -166,6 +162,13 @@ const TutoringRequestList = () => {
                       <Chip 
                         label={request.status} 
                         color={request.status === 'active' ? 'success' : 'default'} 
+                        size="small" 
+                      />
+                    </TableCell>
+                    <TableCell>
+                      <Chip 
+                        label={request.invite_sent ? "Invited" : "Pending"} 
+                        color={request.invite_sent ? "success" : "warning"} 
                         size="small" 
                       />
                     </TableCell>
