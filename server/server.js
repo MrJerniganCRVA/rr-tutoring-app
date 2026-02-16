@@ -9,44 +9,37 @@ require('dotenv').config();
 const app = express();
 const PORT = process.env.PORT || 5000;
 const runMigration = process.env.RUN_MIGRATION === 'true';
+const isProduction = process.env.NODE_ENV === 'production';
 
+// CORS: allow frontend origin in dev and production
+const allowedOrigin = process.env.CLIENT_URL || 'http://localhost:3000';
+app.use(cors({
+  origin: allowedOrigin,
+  credentials: true
+}));
+
+app.use(express.json());
+
+// Session store backed by the database
 const sessionStore = new SequelizeStore({
   db: sequelize,
   tableName: 'sessions',
   checkExpirationInterval: 24*60*60*1000,
   expiration: 30*24*60*60*1000
 });
+sessionStore.sync();
+
 app.use(
   session({
     store: sessionStore,
     secret: process.env.SESSION_SECRET,
-    resave:false,
-    saveUninitialized: false,
-    cookie:{
-      maxAge: 30*24*60*60*1000,
-      secure: process.env.NODE_ENV === 'production',
-      httpOnly: true,
-      sameSite: process.env.NODE_ENV === 'production' ? 'none' :'lax'
-    }
-  })
-);
-
-sessionStore.sync();
-app.use(express.json());
-app.use(cors({
-  origin: 'http://localhost:3000',
-  credentials: true
-}));
-app.use(
-  session({
-    secret: process.env.SESSION_SECRET,
     resave: false,
     saveUninitialized: false,
     cookie: {
-      maxAge: 7*24*60*60*1000,
-      secure: process.env.NODE_ENV === 'production',
+      maxAge: 30*24*60*60*1000,
+      secure: isProduction,
       httpOnly: true,
-      sameSite: process.env.NODE_ENV ==='production' ? 'none': 'lax'
+      sameSite: isProduction ? 'none' : 'lax'
     }
   })
 );

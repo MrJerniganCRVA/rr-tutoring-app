@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const passport = require('passport');
 
+const clientUrl = process.env.CLIENT_URL || 'http://localhost:3000';
 
 //@route GET  /auth/google
 //@desc Redirect to google for auth
@@ -19,11 +20,11 @@ router.get(
 router.get(
     '/google/callback',
     passport.authenticate('google',{
-        failureRedirect: 'http://localhost:3000/login?error=auth_failed'
+        failureRedirect: `${clientUrl}/login?error=auth_failed`
     }),
     (req, res) =>{
         //success so go to app
-        res.redirect('http://localhost:3000/dashboard');
+        res.redirect(`${clientUrl}/dashboard`);
     }
 );
 

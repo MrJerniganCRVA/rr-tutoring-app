@@ -10,6 +10,8 @@ import{
 import { useNavigate } from 'react-router-dom';
 import GoogleIcon from '@mui/icons-material/Google';
 
+const API_URL = process.env.REACT_APP_API_BASE_URL || 'http://localhost:5000';
+
 const Login = () =>{
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
@@ -19,7 +21,7 @@ const Login = () =>{
         //check if user is already auth
         const checkAuth = async () =>{
             try{
-                const response = await fetch('http://localhost:5000/auth/current',{
+                const response = await fetch(`${API_URL}/auth/current`,{
                     credentials: 'include'
                 });
                 if(response.ok){
@@ -49,7 +51,7 @@ const Login = () =>{
 
     const handleGoogleLogin = () => {
         //redirect to backend
-        window.location.href='http://localhost:5000/auth/google';
+        window.location.href=`${API_URL}/auth/google`;
     };
     if(loading){
         return(
