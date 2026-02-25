@@ -25,7 +25,9 @@ import {
 } from '@mui/material';
 import EditIcon from '@mui/icons-material/Edit';
 import PersonAddIcon from '@mui/icons-material/PersonAdd';
+import UpdateIcon from '@mui/icons-material/Update';
 import apiService from '../utils/apiService';
+import BulkRRUpdate from './BulkRRUpdate';
 
 const ROTATIONS = ['R1', 'R2', 'RR', 'R4', 'R5'];
 
@@ -45,6 +47,9 @@ const StudentRoster = () => {
   const [editFields, setEditFields] = useState(emptyEditState);
   const [editSaving, setEditSaving] = useState(false);
   const [editError, setEditError] = useState('');
+
+  // Bulk RR dialog state
+  const [bulkOpen, setBulkOpen] = useState(false);
 
   // Add dialog state
   const [addOpen, setAddOpen] = useState(false);
@@ -158,14 +163,23 @@ const StudentRoster = () => {
     <Box>
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
         <Typography variant="h5">Student Roster</Typography>
-        <Button
-          variant="contained"
-          color="primary"
-          startIcon={<PersonAddIcon />}
-          onClick={openAdd}
-        >
-          Add Student
-        </Button>
+        <Box sx={{ display: 'flex', gap: 1 }}>
+          <Button
+            variant="outlined"
+            startIcon={<UpdateIcon />}
+            onClick={() => setBulkOpen(true)}
+          >
+            Bulk RR Update
+          </Button>
+          <Button
+            variant="contained"
+            color="primary"
+            startIcon={<PersonAddIcon />}
+            onClick={openAdd}
+          >
+            Add Student
+          </Button>
+        </Box>
       </Box>
 
       {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
@@ -259,6 +273,15 @@ const StudentRoster = () => {
           </Button>
         </DialogActions>
       </Dialog>
+
+      {/* Bulk RR Update Dialog */}
+      <BulkRRUpdate
+        open={bulkOpen}
+        onClose={() => setBulkOpen(false)}
+        onComplete={fetchData}
+        students={students}
+        teachers={teachers}
+      />
 
       {/* Add Student Dialog */}
       <Dialog open={addOpen} onClose={() => setAddOpen(false)} maxWidth="xs" fullWidth>

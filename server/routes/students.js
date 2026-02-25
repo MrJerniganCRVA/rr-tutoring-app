@@ -118,6 +118,45 @@ router.post('/', async (req, res) => {
   }
 });
 
+// @route   POST api/students/bulk-rr
+// @desc    Bulk update RR teacher assignments
+// @access  Admin only
+router.post('/bulk-rr', auth, async (req, res) => {
+  try {
+    const requestingTeacher = await Teacher.findByPk(req.teacher.id);
+    if (!requestingTeacher?.is_admin) {
+      return res.status(403).json({ msg: 'Admin access required' });
+    }
+
+    const { updates } = req.body;
+    if (!Array.isArray(updates) || updates.length === 0) {
+      return res.status(400).json({ msg: 'updates array is required' });
+    }
+
+    const succeeded = [];
+    const failed = [];
+
+    for (const { studentId, rrTeacherId } of updates) {
+      try {
+        const student = await Student.findByPk(studentId);
+        if (!student) {
+          failed.push({ studentId, reason: 'Student not found' });
+          continue;
+        }
+        await student.update({ RRId: rrTeacherId });
+        succeeded.push(studentId);
+      } catch (rowErr) {
+        failed.push({ studentId, reason: rowErr.message });
+      }
+    }
+
+    res.json({ succeeded, failed });
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).send('Server Error');
+  }
+});
+
 // @route   PUT api/students/:id
 // @desc    Update a student's teacher assignments
 // @access  Admin only
