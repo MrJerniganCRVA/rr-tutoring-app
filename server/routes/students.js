@@ -75,7 +75,7 @@ router.get('/', async (req, res) => {
 // @desc    Add a new student
 // @access  Public
 router.post('/', async (req, res) => {
-  const { first_name, last_name, teachers } = req.body;
+  const { id, first_name, last_name, teachers } = req.body;
   try{
     await sequelize.query("SELECT * FROM Student LIMIT 1",
       {type:sequelize.QueryTypes.SELECT}
@@ -85,6 +85,7 @@ router.post('/', async (req, res) => {
   }
   try {
     const studentData = {
+      id,
       first_name,
       last_name,
       R1Id: teachers?.R1 || null,

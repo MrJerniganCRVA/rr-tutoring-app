@@ -30,7 +30,7 @@ import apiService from '../utils/apiService';
 const ROTATIONS = ['R1', 'R2', 'RR', 'R4', 'R5'];
 
 const emptyEditState = { R1Id: null, R2Id: null, RRId: null, R4Id: null, R5Id: null };
-const emptyAddState = { first_name: '', last_name: '', R1: null, R2: null, RR: null, R4: null, R5: null };
+const emptyAddState = { id: '', first_name: '', last_name: '', R1: null, R2: null, RR: null, R4: null, R5: null };
 
 const StudentRoster = () => {
   const [students, setStudents] = useState([]);
@@ -114,6 +114,10 @@ const StudentRoster = () => {
   };
 
   const handleAddSave = async () => {
+    if (!addFields.id || !String(addFields.id).trim()) {
+      setAddError('Student ID is required.');
+      return;
+    }
     if (!addFields.first_name.trim() || !addFields.last_name.trim()) {
       setAddError('First and last name are required.');
       return;
@@ -122,6 +126,7 @@ const StudentRoster = () => {
     setAddError('');
     try {
       await apiService.createStudent({
+        id: Number(addFields.id),
         first_name: addFields.first_name.trim(),
         last_name: addFields.last_name.trim(),
         teachers: {
@@ -260,6 +265,14 @@ const StudentRoster = () => {
         <DialogTitle>Add Student</DialogTitle>
         <DialogContent>
           {addError && <Alert severity="error" sx={{ mb: 2 }}>{addError}</Alert>}
+          <TextField
+            label="Student ID"
+            fullWidth
+            margin="dense"
+            value={addFields.id}
+            onChange={e => setAddFields(prev => ({ ...prev, id: e.target.value }))}
+            inputProps={{ inputMode: 'numeric' }}
+          />
           <TextField
             label="First Name"
             fullWidth
