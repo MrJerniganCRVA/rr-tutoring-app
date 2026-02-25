@@ -117,4 +117,49 @@ router.post('/', async (req, res) => {
   }
 });
 
+// @route   PUT api/students/:id
+// @desc    Update a student's teacher assignments
+// @access  Admin only
+router.put('/:id', auth, async (req, res) => {
+  try {
+    const requestingTeacher = await Teacher.findByPk(req.teacher.id);
+    if (!requestingTeacher?.is_admin) {
+      return res.status(403).json({ msg: 'Admin access required' });
+    }
+
+    const student = await Student.findByPk(req.params.id);
+    if (!student) return res.status(404).json({ msg: 'Student not found' });
+
+    const { R1Id, R2Id, RRId, R4Id, R5Id } = req.body;
+    const updates = {};
+    for (const [field, val] of Object.entries({ R1Id, R2Id, RRId, R4Id, R5Id })) {
+      if (val !== undefined) {
+        if (val !== null) {
+          const exists = await Teacher.findByPk(val);
+          if (!exists) return res.status(400).json({ msg: `Teacher ${val} not found` });
+        }
+        updates[field] = val;
+      }
+    }
+
+    await student.update(updates);
+
+    const updated = await Student.findByPk(req.params.id, {
+      include: [
+        { model: Teacher, as: 'R1' },
+        { model: Teacher, as: 'R2' },
+        { model: Teacher, as: 'RR' },
+        { model: Teacher, as: 'R4' },
+        { model: Teacher, as: 'R5' }
+      ]
+    });
+    const result = updated.toJSON();
+    result.lunch = updated.RR?.lunch ?? null;
+    res.json(result);
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).send('Server Error');
+  }
+});
+
 module.exports = router;

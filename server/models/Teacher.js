@@ -29,6 +29,11 @@ const Teacher = sequelize.define('Teacher', {
     validate: {
       isIn: [['A','B','C','D']]
     }
+  },
+  is_admin: {
+    type: DataTypes.BOOLEAN,
+    allowNull: false,
+    defaultValue: false
   }
 });
 
