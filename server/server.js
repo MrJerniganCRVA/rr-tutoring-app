@@ -11,6 +11,11 @@ const PORT = process.env.PORT || 5000;
 const runMigration = process.env.RUN_MIGRATION === 'true';
 const isProduction = process.env.NODE_ENV === 'production';
 
+// Trust Railway's reverse proxy so secure cookies work behind HTTPS termination
+if (isProduction) {
+  app.set('trust proxy', 1);
+}
+
 // CORS: allow frontend origin in dev and production
 const allowedOrigin = (process.env.CLIENT_URL || 'http://localhost:3000').replace(/\/+$/, '');
 app.use(cors({
