@@ -25,8 +25,8 @@ import apiService from '../utils/apiService';
 function exportCSV(students) {
   const header = 'student_id,student_name,rr_teacher';
   const rows = students.map(s => {
-    const name = `${s.last_name} ${s.first_name}`;
-    const rr = s.RR?.last_name ?? '';
+    const name = `"${s.last_name}, ${s.first_name}"`;
+    const rr = s.RR?.email ?? '';
     return `${s.id},${name},${rr}`;
   });
   const csv = [header, ...rows].join('\n');
@@ -41,15 +41,33 @@ function exportCSV(students) {
   URL.revokeObjectURL(url);
 }
 
+function parseCSVLine(line) {
+  const fields = [];
+  let current = '';
+  let inQuotes = false;
+  for (let i = 0; i < line.length; i++) {
+    const ch = line[i];
+    if (ch === '"') {
+      if (inQuotes && line[i + 1] === '"') { current += '"'; i++; }
+      else inQuotes = !inQuotes;
+    } else if (ch === ',' && !inQuotes) {
+      fields.push(current);
+      current = '';
+    } else {
+      current += ch;
+    }
+  }
+  fields.push(current);
+  return fields;
+}
+
 function parseCSV(text, students, teachers) {
   const studentById = {};
   for (const s of students) studentById[String(s.id)] = s;
 
-  const teacherByLastName = {};
+  const teacherByEmail = {};
   for (const t of teachers) {
-    const key = t.last_name.toLowerCase();
-    if (!teacherByLastName[key]) teacherByLastName[key] = [];
-    teacherByLastName[key].push(t);
+    teacherByEmail[t.email.toLowerCase()] = t;
   }
 
   const lines = text.trim().split(/\r?\n/);
@@ -59,12 +77,12 @@ function parseCSV(text, students, teachers) {
     .filter(line => line.trim() !== '')
     .map((line, idx) => {
       const csvRowNum = idx + 2;
-      const parts = line.split(',');
+      const parts = parseCSVLine(line);
       if (parts.length < 3) {
         return { csvRowNum, status: 'error', reason: 'Invalid row format (expected 3 columns)' };
       }
       const studentId = parts[0].trim();
-      const rrLastName = parts[2].trim();
+      const rrEmail = parts[2].trim();
 
       if (!studentId) {
         return { csvRowNum, status: 'error', reason: 'Missing student ID' };
@@ -72,27 +90,23 @@ function parseCSV(text, students, teachers) {
 
       const student = studentById[studentId];
       if (!student) {
-        return { csvRowNum, studentId, rrLastName, status: 'error_student_not_found', reason: `Student ID "${studentId}" not found` };
+        return { csvRowNum, studentId, rrEmail, status: 'error_student_not_found', reason: `Student ID "${studentId}" not found` };
       }
 
-      if (!rrLastName) {
-        return { csvRowNum, studentId, student, status: 'error', reason: 'Missing RR teacher name' };
+      if (!rrEmail) {
+        return { csvRowNum, studentId, student, status: 'error', reason: 'Missing RR teacher email' };
       }
 
-      const matches = teacherByLastName[rrLastName.toLowerCase()];
-      if (!matches || matches.length === 0) {
-        return { csvRowNum, studentId, student, rrLastName, status: 'error_teacher_not_found', reason: `Teacher "${rrLastName}" not found` };
-      }
-      if (matches.length > 1) {
-        return { csvRowNum, studentId, student, rrLastName, status: 'error_teacher_ambiguous', reason: `Multiple teachers with last name "${rrLastName}" — use Edit to update manually` };
+      const newTeacher = teacherByEmail[rrEmail.toLowerCase()];
+      if (!newTeacher) {
+        return { csvRowNum, studentId, student, rrEmail, status: 'error_teacher_not_found', reason: `No teacher found with email "${rrEmail}"` };
       }
 
-      const newTeacher = matches[0];
       if (student.RRId !== null && String(student.RRId) === String(newTeacher.id)) {
-        return { csvRowNum, studentId, student, rrLastName, newTeacher, currentRR: student.RR, status: 'no_change' };
+        return { csvRowNum, studentId, student, rrEmail, newTeacher, currentRR: student.RR, status: 'no_change' };
       }
 
-      return { csvRowNum, studentId, student, rrLastName, newTeacher, currentRR: student.RR, status: 'ok' };
+      return { csvRowNum, studentId, student, rrEmail, newTeacher, currentRR: student.RR, status: 'ok' };
     });
 }
 
@@ -100,8 +114,7 @@ const STATUS_CONFIG = {
   ok: { label: 'Will update', color: 'success' },
   no_change: { label: 'No change', color: 'default' },
   error_student_not_found: { label: 'Student not found', color: 'error' },
-  error_teacher_not_found: { label: 'Teacher not found', color: 'error' },
-  error_teacher_ambiguous: { label: 'Ambiguous teacher', color: 'warning' },
+  error_teacher_not_found: { label: 'Email not found', color: 'error' },
   error: { label: 'Error', color: 'error' }
 };
 
@@ -182,10 +195,10 @@ const BulkRRUpdate = ({ open, onClose, onComplete, students, teachers }) => {
               Upload a CSV file with updated RR teacher assignments. The file must have three columns:
             </Typography>
             <Paper variant="outlined" sx={{ p: 1.5, mb: 2, fontFamily: 'monospace', fontSize: '0.8rem', bgcolor: 'grey.50', whiteSpace: 'pre' }}>
-              {'student_id,student_name,rr_teacher\n123456789,Doe John,Smith\n987654321,Smith Jane,Johnson'}
+              {'student_id,student_name,rr_teacher\n123456789,"Doe, John",smith@school.edu\n987654321,"Smith, Jane",johnson@school.edu'}
             </Paper>
             <Typography variant="body2" sx={{ mb: 2 }}>
-              <strong>Tip:</strong> Export the current assignments first, update the <code>rr_teacher</code> column in Google Sheets, then re-upload. The <code>student_name</code> column is ignored on upload.
+              <strong>Tip:</strong> Export the current assignments first, update the <code>rr_teacher</code> email column in Google Sheets, then re-upload. The <code>student_name</code> column is ignored on upload.
             </Typography>
             <Box sx={{ display: 'flex', gap: 2, mb: 2, flexWrap: 'wrap' }}>
               <Button
@@ -254,7 +267,7 @@ const BulkRRUpdate = ({ open, onClose, onComplete, students, teachers }) => {
                               : row.studentId}
                           </TableCell>
                           <TableCell>{row.currentRR?.last_name ?? '—'}</TableCell>
-                          <TableCell>{row.newTeacher?.last_name ?? row.rrLastName ?? '—'}</TableCell>
+                          <TableCell>{row.newTeacher?.last_name ?? row.rrEmail ?? '—'}</TableCell>
                           <TableCell>
                             <Chip label={cfg.label} color={cfg.color} size="small" />
                             {row.reason && (
