@@ -17,13 +17,21 @@ const Header = () => {
 
   const teacherId = localStorage.getItem('teacherId');
   const teacherName = localStorage.getItem('teacherName');
-  const isAdmin = localStorage.getItem('isAdmin') === 'true';
+  
+  const handleLogout = async () => {
+    try{
+      await fetch('http://localhost:5000/auth/logout', {
+        credentials: 'include',
+        method: 'GET'
+      });
 
-  const handleLogout = () => {
-    localStorage.removeItem('teacherId');
-    localStorage.removeItem('teacherName');
-    localStorage.removeItem('isAdmin');
-    navigate('/select-teacher');
+      localStorage.removeItem('teacherId');
+      localStorage.removeItem('teacherName');
+      navigate('/select-teacher');
+    } catch (err){
+      console.error("Logout failed", err);
+      navigate('/select-teacher');
+    }
   };
 
   const getTabValue = () => {
@@ -74,9 +82,10 @@ const Header = () => {
           <Typography variant="subtitle1" sx={{ mr: 2 }}>
             {teacherName || 'Login'}
           </Typography>
-          <Button color="inherit" onClick={handleLogout}>
-            Change Teacher
-          </Button>
+          {teacherName &&(
+            <Button color="inherit" onClick={handleLogout}>
+            Log Out
+          </Button>)}
         </Box>
       </Toolbar>
     </AppBar>

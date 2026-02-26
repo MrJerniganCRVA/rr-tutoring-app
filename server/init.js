@@ -60,7 +60,14 @@ async function initDatabase() {
         email: 'dlocke@school.edu',
         subject: 'CS',
         lunch: 'D'
-      }
+      }, {
+        id:10015,
+        first_name: 'Zachary',
+        last_name:'Jernigan',
+        email: 'zachary.jernigan@coderva.org',
+        subject:'CS',
+        lunch: 'C'
+      }  
     ]);
 
     console.log('Sample teachers created');
@@ -70,7 +77,29 @@ async function initDatabase() {
     
     // Create sample students with random teacher assignments
     const students = [];
-    
+    students.push({
+      id:24000001,
+      first_name: 'Testing',
+      last_name: 'StudentA',
+      email: 'zachary.jernigan@coderva.org',
+      grade:'12',
+      R1Id: 1,
+      R2Id: 10015,
+      RRId:10015,
+      R4Id:2,
+      R5Id:3
+    }, {
+      id:250000001,
+      first_name:'Test',
+      last_name:'StudentB',
+      email:'zachary.jernigan@coderva.org',
+      grade:11,
+      R1Id:2,
+      R2Id: 10015,
+      RRId:3,
+      R4Id:1,
+      R5Id:3
+    });
     const firstNames = ['Emma', 'Liam', 'Olivia', 'Noah', 'Ava', 'Ethan', 'Sophia', 'Lucas', 'Isabella', 'Mason'];
     const lastNames = ['Smith', 'Johnson', 'Brown', 'Davis', 'Wilson', 'Miller', 'Taylor', 'Anderson', 'Thomas', 'Jackson'];
     const grades = ['9', '10', '11', '12'];
@@ -80,6 +109,7 @@ async function initDatabase() {
       const lastName = lastNames[Math.floor(Math.random() * lastNames.length)];
       const grade = grades[Math.floor(Math.random() * grades.length)];
       
+      const email = `${firstName.toLowerCase()}.${lastName.toLowerCase()}@students.coderva.org`;
       // Randomly assign teachers
       // For simplicity, we'll assign the same teacher for multiple periods sometimes
       const R1Id = teacherIds[Math.floor(Math.random() * teacherIds.length)];
@@ -92,6 +122,7 @@ async function initDatabase() {
         id: 100000000 + i,
         first_name: firstName,
         last_name: lastName,
+        email: email,
         grade,
         R1Id,
         R2Id,
@@ -113,7 +144,20 @@ async function initDatabase() {
     
     // Create a few sample tutoring requests
     const requests = [];
-    
+    const tomorrow = new Date(today);
+    tomorrow.setDate(tomorrow.getDate()+1);
+    const formatDate = (date) => date.toISOString().split('T')[0];
+    requests.push({
+      TeacherId: 10015,
+      StudentId: 24000001,
+      date: formatDate(tomorrow),
+      lunchA: false,
+      lunchB: true,
+      lunchC: false,
+      lunchD: false,
+      status:'active',
+      invite_sent: false
+    });
     for (let i = 0; i < 5; i++) {
       const student = allStudents[Math.floor(Math.random() * allStudents.length)];
       const teacher = teachers[Math.floor(Math.random() * teachers.length)];
@@ -126,7 +170,8 @@ async function initDatabase() {
         lunchB: Math.random() > 0.5,
         lunchC: Math.random() > 0.5,
         lunchD: Math.random() > 0.5,
-        status: 'active'
+        status: 'active',
+        invite_sent: false
       });
     }
     

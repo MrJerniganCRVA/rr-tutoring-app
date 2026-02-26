@@ -16,6 +16,13 @@ const Student = sequelize.define('Student', {
     type: DataTypes.STRING,
     allowNull: false
   },
+  email: {
+    type:DataTypes.STRING,
+    allowNull:false,
+    validate: {
+      isEmail:true
+    }
+  }
 });
 
 // Define associations after the model is defined

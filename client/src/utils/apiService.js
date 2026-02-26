@@ -5,6 +5,7 @@ const API_URL = process.env.REACT_APP_API_BASE_URL || 'http://localhost:5000';
 // Create an axios instance
 const apiClient = axios.create({
   baseURL: API_URL,
+  withCredentials: true,
   headers: {
     'Content-Type': 'application/json'
   }
@@ -130,6 +131,12 @@ const apiService = {
   },
   getStudentHistory: async (teacherId, studentId) => {
     return await apiClient.get(`/api/analytics/${teacherId}/student/${studentId}`);
+  },
+  getPendingInviteCount: async () => {
+    return await apiClient.get('/api/calendar/pending-count');
+  },
+  sendCalendarInvites: async () => {
+    return await apiClient.post('/api/calendar/send-invites');
   }
 };
 

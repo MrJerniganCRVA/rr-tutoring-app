@@ -30,10 +30,22 @@ const Teacher = sequelize.define('Teacher', {
       isIn: [['A','B','C','D']]
     }
   },
-  is_admin: {
-    type: DataTypes.BOOLEAN,
-    allowNull: false,
-    defaultValue: false
+  google_id:{
+    type: DataTypes.STRING,
+    allowNull: true,
+    unique: true
+  },
+  access_token:{
+    type:DataTypes.TEXT,
+    allowNull:true
+  },
+  refresh_token:{
+    type:DataTypes.TEXT,
+    allowNull:true
+  },
+  token_expiry:{
+    type:DataTypes.DATE,
+    allowNull:true
   }
 });
 
