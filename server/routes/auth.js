@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const passport = require('passport');
 
-const clientUrl = process.env.CLIENT_URL || 'http://localhost:3000';
+const clientUrl = (process.env.CLIENT_URL || 'http://localhost:3000').replace(/\/+$/, '');
 
 //@route GET  /auth/google
 //@desc Redirect to google for auth
