@@ -70,7 +70,7 @@ app.use('/api/calendar', require('./routes/calendar'));
 if(runMigration){
 
   console.log('Starting migration');
-  sequelize.sync({ force: true})
+  sequelize.sync({ alter: true })
     .then(()=> {
       console.log('Migration Completed');
       process.exit(0);
