@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const passport = require('passport');
 
-const clientUrl = process.env.CLIENT_URL || 'http://localhost:3000';
+const clientUrl = (process.env.CLIENT_URL || 'http://localhost:3000').replace(/\/+$/, '');
 
 //@route GET  /auth/google
 //@desc Redirect to google for auth
@@ -20,11 +20,11 @@ router.get(
 router.get(
     '/google/callback',
     passport.authenticate('google',{
-        failureRedirect: `${clientUrl}/login?error=auth_failed`
+        failureRedirect: `${clientUrl}/select-teacher?error=auth_failed`
     }),
     (req, res) =>{
-        //success so go to app
-        res.redirect(`${clientUrl}/dashboard`);
+        //success - redirect to login page which will detect session, set localStorage, then go to dashboard
+        res.redirect(`${clientUrl}/select-teacher`);
     }
 );
 

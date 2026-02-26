@@ -12,7 +12,7 @@ const runMigration = process.env.RUN_MIGRATION === 'true';
 const isProduction = process.env.NODE_ENV === 'production';
 
 // CORS: allow frontend origin in dev and production
-const allowedOrigin = process.env.CLIENT_URL || 'http://localhost:3000';
+const allowedOrigin = (process.env.CLIENT_URL || 'http://localhost:3000').replace(/\/+$/, '');
 app.use(cors({
   origin: allowedOrigin,
   credentials: true
