@@ -22,7 +22,7 @@ app.use('/api/tutoring', require('./routes/tutoring'));
 if(runMigration){
 
   console.log('Starting migration');
-  sequelize.sync({ force: true})
+  sequelize.sync({ alter: true })
     .then(()=> {
       console.log('Migration Completed');
       process.exit(0);

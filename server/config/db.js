@@ -14,7 +14,7 @@ let sequelize;
 if (process.env.DATABASE_URL) {
   console.log('Using PostgreSQL in production');
   sequelize = new Sequelize(process.env.DATABASE_URL, {
-    dialect: 'postgresql',
+    dialect: 'postgres',
     dialectOptions: {
       ssl: { require: true, rejectUnauthorized: false }
     }
