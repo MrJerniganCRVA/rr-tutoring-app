@@ -49,7 +49,8 @@ router.get('/current', (req, res)=>{
             firstName: req.user.first_name,
             lastName: req.user.last_name,
             subject: req.user.subject,
-            lunch:req.user.lunch
+            lunch:req.user.lunch,
+            isAdmin:req.user.is_admin
         });
     } else{
         res.status(401).json({msg:'User not authenticated'});

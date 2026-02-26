@@ -29,6 +29,7 @@ const Login = () =>{
                     //user logged in redirect to dashboard
                     localStorage.setItem('teacherId',teacher.id);
                     localStorage.setItem('teacherName', `${teacher.firstName} ${teacher.lastName}`);
+                    localStorage.setItem('isAdmin', teacher.isAdmin ? 'true' : 'false');
                     navigate('/dashboard');
                 } else{
                     //not logged in, show login
