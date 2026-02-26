@@ -6,8 +6,7 @@ module.exports = function(passport) {
         new GoogleStrategy({
             clientID: process.env.GOOGLE_CLIENT_ID,
             clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-            callbackURL: process.env.CALLBACK_URL,
-            accessType: 'offline'
+            callbackURL: process.env.CALLBACK_URL
         },
         async (accessToken, refreshToken, Profiler, done) => {
             try{
