@@ -14,13 +14,15 @@ import SchoolIcon from '@mui/icons-material/School';
 const Header = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  
+
   const teacherId = localStorage.getItem('teacherId');
   const teacherName = localStorage.getItem('teacherName');
-  
+  const isAdmin = localStorage.getItem('isAdmin') === 'true';
+
   const handleLogout = () => {
     localStorage.removeItem('teacherId');
     localStorage.removeItem('teacherName');
+    localStorage.removeItem('isAdmin');
     navigate('/select-teacher');
   };
 
@@ -29,6 +31,7 @@ const Header = () => {
     if (location.pathname === '/tutoring') return 1;
     if (location.pathname === '/calendar') return 2;
     if (location.pathname === '/analytics') return 3;
+    if (location.pathname === '/roster') return 4;
     return false;
   };
   
@@ -63,7 +66,8 @@ const Header = () => {
           <Tab label="Raptor Rotation" onClick={() => navigate('/dashboard')} />
           <Tab label="Requests" onClick={() => navigate('/tutoring')} />
           <Tab label="Events" onClick={() => navigate('/calendar')} />
-          <Tab label="Analytics" onClick={()=> navigate('/analytics')} />
+          <Tab label="Analytics" onClick={() => navigate('/analytics')} />
+          {isAdmin && <Tab label="Roster" onClick={() => navigate('/roster')} />}
         </Tabs>
         
         <Box sx={{ display: 'flex', alignItems: 'center' }}>

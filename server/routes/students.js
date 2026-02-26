@@ -75,7 +75,7 @@ router.get('/', async (req, res) => {
 // @desc    Add a new student
 // @access  Public
 router.post('/', async (req, res) => {
-  const { first_name, last_name, teachers } = req.body;
+  const { id, first_name, last_name, teachers } = req.body;
   try{
     await sequelize.query("SELECT * FROM Student LIMIT 1",
       {type:sequelize.QueryTypes.SELECT}
@@ -85,6 +85,7 @@ router.post('/', async (req, res) => {
   }
   try {
     const studentData = {
+      id,
       first_name,
       last_name,
       R1Id: teachers?.R1 || null,
@@ -111,6 +112,90 @@ router.post('/', async (req, res) => {
     });
     
     res.json(newStudent);
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).send('Server Error');
+  }
+});
+
+// @route   POST api/students/bulk-rr
+// @desc    Bulk update RR teacher assignments
+// @access  Admin only
+router.post('/bulk-rr', auth, async (req, res) => {
+  try {
+    const requestingTeacher = await Teacher.findByPk(req.teacher.id);
+    if (!requestingTeacher?.is_admin) {
+      return res.status(403).json({ msg: 'Admin access required' });
+    }
+
+    const { updates } = req.body;
+    if (!Array.isArray(updates) || updates.length === 0) {
+      return res.status(400).json({ msg: 'updates array is required' });
+    }
+
+    const succeeded = [];
+    const failed = [];
+
+    for (const { studentId, rrTeacherId } of updates) {
+      try {
+        const student = await Student.findByPk(studentId);
+        if (!student) {
+          failed.push({ studentId, reason: 'Student not found' });
+          continue;
+        }
+        await student.update({ RRId: rrTeacherId });
+        succeeded.push(studentId);
+      } catch (rowErr) {
+        failed.push({ studentId, reason: rowErr.message });
+      }
+    }
+
+    res.json({ succeeded, failed });
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).send('Server Error');
+  }
+});
+
+// @route   PUT api/students/:id
+// @desc    Update a student's teacher assignments
+// @access  Admin only
+router.put('/:id', auth, async (req, res) => {
+  try {
+    const requestingTeacher = await Teacher.findByPk(req.teacher.id);
+    if (!requestingTeacher?.is_admin) {
+      return res.status(403).json({ msg: 'Admin access required' });
+    }
+
+    const student = await Student.findByPk(req.params.id);
+    if (!student) return res.status(404).json({ msg: 'Student not found' });
+
+    const { R1Id, R2Id, RRId, R4Id, R5Id } = req.body;
+    const updates = {};
+    for (const [field, val] of Object.entries({ R1Id, R2Id, RRId, R4Id, R5Id })) {
+      if (val !== undefined) {
+        if (val !== null) {
+          const exists = await Teacher.findByPk(val);
+          if (!exists) return res.status(400).json({ msg: `Teacher ${val} not found` });
+        }
+        updates[field] = val;
+      }
+    }
+
+    await student.update(updates);
+
+    const updated = await Student.findByPk(req.params.id, {
+      include: [
+        { model: Teacher, as: 'R1' },
+        { model: Teacher, as: 'R2' },
+        { model: Teacher, as: 'RR' },
+        { model: Teacher, as: 'R4' },
+        { model: Teacher, as: 'R5' }
+      ]
+    });
+    const result = updated.toJSON();
+    result.lunch = updated.RR?.lunch ?? null;
+    res.json(result);
   } catch (err) {
     console.error(err.message);
     res.status(500).send('Server Error');

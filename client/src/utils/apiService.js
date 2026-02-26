@@ -51,6 +51,14 @@ const apiService = {
   createStudent: async (studentData) => {
     return apiClient.post('/api/students', studentData);
   },
+
+  updateStudent: async (id, data) => {
+    return apiClient.put(`/api/students/${id}`, data);
+  },
+
+  bulkUpdateRR: async (updates) => {
+    return apiClient.post('/api/students/bulk-rr', { updates });
+  },
   
   // Tutoring request endpoints
   getTutoringRequests: async () => {
