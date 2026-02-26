@@ -46,6 +46,11 @@ const Teacher = sequelize.define('Teacher', {
   token_expiry:{
     type:DataTypes.DATE,
     allowNull:true
+  },
+  is_admin:{
+    type:DataTypes.BOOLEAN,
+    allowNull:false,
+    defaultValue:false
   }
 });
 

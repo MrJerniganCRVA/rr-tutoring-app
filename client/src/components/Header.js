@@ -19,6 +19,7 @@ const Header = () => {
 
   const teacherId = localStorage.getItem('teacherId');
   const teacherName = localStorage.getItem('teacherName');
+  const isAdmin = localStorage.getItem('isAdmin') === 'true';
   
   const handleLogout = async () => {
     try{
