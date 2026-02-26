@@ -9,12 +9,7 @@ A comprehensive web application for managing tutoring programs in educational in
 - **Session Management** - Create and manage tutoring requests
 - **Student Tracking** - Monitor student progress across different periods (R1, R2, RR, R4, R5)
 - **Bulk Operations** - Handle multiple tutoring sessions efficiently
-
-### For Administrators
-- **Student Management** - Add and organize student information
-- **Teacher Profiles** - Manage teacher assignments and subjects
-- **Data Import** - Bulk import students and teachers via CSV
-- **Session Overview** - Track all tutoring activities
+- **Teacher Analytics** - Look at data about your tutoring sessions
 
 ### System Features
 - **Real-time Updates** - Live data synchronization
@@ -26,7 +21,6 @@ A comprehensive web application for managing tutoring programs in educational in
 - **React** - User interface framework
 - **Material-UI (MUI)** - Component library for modern design
 - **React Router** - Client-side routing
-- **Axios** - HTTP client for API communication
 
 ### Backend
 - **Node.js** - JavaScript runtime environment
@@ -48,6 +42,7 @@ rr-tutoring-app/
 │   ├── public/            # Static files and HTML template
 │   ├── src/
 │   │   ├── components/    # Reusable React components
+│   │   ├── assets/        # Styling and images
 │   │   ├── pages/         # Main application pages
 │   │   └── App.js         # Main application component
 │   └── package.json       # Frontend dependencies
@@ -64,7 +59,6 @@ rr-tutoring-app/
 ## Deployment
 
 This application is deployed on Railway with automatic builds from the main branch.
-
 
 ## Database Schema
 
@@ -110,11 +104,13 @@ This application is deployed on Railway with automatic builds from the main bran
 - `PUT /api/tutoring/:id` - Update tutoring session
 - `DELETE /api/tutoring/:id` - Delete tutoring session
 
+### Analytics
+- `GET /api/analytics/:id` - Delete tutoring session
+ 
 ## 📈 Future Enhancements
 
 - [ ] Email notifications for tutoring sessions
 - [ ] Calendar integration
-- [ ] Advanced reporting and analytics
 
 ## 📝 License
 

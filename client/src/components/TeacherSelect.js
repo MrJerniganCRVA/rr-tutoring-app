@@ -60,6 +60,8 @@ const TeacherSelect = () => {
   const handleSubmit = () => {
     if (selectedTeacher) {
       localStorage.setItem('teacherId', selectedTeacher);
+      const teacher = teachers.find(t => t.id === selectedTeacher);
+      localStorage.setItem('isAdmin', teacher?.is_admin ? 'true' : 'false');
       navigate('/dashboard');
     } else {
       setError('Please select a teacher');
