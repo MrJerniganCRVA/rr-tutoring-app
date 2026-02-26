@@ -20,11 +20,11 @@ router.get(
 router.get(
     '/google/callback',
     passport.authenticate('google',{
-        failureRedirect: `${clientUrl}/login?error=auth_failed`
+        failureRedirect: `${clientUrl}/select-teacher?error=auth_failed`
     }),
     (req, res) =>{
-        //success so go to app
-        res.redirect(`${clientUrl}/dashboard`);
+        //success - redirect to login page which will detect session, set localStorage, then go to dashboard
+        res.redirect(`${clientUrl}/select-teacher`);
     }
 );
 
