@@ -11,6 +11,8 @@ import {
 import { useNavigate, useLocation } from 'react-router-dom';
 import SchoolIcon from '@mui/icons-material/School';
 
+const API_URL = process.env.REACT_APP_API_BASE_URL || 'http://localhost:5000';
+
 const Header = () => {
   const navigate = useNavigate();
   const location = useLocation();
@@ -20,7 +22,7 @@ const Header = () => {
   
   const handleLogout = async () => {
     try{
-      await fetch('http://localhost:5000/auth/logout', {
+      await fetch(`${API_URL}/auth/logout`, {
         credentials: 'include',
         method: 'GET'
       });
