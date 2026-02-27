@@ -55,16 +55,30 @@ router.post('/send-invites', auth, async (req, res) => {
       // Find existing event ID from any request in this group (sent or unsent)
       const existingEventId = group.requests.find(r => r.calendar_event_id)?.calendar_event_id;
 
+      // Exclude students whose requests are manually marked (invite_sent=true, calendar_event_id=null)
+      // so the app never sends a duplicate Google Calendar invite for teacher-handled students.
+      const manuallyMarkedStudentIds = new Set(
+        group.requests
+          .filter(r => r.invite_sent && !r.calendar_event_id)
+          .map(r => r.Student.id)
+      );
+      const groupAttendees = group.students
+        .filter(s => !manuallyMarkedStudentIds.has(s.id))
+        .map(student => ({
+          email: student.email,
+          displayName: `${student.first_name} ${student.last_name}`
+        }));
+
+      // If every student in this group was manually marked, skip the Google Calendar call
+      if (groupAttendees.length === 0) continue;
+
       const eventDetails = {
         summary: `RR Tutoring - ${req.user.subject}`,
         description: `Tutoring session today during Raptor Rotation.`,
         startDateTime: group.startDateTime,
         endDateTime: group.endDateTime,
-        // Include ALL students (sent + unsent) so existing attendees are not dropped
-        attendees: group.students.map(student => ({
-          email: student.email,
-          displayName: `${student.first_name} ${student.last_name}`
-        }))
+        // Include all non-manually-marked students so existing attendees are not dropped
+        attendees: groupAttendees
       };
 
       // Create or update the event
@@ -84,7 +98,7 @@ router.post('/send-invites', auth, async (req, res) => {
         eventId: event.id,
         date: group.date,
         timeSlot: group.timeSlot,
-        studentCount: group.students.length
+        studentCount: groupAttendees.length
       });
     }
 
@@ -123,6 +137,52 @@ router.get('/pending-count', auth, async (req, res) => {
     res.json({ pendingCount: count });
   } catch (err) {
     console.error('Error getting pending count:', err);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// @route   PATCH /api/calendar/mark-sent/:id
+// @desc    Manually mark a tutoring request as invite-sent (teacher handled it outside the app)
+// @access  Private
+router.patch('/mark-sent/:id', auth, async (req, res) => {
+  try {
+    const request = await TutoringRequest.findOne({
+      where: { id: req.params.id, TeacherId: req.teacher.id }
+    });
+
+    if (!request) {
+      return res.status(404).json({ error: 'Request not found' });
+    }
+
+    await request.update({ invite_sent: true, invite_sent_at: new Date() });
+    res.json({ message: 'Marked as manually sent', request });
+  } catch (err) {
+    console.error('Error marking invite as sent:', err);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// @route   PATCH /api/calendar/unmark-sent/:id
+// @desc    Undo a manual mark (only allowed when no Google Calendar event is attached)
+// @access  Private
+router.patch('/unmark-sent/:id', auth, async (req, res) => {
+  try {
+    const request = await TutoringRequest.findOne({
+      where: { id: req.params.id, TeacherId: req.teacher.id }
+    });
+
+    if (!request) {
+      return res.status(404).json({ error: 'Request not found' });
+    }
+
+    if (request.calendar_event_id) {
+      return res.status(400).json({ error: 'Cannot unmark an invite that was sent via the app' });
+    }
+
+    await request.update({ invite_sent: false, invite_sent_at: null });
+    res.json({ message: 'Invite unmarked', request });
+  } catch (err) {
+    console.error('Error unmarking invite:', err);
     res.status(500).json({ error: 'Server error' });
   }
 });

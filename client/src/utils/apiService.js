@@ -137,6 +137,12 @@ const apiService = {
   },
   sendCalendarInvites: async () => {
     return await apiClient.post('/api/calendar/send-invites');
+  },
+  markInviteSent: async (requestId) => {
+    return await apiClient.patch(`/api/calendar/mark-sent/${requestId}`);
+  },
+  unmarkInviteSent: async (requestId) => {
+    return await apiClient.patch(`/api/calendar/unmark-sent/${requestId}`);
   }
 };
 

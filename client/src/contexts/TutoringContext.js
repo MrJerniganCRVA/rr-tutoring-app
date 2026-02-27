@@ -136,18 +136,30 @@ export const TutoringProvider = ({children}) => {
         fetchSessions();
     }, []);
 
+    const markInviteSent = async (requestId) => {
+        await apiService.markInviteSent(requestId);
+        await fetchSessions();
+    };
+
+    const unmarkInviteSent = async (requestId) => {
+        await apiService.unmarkInviteSent(requestId);
+        await fetchSessions();
+    };
+
     const value = {
-        sessions, 
+        sessions,
         loading,
         error,
-        conflictDetails, 
-        createSession, 
-        confirmOverride, 
-        dismissOverride, 
+        conflictDetails,
+        createSession,
+        confirmOverride,
+        dismissOverride,
         cancelSession,
         getSessionsForStudent,
-        checkPriorityForDate, 
-        refreshSessions: fetchSessions
+        checkPriorityForDate,
+        refreshSessions: fetchSessions,
+        markInviteSent,
+        unmarkInviteSent
     };
 
     return (
