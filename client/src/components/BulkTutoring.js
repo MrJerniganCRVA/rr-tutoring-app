@@ -47,6 +47,8 @@ const BulkTutoring = () => {
   
   // State for students management
   const [allStudents, setAllStudents] = useState([]);
+  const [myStudents, setMyStudents] = useState([]);
+  const [showAllStudents, setShowAllStudents] = useState(false);
   const [selectedStudents, setSelectedStudents] = useState([]);
   const [selectedStudentId, setSelectedStudentId] = useState('');
   // const [studentFilter, setStudentFilter] = useState('');
@@ -68,15 +70,7 @@ const BulkTutoring = () => {
            try {
              setFetchingStudents(true);
              const response = await apiService.getStudents();
-             const filteredStudents = response.data.filter(student =>{
-               return(
-                 student?.R1Id===parseInt(teacherId) ||
-                 student?.R2Id===parseInt(teacherId) ||
-                 student?.R4Id===parseInt(teacherId) ||
-                 student?.R5Id===parseInt(teacherId)
-               );
-             });
-             const processedStudents = filteredStudents.map(student =>{
+             const processStudent = (student) => {
                let lunchPeriod = null;
                if(student.teachers && student.teachers.RR && student.teachers.RR.lunch){
                  lunchPeriod = student.teachers.RR.lunch;
@@ -88,13 +82,23 @@ const BulkTutoring = () => {
                  lunchPeriod = student.lunch;
                }
                const fullName = `${student.first_name} ${student.last_name}`;
-             return {
-               ...student,
-               lunchPeriod,
-               displayName: lunchPeriod ? `[${lunchPeriod}] ${fullName}` : fullName
+               return {
+                 ...student,
+                 lunchPeriod,
+                 displayName: lunchPeriod ? `[${lunchPeriod}] ${fullName}` : fullName
                };
-             });
-             setAllStudents(processedStudents);
+             };
+             const processedAll = response.data.map(processStudent);
+             const processedMy = response.data
+               .filter(student =>
+                 student?.R1Id===parseInt(teacherId) ||
+                 student?.R2Id===parseInt(teacherId) ||
+                 student?.R4Id===parseInt(teacherId) ||
+                 student?.R5Id===parseInt(teacherId)
+               )
+               .map(processStudent);
+             setAllStudents(processedAll);
+             setMyStudents(processedMy);
              setFetchingStudents(false);
            } catch (err) {
              console.error('Error fetching students:', err);
@@ -375,21 +379,27 @@ const BulkTutoring = () => {
               <Typography variant="subtitle1" gutterBottom>
                 Student Selection
               </Typography>
-              
-              {/* <TextField
-                fullWidth
-                margin="normal"
-                label="Filter Students"
-                value={studentFilter}
-                onChange={(e) => setStudentFilter(e.target.value)}
-                disabled={loading}
+
+              <FormControlLabel
+                control={
+                  <Checkbox
+                    checked={showAllStudents}
+                    onChange={(e) => {
+                      setShowAllStudents(e.target.checked);
+                      setSelectedStudentId('');
+                    }}
+                    disabled={fetchingStudents || loading}
+                  />
+                }
+                label="Show all students (for review sessions)"
+                sx={{ mb: 1 }}
               />
-               */}
+
             <Autocomplete
   id="student-autocomplete"
-  options={allStudents}
+  options={showAllStudents ? allStudents : myStudents}
   getOptionLabel={(option) => option.displayName || `${option.first_name || ''} ${option.last_name || ''}`.trim()}
-  value={allStudents.find(student => student.id === selectedStudentId) || null}
+  value={(showAllStudents ? allStudents : myStudents).find(student => student.id === selectedStudentId) || null}
   onChange={(event, newValue) => {
     const studentId = newValue ? newValue.id : '';
     setSelectedStudentId(studentId);
