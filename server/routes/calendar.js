@@ -14,35 +14,45 @@ router.post('/send-invites', auth, async (req, res) => {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
-    // Get all FUTURE tutoring requests for this teacher that haven't been sent yet
-    const pendingRequests = await TutoringRequest.findAll({
+    // Get ALL future tutoring requests for this teacher (sent and unsent) so that
+    // already-sent requests can provide their calendar_event_id when adding new
+    // students to an existing event, and so all attendees are included on updates.
+    const allRequests = await TutoringRequest.findAll({
       where: {
         TeacherId: req.teacher.id,
         date: {
           [Op.gte]: today // Only future dates
-        },
-        invite_sent: false // Only unsent invites
+        }
       },
       include: [
         { model: Student, attributes: ['id', 'first_name', 'last_name', 'email'] }
       ]
     });
 
-    if (pendingRequests.length === 0) {
-      return res.status(200).json({ 
+    // Early-exit only when nothing is pending (avoids processing fully-sent groups)
+    const anyPending = allRequests.some(r => !r.invite_sent);
+    if (!anyPending) {
+      return res.status(200).json({
         msg: 'All invites are up to date!',
         results: []
       });
     }
 
-    // Group requests by date AND time slot (merging contiguous lunches)
-    const groupedByDateAndTime = groupByDateAndTimeSlot(pendingRequests);
+    // Group ALL requests by date AND time slot (merging contiguous lunches).
+    // Including sent requests ensures: (a) their calendar_event_id is discoverable,
+    // and (b) their students are included in the attendee list so they aren't dropped
+    // when Google Calendar replaces the attendee list on an update.
+    const groupedByDateAndTime = groupByDateAndTimeSlot(allRequests);
 
     const results = [];
 
     // For each unique date+time combination
     for (const group of groupedByDateAndTime) {
-      // Check if any request in this group already has a calendar event ID
+      // Skip groups where every request has already been sent
+      const pendingInGroup = group.requests.filter(r => !r.invite_sent);
+      if (pendingInGroup.length === 0) continue;
+
+      // Find existing event ID from any request in this group (sent or unsent)
       const existingEventId = group.requests.find(r => r.calendar_event_id)?.calendar_event_id;
 
       const eventDetails = {
@@ -50,6 +60,7 @@ router.post('/send-invites', auth, async (req, res) => {
         description: `Tutoring session today during Raptor Rotation.`,
         startDateTime: group.startDateTime,
         endDateTime: group.endDateTime,
+        // Include ALL students (sent + unsent) so existing attendees are not dropped
         attendees: group.students.map(student => ({
           email: student.email,
           displayName: `${student.first_name} ${student.last_name}`
@@ -59,8 +70,8 @@ router.post('/send-invites', auth, async (req, res) => {
       // Create or update the event
       const event = await upsertCalendarEvent(req.teacher.id, eventDetails, existingEventId);
 
-      // Mark all requests in this group as sent and store the event ID
-      for (const request of group.requests) {
+      // Only mark previously-unsent requests as sent; avoid clobbering already-sent records
+      for (const request of pendingInGroup) {
         await request.update({
           invite_sent: true,
           invite_sent_at: new Date(),
