@@ -2,8 +2,10 @@ import React, { useState, useEffect } from 'react';
 import { Button, CircularProgress, Snackbar, Alert } from '@mui/material';
 import CalendarTodayIcon from '@mui/icons-material/CalendarToday';
 import apiService from '../utils/apiService';
+import { useTutoring } from '../contexts/TutoringContext';
 
 function CalendarInviteButton() {
+  const { refreshSessions } = useTutoring();
   const [pendingCount, setPendingCount] = useState(0);
   const [sending, setSending] = useState(false);
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' });
@@ -36,6 +38,7 @@ function CalendarInviteButton() {
       });
       
       fetchPendingCount();
+      refreshSessions();
     } catch (err) {
       console.error('Error sending invites:', err);
       setSnackbar({
