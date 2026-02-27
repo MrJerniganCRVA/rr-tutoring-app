@@ -13,9 +13,11 @@ import {
   Chip,
   TextField,
   InputAdornment,
-  Alert
+  Alert,
+  IconButton,
+  Tooltip
 } from '@mui/material';
-import { Search as SearchIcon } from '@mui/icons-material';
+import { Search as SearchIcon, CheckCircleOutline as CheckCircleOutlineIcon, Undo as UndoIcon } from '@mui/icons-material';
 import { format, parseISO } from 'date-fns';
 import {useTutoring} from '../contexts/TutoringContext';
 import CalendarInviteButton from './CalendarInviteButton';
@@ -25,7 +27,7 @@ const TutoringRequestList = () => {
   const [searchTerm, setSearchTerm] = useState('');
   
   const teacherId = localStorage.getItem('teacherId');
-  const {sessions, error, cancelSession} = useTutoring();
+  const {sessions, error, cancelSession, markInviteSent, unmarkInviteSent} = useTutoring();
   const getFullName = (person) => {
     if (!person?.first_name || !person?.last_name) return '';
     return `${person.first_name} ${person.last_name}`;
@@ -166,11 +168,29 @@ const TutoringRequestList = () => {
                       />
                     </TableCell>
                     <TableCell>
-                      <Chip 
-                        label={request.invite_sent ? "Invited" : "Pending"} 
-                        color={request.invite_sent ? "success" : "warning"} 
-                        size="small" 
-                      />
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                        {request.invite_sent && request.calendar_event_id ? (
+                          <Chip label="Invited" color="success" size="small" />
+                        ) : request.invite_sent ? (
+                          <Chip label="Invited (Manual)" color="info" size="small" />
+                        ) : (
+                          <Chip label="Pending" color="warning" size="small" />
+                        )}
+                        {!request.invite_sent && (
+                          <Tooltip title="Mark as manually sent">
+                            <IconButton size="small" onClick={() => markInviteSent(request.id)}>
+                              <CheckCircleOutlineIcon fontSize="small" />
+                            </IconButton>
+                          </Tooltip>
+                        )}
+                        {request.invite_sent && !request.calendar_event_id && (
+                          <Tooltip title="Undo manual mark">
+                            <IconButton size="small" onClick={() => unmarkInviteSent(request.id)}>
+                              <UndoIcon fontSize="small" />
+                            </IconButton>
+                          </Tooltip>
+                        )}
+                      </Box>
                     </TableCell>
                     <TableCell align="right">
                       {request.status === 'active' && 
