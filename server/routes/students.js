@@ -21,7 +21,12 @@ router.get('/teacher/:teacherId', async (req, res) => {
           { R2Id: teacherId },
           { RRId: teacherId },
           { R4Id: teacherId },
-          { R5Id: teacherId }
+          { R5Id: teacherId },
+          { R6Id: teacherId },
+          { R7Id: teacherId },
+          { R8Id: teacherId },
+          { R9Id: teacherId },
+          { R10Id: teacherId }
         ]
       },
       include: [
@@ -29,7 +34,12 @@ router.get('/teacher/:teacherId', async (req, res) => {
         { model: Teacher, as: 'R2' },
         { model: Teacher, as: 'RR' },
         { model: Teacher, as: 'R4' },
-        { model: Teacher, as: 'R5' }
+        { model: Teacher, as: 'R5' },
+        { model: Teacher, as: 'R6' },
+        { model: Teacher, as: 'R7' },
+        { model: Teacher, as: 'R8' },
+        { model: Teacher, as: 'R9' },
+        { model: Teacher, as: 'R10' }
       ]
     });
     const lunchStudents = addLunch(students);
@@ -59,7 +69,12 @@ router.get('/', async (req, res) => {
         { model: Teacher, as: 'R2' },
         { model: Teacher, as: 'RR' },
         { model: Teacher, as: 'R4' },
-        { model: Teacher, as: 'R5' }
+        { model: Teacher, as: 'R5' },
+        { model: Teacher, as: 'R6' },
+        { model: Teacher, as: 'R7' },
+        { model: Teacher, as: 'R8' },
+        { model: Teacher, as: 'R9' },
+        { model: Teacher, as: 'R10' }
       ]
     });
 
@@ -92,7 +107,12 @@ router.post('/', async (req, res) => {
       R2Id: teachers?.R2 || null,
       RRId: teachers?.RR || null,
       R4Id: teachers?.R4 || null,
-      R5Id: teachers?.R5 || null
+      R5Id: teachers?.R5 || null,
+      R6Id: teachers?.R6 || null,
+      R7Id: teachers?.R7 || null,
+      R8Id: teachers?.R8 || null,
+      R9Id: teachers?.R9 || null,
+      R10Id: teachers?.R10 || null
     };
     
     let student_exists = await Student.findOne({ where: { first_name:first_name, last_name:last_name } });
@@ -107,7 +127,12 @@ router.post('/', async (req, res) => {
         { model: Teacher, as: 'R2' },
         { model: Teacher, as: 'RR' },
         { model: Teacher, as: 'R4' },
-        { model: Teacher, as: 'R5' }
+        { model: Teacher, as: 'R5' },
+        { model: Teacher, as: 'R6' },
+        { model: Teacher, as: 'R7' },
+        { model: Teacher, as: 'R8' },
+        { model: Teacher, as: 'R9' },
+        { model: Teacher, as: 'R10' }
       ]
     });
     
@@ -170,9 +195,9 @@ router.put('/:id', auth, async (req, res) => {
     const student = await Student.findByPk(req.params.id);
     if (!student) return res.status(404).json({ msg: 'Student not found' });
 
-    const { R1Id, R2Id, RRId, R4Id, R5Id } = req.body;
+    const { R1Id, R2Id, RRId, R4Id, R5Id, R6Id, R7Id, R8Id, R9Id, R10Id } = req.body;
     const updates = {};
-    for (const [field, val] of Object.entries({ R1Id, R2Id, RRId, R4Id, R5Id })) {
+    for (const [field, val] of Object.entries({ R1Id, R2Id, RRId, R4Id, R5Id, R6Id, R7Id, R8Id, R9Id, R10Id })) {
       if (val !== undefined) {
         if (val !== null) {
           const exists = await Teacher.findByPk(val);
@@ -190,7 +215,12 @@ router.put('/:id', auth, async (req, res) => {
         { model: Teacher, as: 'R2' },
         { model: Teacher, as: 'RR' },
         { model: Teacher, as: 'R4' },
-        { model: Teacher, as: 'R5' }
+        { model: Teacher, as: 'R5' },
+        { model: Teacher, as: 'R6' },
+        { model: Teacher, as: 'R7' },
+        { model: Teacher, as: 'R8' },
+        { model: Teacher, as: 'R9' },
+        { model: Teacher, as: 'R10' }
       ]
     });
     const result = updated.toJSON();

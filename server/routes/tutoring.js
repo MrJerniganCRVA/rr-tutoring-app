@@ -58,14 +58,19 @@ router.get('/', async (req, res) => {
     const requests = await TutoringRequest.findAll({
       include: [
         { model: Teacher },
-        { 
+        {
           model: Student,
           include: [
             { model: Teacher, as: 'R1' },
             { model: Teacher, as: 'R2' },
             { model: Teacher, as: 'RR' },
             { model: Teacher, as: 'R4' },
-            { model: Teacher, as: 'R5' }
+            { model: Teacher, as: 'R5' },
+            { model: Teacher, as: 'R6' },
+            { model: Teacher, as: 'R7' },
+            { model: Teacher, as: 'R8' },
+            { model: Teacher, as: 'R9' },
+            { model: Teacher, as: 'R10' }
           ]
         }
       ]
@@ -135,19 +140,24 @@ router.post('/', auth, async (req, res) => {
       const request = await TutoringRequest.findByPk(newRequest.id, {
           include: [
           { model: Teacher },
-          { 
+          {
             model: Student,
             include: [
               { model: Teacher, as: 'R1' },
               { model: Teacher, as: 'R2' },
               { model: Teacher, as: 'RR' },
               { model: Teacher, as: 'R4' },
-              { model: Teacher, as: 'R5' }
+              { model: Teacher, as: 'R5' },
+              { model: Teacher, as: 'R6' },
+              { model: Teacher, as: 'R7' },
+              { model: Teacher, as: 'R8' },
+              { model: Teacher, as: 'R9' },
+              { model: Teacher, as: 'R10' }
             ]
           }
         ]
       });
-      return res.json(request); 
+      return res.json(request);
     }
     //a conflict exists need to figure out who has priority
     
@@ -190,19 +200,24 @@ router.post('/', auth, async (req, res) => {
       const request = await TutoringRequest.findByPk(newRequest.id, {
         include: [
           { model: Teacher },
-          { 
+          {
             model: Student,
             include: [
               { model: Teacher, as: 'R1' },
               { model: Teacher, as: 'R2' },
               { model: Teacher, as: 'RR' },
               { model: Teacher, as: 'R4' },
-              { model: Teacher, as: 'R5' }
+              { model: Teacher, as: 'R5' },
+              { model: Teacher, as: 'R6' },
+              { model: Teacher, as: 'R7' },
+              { model: Teacher, as: 'R8' },
+              { model: Teacher, as: 'R9' },
+              { model: Teacher, as: 'R10' }
             ]
           }
         ]
       });
-      
+
       return res.json({
         request,
         overrideInfo: {

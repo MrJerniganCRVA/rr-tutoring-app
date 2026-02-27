@@ -29,10 +29,10 @@ import UpdateIcon from '@mui/icons-material/Update';
 import apiService from '../utils/apiService';
 import BulkRRUpdate from './BulkRRUpdate';
 
-const ROTATIONS = ['R1', 'R2', 'RR', 'R4', 'R5'];
+const ROTATIONS = ['R1', 'R2', 'RR', 'R4', 'R5', 'R6', 'R7', 'R8', 'R9', 'R10'];
 
-const emptyEditState = { R1Id: null, R2Id: null, RRId: null, R4Id: null, R5Id: null };
-const emptyAddState = { id: '', first_name: '', last_name: '', R1: null, R2: null, RR: null, R4: null, R5: null };
+const emptyEditState = { R1Id: null, R2Id: null, RRId: null, R4Id: null, R5Id: null, R6Id: null, R7Id: null, R8Id: null, R9Id: null, R10Id: null };
+const emptyAddState = { id: '', first_name: '', last_name: '', R1: null, R2: null, RR: null, R4: null, R5: null, R6: null, R7: null, R8: null, R9: null, R10: null };
 
 const StudentRoster = () => {
   const [students, setStudents] = useState([]);

@@ -3,7 +3,7 @@ const sequelize = require('./config/db');
 async function migrate(){
     try{
         console.log('Starting migration');
-        await sequelize.sync({ force: true});
+        await sequelize.sync({ alter: true});
         console.log('Migration complete');
         process.exit(0);
 

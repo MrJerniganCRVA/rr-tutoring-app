@@ -52,7 +52,12 @@ const TutoringRequestForm = () => {
             student?.R1Id===parseInt(teacherId) ||
             student?.R2Id===parseInt(teacherId) ||
             student?.R4Id===parseInt(teacherId) ||
-            student?.R5Id===parseInt(teacherId)
+            student?.R5Id===parseInt(teacherId) ||
+            student?.R6Id===parseInt(teacherId) ||
+            student?.R7Id===parseInt(teacherId) ||
+            student?.R8Id===parseInt(teacherId) ||
+            student?.R9Id===parseInt(teacherId) ||
+            student?.R10Id===parseInt(teacherId)
           );
         });
         const processedStudents = filteredStudents.map(student =>{
