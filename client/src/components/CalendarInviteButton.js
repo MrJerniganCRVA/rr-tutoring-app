@@ -1,43 +1,34 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Button, CircularProgress, Snackbar, Alert } from '@mui/material';
 import CalendarTodayIcon from '@mui/icons-material/CalendarToday';
 import apiService from '../utils/apiService';
 import { useTutoring } from '../contexts/TutoringContext';
 
 function CalendarInviteButton() {
-  const { refreshSessions } = useTutoring();
-  const [pendingCount, setPendingCount] = useState(0);
+  const { sessions, refreshSessions } = useTutoring();
   const [sending, setSending] = useState(false);
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' });
 
-  useEffect(() => {
-    fetchPendingCount();
-    const interval = setInterval(fetchPendingCount, 30000);
-    return () => clearInterval(interval);
-  }, []);
-
-  const fetchPendingCount = async () => {
-    try {
-      const response = await apiService.getPendingInviteCount();
-      setPendingCount(response.data.pendingCount);
-    } catch (err) {
-      console.error('Error fetching pending count:', err);
-    }
-  };
+  const today = new Date().toISOString().split('T')[0];
+  const teacherName = (localStorage.getItem('teacherName') || '').toLowerCase();
+  const pendingCount = sessions.filter(s =>
+    s.date >= today &&
+    !s.invite_sent &&
+    `${s.Teacher?.first_name ?? ''} ${s.Teacher?.last_name ?? ''}`.toLowerCase().trim() === teacherName
+  ).length;
 
   const handleSendInvites = async () => {
     setSending(true);
-    
+
     try {
       const response = await apiService.sendCalendarInvites();
-      
+
       setSnackbar({
         open: true,
         message: response.data.msg,
         severity: 'success'
       });
-      
-      fetchPendingCount();
+
       refreshSessions();
     } catch (err) {
       console.error('Error sending invites:', err);
