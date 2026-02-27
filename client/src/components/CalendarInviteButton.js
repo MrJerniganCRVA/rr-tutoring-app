@@ -10,11 +10,11 @@ function CalendarInviteButton() {
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' });
 
   const today = new Date().toISOString().split('T')[0];
-  const teacherName = (localStorage.getItem('teacherName') || '').toLowerCase();
+  const teacherId = parseInt(localStorage.getItem('teacherId'));
   const pendingCount = sessions.filter(s =>
     s.date >= today &&
     !s.invite_sent &&
-    `${s.Teacher?.first_name ?? ''} ${s.Teacher?.last_name ?? ''}`.toLowerCase().trim() === teacherName
+    s.TeacherId === teacherId
   ).length;
 
   const handleSendInvites = async () => {
