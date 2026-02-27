@@ -313,7 +313,7 @@ router.put('/cancel/:id', auth, async (req, res) => {
     }
     
     // Make sure the teacher who created the request is the one cancelling it
-    if (request.TeacherId.toString() !== req.teacher.id) {
+    if (request.TeacherId !== req.teacher.id) {
       return res.status(401).json({ msg: 'Not authorized to cancel this request' });
     }
     
