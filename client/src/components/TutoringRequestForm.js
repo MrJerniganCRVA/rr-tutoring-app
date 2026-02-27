@@ -34,6 +34,7 @@ const TutoringRequestForm = () => {
     C: false,
     D: false
   });
+  const [showAllStudents, setShowAllStudents] = useState(false);
   const [loading, setLoading] = useState(false);
   const [fetchingStudents, setFetchingStudents] = useState(true);
   const [error, setError] = useState('');
@@ -47,7 +48,9 @@ const TutoringRequestForm = () => {
       try {
         setFetchingStudents(true);
         const response = await apiService.getStudents();
-        const filteredStudents = response.data.filter(student =>{
+        const filteredStudents = showAllStudents
+          ? response.data
+          : response.data.filter(student =>{
           return(
             student?.R1Id===parseInt(teacherId) ||
             student?.R2Id===parseInt(teacherId) ||
@@ -88,7 +91,7 @@ const TutoringRequestForm = () => {
     };
     
     fetchStudents();
-  }, [teacherId]);
+  }, [teacherId, showAllStudents]);
 
   const handleStudentChange = async (event) =>{
     const studentId = event.target.value;
@@ -283,7 +286,24 @@ const TutoringRequestForm = () => {
             autoHighlight
             openOnFocus
           />
-            <PriorityDatePicker 
+          <Box sx={{ mt: 1 }}>
+            <FormControlLabel
+              control={
+                <Checkbox
+                  checked={showAllStudents}
+                  onChange={(e) => setShowAllStudents(e.target.checked)}
+                  size="small"
+                />
+              }
+              label="Show all enrolled students"
+            />
+          </Box>
+          {showAllStudents && (
+            <Alert severity="warning" sx={{ mb: 1 }}>
+              Showing all enrolled students. Make sure you actually teach this student before requesting tutoring.
+            </Alert>
+          )}
+            <PriorityDatePicker
               studentId={selectedStudent}
               value={selectedDate}
               onChange={setSelectedDate}
