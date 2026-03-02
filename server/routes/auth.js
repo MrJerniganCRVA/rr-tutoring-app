@@ -11,7 +11,8 @@ router.get(
     '/google',
     passport.authenticate('google',{
         scope: ['profile', 'email','https://www.googleapis.com/auth/calendar.events'],
-        accessType: 'offline'
+        accessType: 'offline',
+        prompt: 'consent'
     })
 );
 
