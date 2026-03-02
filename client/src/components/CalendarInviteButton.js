@@ -34,7 +34,7 @@ function CalendarInviteButton() {
       console.error('Error sending invites:', err);
       setSnackbar({
         open: true,
-        message: err.response?.data?.error || 'Error sending calendar invites',
+        message: err.response?.data?.details || err.response?.data?.error || 'Error sending calendar invites',
         severity: 'error'
       });
     } finally {
