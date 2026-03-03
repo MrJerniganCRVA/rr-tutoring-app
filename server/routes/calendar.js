@@ -260,7 +260,6 @@ function getContiguousChunks(lunchPeriods) {
 
 // Helper: Get merged time slot spanning multiple lunch periods
 function getMergedTimeSlot(lunchPeriods, date) {
-  // TODO: Update these times to match your actual school schedule
   const times = {
     'A': { start: '11:02', end: '11:25' },
     'B': { start: '11:28', end: '11:51' },
@@ -277,9 +276,31 @@ function getMergedTimeSlot(lunchPeriods, date) {
   const endTime = times[lastLunch].end;
 
   return {
-    start: `${date}T${startTime}:00-05:00`, // ISO format with EST timezone
-    end: `${date}T${endTime}:00-05:00`
+    start: `${date}T${startTime}:00-04:00`, 
+    end: `${date}T${endTime}:00-04:00`
   };
 }
+function toEasternISO(date, time){
+  const dt = new Date(`${date}T${time}:00`);
+  return new Intl.DateTimeFormat('en-CA', {
+    timezone: 'America/New_York',
+    year: 'numeric', month:'2-digit', day:'2-digit',
+    hour: '2-digit', minute:'2-digit', second:'2-digit',
+    hour12: false
 
+  }).format(dt) + getEasternOffset(dt);
+}
+
+function getEasternOffset(dt){
+  const formatter = new Intl.DateTimeFormat('en-US', {
+    timeZone: 'America/New_York',
+    timeZoneName: 'shortOffset'
+  });
+  const parts = formatter.formatToParts(dt);
+  const offsetPart = parts.find(p => p.type === 'timeZoneName').value; // e.g. "GMT-4" or "GMT-5"
+  
+  const match = offsetPart.match(/GMT([+-]\d+)/);
+  const hours = parseInt(match[1]);
+  return hours >= 0 ? `+${String(hours).padStart(2, '0')}:00` : `-${String(Math.abs(hours)).padStart(2, '0')}:00`;
+}
 module.exports = router;
