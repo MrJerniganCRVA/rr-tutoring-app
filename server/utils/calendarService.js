@@ -38,6 +38,15 @@ async function getOAuth2Client(teacherId) {
     }
   });
 
+  // Proactively ensure the token is fresh before any Calendar API call.
+  // Silent if valid; silently refreshes via refresh_token if expired; throws a
+  // user-friendly message if the refresh_token itself is invalid or revoked.
+  try {
+    await oauth2Client.getAccessToken();
+  } catch (err) {
+    throw new Error('Google Calendar authorization has expired. Please sign out and sign back in.');
+  }
+
   return oauth2Client;
 }
 
