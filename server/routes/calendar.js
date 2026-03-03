@@ -276,8 +276,8 @@ function getMergedTimeSlot(lunchPeriods, date) {
   const endTime = times[lastLunch].end;
 
   return {
-    start: `${date}T${startTime}:00-04:00`, 
-    end: `${date}T${endTime}:00-04:00`
+    start: toEasternISO(date, startTime),
+    end: toEasternISO(date, endTime)
   };
 }
 function toEasternISO(date, time){
