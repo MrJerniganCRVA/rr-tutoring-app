@@ -280,15 +280,11 @@ function getMergedTimeSlot(lunchPeriods, date) {
     end: toEasternISO(date, endTime)
   };
 }
-function toEasternISO(date, time){
+function toEasternISO(date, time) {
   const dt = new Date(`${date}T${time}:00`);
-  return new Intl.DateTimeFormat('en-CA', {
-    timezone: 'America/New_York',
-    year: 'numeric', month:'2-digit', day:'2-digit',
-    hour: '2-digit', minute:'2-digit', second:'2-digit',
-    hour12: false
-
-  }).format(dt) + getEasternOffset(dt);
+  const offset = getEasternOffset(dt);
+  // Use the original date/time strings directly — no locale formatting needed
+  return `${date}T${time}:00${offset}`;
 }
 
 function getEasternOffset(dt){
