@@ -33,10 +33,10 @@ const hasSubjectPriority = (teacherSubject, date) =>{
 
 
 
-// @route   GET api/teachers/:id
-// @desc    Get teacher by ID
-// @access  Public
-router.get('/:id', async (req, res) => {
+// @route   GET api/tutoring/:id
+// @desc    Get tutoring event by ID
+// @access  Private
+router.get('/:id', auth, async (req, res) => {
   try {
     const tutoringevent = await TutoringRequest.findByPk(req.params.id);
     
@@ -52,8 +52,8 @@ router.get('/:id', async (req, res) => {
 });
 // @route   GET api/tutoring
 // @desc    Get all tutoring requests
-// @access  Public
-router.get('/', async (req, res) => {
+// @access  Private
+router.get('/', auth, async (req, res) => {
   try {
     const requests = await TutoringRequest.findAll({
       include: [

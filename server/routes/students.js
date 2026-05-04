@@ -9,8 +9,8 @@ const {Op} = require('sequelize');
 
 // @route   GET api/students/teacher/:teacherId
 // @desc    Get all students for a specific teacher
-// @access  Public
-router.get('/teacher/:teacherId', async (req, res) => {
+// @access  Private
+router.get('/teacher/:teacherId', auth, async (req, res) => {
   try {
     const teacherId = req.params.teacherId;
     // Find all students where this teacher is listed in any of the teaching slots
@@ -50,8 +50,8 @@ function addLunch(students){
 }
 // @route   GET api/students
 // @desc    Get all students
-// @access  Public
-router.get('/', async (req, res) => {
+// @access  Private
+router.get('/', auth, async (req, res) => {
   try {
     const students = await Student.findAll({
       include: [
@@ -73,8 +73,12 @@ router.get('/', async (req, res) => {
 
 // @route   POST api/students
 // @desc    Add a new student
-// @access  Public
-router.post('/', async (req, res) => {
+// @access  Admin only
+router.post('/', auth, async (req, res) => {
+  const requestingTeacher = await Teacher.findByPk(req.teacher.id);
+  if (!requestingTeacher?.is_admin) {
+    return res.status(403).json({ msg: 'Admin access required' });
+  }
   const { id, first_name, last_name, teachers } = req.body;
   try{
     await sequelize.query("SELECT * FROM Student LIMIT 1",

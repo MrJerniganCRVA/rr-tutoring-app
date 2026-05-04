@@ -11,20 +11,6 @@ const apiClient = axios.create({
   }
 });
 
-// Add a request interceptor to include teacher ID in headers
-apiClient.interceptors.request.use(
-  config => {
-    const teacherId = localStorage.getItem('teacherId');
-    if (teacherId) {
-      config.headers['x-teacher-id'] = teacherId;
-    }
-    return config;
-  },
-  error => {
-    return Promise.reject(error);
-  }
-);
-
 // API service methods
 const apiService = {
   // Teacher endpoints

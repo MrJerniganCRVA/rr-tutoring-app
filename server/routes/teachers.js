@@ -3,12 +3,14 @@ const router = express.Router();
 const Teacher = require('../models/Teacher');
 const auth = require('../middleware/auth');
 
+const SAFE_TEACHER_ATTRIBUTES = ['id', 'first_name', 'last_name', 'email', 'subject', 'lunch', 'google_id', 'is_admin'];
+
 // @route   GET api/teachers
 // @desc    Get all teachers
-// @access  Public
+// @access  Private
 router.get('/', auth, async (req, res) => {
   try {
-    const teachers = await Teacher.findAll();
+    const teachers = await Teacher.findAll({ attributes: SAFE_TEACHER_ATTRIBUTES });
     res.json(teachers);
   } catch (err) {
     console.error(err.message);
@@ -18,15 +20,15 @@ router.get('/', auth, async (req, res) => {
 
 // @route   GET api/teachers/:id
 // @desc    Get teacher by ID
-// @access  Public
+// @access  Private
 router.get('/:id', auth, async (req, res) => {
   try {
-    const teacher = await Teacher.findByPk(req.params.id);
-    
+    const teacher = await Teacher.findByPk(req.params.id, { attributes: SAFE_TEACHER_ATTRIBUTES });
+
     if (!teacher) {
       return res.status(404).json({ msg: 'Teacher not found' });
     }
-    
+
     res.json(teacher);
   } catch (err) {
     console.error(err.message);
@@ -36,9 +38,13 @@ router.get('/:id', auth, async (req, res) => {
 
 // @route   POST api/teachers
 // @desc    Add a new teacher
-// @access  Public
+// @access  Admin only
 router.post('/', auth, async (req, res) => {
   try{
+    const requestingTeacher = await Teacher.findByPk(req.teacher.id);
+    if (!requestingTeacher?.is_admin) {
+      return res.status(403).json({ msg: 'Admin access required' });
+    }
     const {first_name, last_name, email, subject, lunch} = req.body;
     //Create table if none exist
     try{

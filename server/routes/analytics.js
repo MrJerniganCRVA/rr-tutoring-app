@@ -8,9 +8,12 @@ const {Op} = require('sequelize');
 const sequelize = require('../config/db');
 const auth = require('../middleware/auth');
 
-router.get('/:teacherId/student/:studentId', async (req, res) => {
+router.get('/:teacherId/student/:studentId', auth, async (req, res) => {
     const teacherId = req.params.teacherId;
     const studentId = req.params.studentId;
+    if (parseInt(teacherId) !== req.teacher.id) {
+        return res.status(403).json({ error: 'Access denied' });
+    }
     try{
         const teacherRequestsForStudent = await TutoringRequest.findAll({
             where:{
@@ -33,7 +36,7 @@ router.get('/:teacherId/student/:studentId', async (req, res) => {
         });
     } catch (error){
         console.error('Analytics Error:',error);
-        res.status(500).json({error: error.message});
+        res.status(500).json({error: 'Server Error'});
     }
 });
 
@@ -41,8 +44,11 @@ router.get('/:teacherId/student/:studentId', async (req, res) => {
 //Need to work on getting Group Stats
 
 //GET /api/analytics/:teacherID
-router.get('/:teacherId', async (req, res)=>{
+router.get('/:teacherId', auth, async (req, res)=>{
     const {teacherId} = req.params;
+    if (parseInt(teacherId) !== req.teacher.id) {
+        return res.status(403).json({ error: 'Access denied' });
+    }
     try{
         const totalSessions = await TutoringRequest.count({
             where: {
