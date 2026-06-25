@@ -109,10 +109,7 @@ router.post('/send-invites', auth, async (req, res) => {
 
   } catch (err) {
     console.error('Error creating calendar invites:', err);
-    res.status(500).json({ 
-      error: 'Failed to create calendar invites',
-      details: err.message 
-    });
+    res.status(500).json({ msg: 'Failed to create calendar invites' });
   }
 });
 
@@ -137,7 +134,7 @@ router.get('/pending-count', auth, async (req, res) => {
     res.json({ pendingCount: count });
   } catch (err) {
     console.error('Error getting pending count:', err);
-    res.status(500).json({ error: 'Server error' });
+    res.status(500).json({ msg: 'Server error' });
   }
 });
 
@@ -155,10 +152,10 @@ router.patch('/mark-sent/:id', auth, async (req, res) => {
     }
 
     await request.update({ invite_sent: true, invite_sent_at: new Date() });
-    res.json({ message: 'Marked as manually sent', request });
+    res.json({ msg: 'Marked as manually sent', request });
   } catch (err) {
     console.error('Error marking invite as sent:', err);
-    res.status(500).json({ error: 'Server error' });
+    res.status(500).json({ msg: 'Server error' });
   }
 });
 
@@ -176,14 +173,14 @@ router.patch('/unmark-sent/:id', auth, async (req, res) => {
     }
 
     if (request.calendar_event_id) {
-      return res.status(400).json({ error: 'Cannot unmark an invite that was sent via the app' });
+      return res.status(400).json({ msg: 'Cannot unmark an invite that was sent via the app' });
     }
 
     await request.update({ invite_sent: false, invite_sent_at: null });
-    res.json({ message: 'Invite unmarked', request });
+    res.json({ msg: 'Invite unmarked', request });
   } catch (err) {
     console.error('Error unmarking invite:', err);
-    res.status(500).json({ error: 'Server error' });
+    res.status(500).json({ msg: 'Server error' });
   }
 });
 

@@ -95,12 +95,11 @@ const PriorityDatePicker = ({
   const getDateStatusInfo = (date) => {
     if (!studentId || !date || !currentTeacher) return null;
 
-    const dayOfWeek = getDay(date);
-    const existingSession = studentSessions.find(session => 
+    const dayOfWeek = date.getDay();
+    const existingSession = studentSessions.find(session =>
       isSameDay(new Date(session.date), date)
     );
-    //Need to check on return type for priority days. Make sure matching to component expected
-    if (!existingSession) { 
+    if (!existingSession) {
       return { type: 'available', message: 'Available' };
     }
 
