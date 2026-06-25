@@ -134,7 +134,9 @@ export const TutoringProvider = ({children}) => {
     };
 
     useEffect(()=>{
-        fetchSessions();
+        if (localStorage.getItem('teacherId')) {
+            fetchSessions();
+        }
     }, []);
 
     const markInviteSent = async (requestId) => {
