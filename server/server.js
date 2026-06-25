@@ -1,5 +1,8 @@
 const express = require('express');
 const cors = require('cors');
+const helmet = require('helmet');
+const compression = require('compression');
+const rateLimit = require('express-rate-limit');
 const session = require('express-session');
 const SequelizeStore = require('connect-session-sequelize')(session.Store);
 const sequelize = require('./config/db');
@@ -16,6 +19,14 @@ if (isProduction) {
   app.set('trust proxy', 1);
 }
 
+// Security headers
+app.use(helmet({
+  crossOriginResourcePolicy: { policy: 'cross-origin' }
+}));
+
+// Gzip compression for all responses
+app.use(compression());
+
 // CORS: allow frontend origin in dev and production
 const allowedOrigin = (process.env.CLIENT_URL || 'http://localhost:3000').replace(/\/+$/, '');
 app.use(cors({
@@ -23,7 +34,23 @@ app.use(cors({
   credentials: true
 }));
 
-app.use(express.json());
+app.use(express.json({ limit: '1mb' }));
+
+// Auth endpoints — stricter limit to prevent brute force
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 20,
+  standardHeaders: true,
+  legacyHeaders: false
+});
+
+// General API limit
+const apiLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 200,
+  standardHeaders: true,
+  legacyHeaders: false
+});
 
 // Session store backed by the database
 const sessionStore = new SequelizeStore({
@@ -61,15 +88,14 @@ app.get('/', (req, res) => {
   res.json({ msg: 'Welcome to the RR Tutoring Scheduler API' });
 });
 //Auth Routes
-app.use('/auth', require('./routes/auth'));
-
+app.use('/auth', authLimiter, require('./routes/auth'));
 
 // Define routes
-app.use('/api/analytics', require('./routes/analytics'));
-app.use('/api/teachers', require('./routes/teachers'));
-app.use('/api/students', require('./routes/students'));
-app.use('/api/tutoring', require('./routes/tutoring'));
-app.use('/api/calendar', require('./routes/calendar'));
+app.use('/api/analytics', apiLimiter, require('./routes/analytics'));
+app.use('/api/teachers', apiLimiter, require('./routes/teachers'));
+app.use('/api/students', apiLimiter, require('./routes/students'));
+app.use('/api/tutoring', apiLimiter, require('./routes/tutoring'));
+app.use('/api/calendar', apiLimiter, require('./routes/calendar'));
 
 
 if(runMigration){

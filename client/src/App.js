@@ -11,11 +11,13 @@ import TutoringEvents from './components/TutoringEvents';
 import StudentRoster from './components/StudentRoster';
 import {TutoringProvider } from './contexts/TutoringContext';
 import { AnalyticsProvider } from './contexts/AnalyticsContext';
+import { AuthProvider, useAuth } from './contexts/AuthContext';
 import Footer from './components/Footer';
 
 const AdminRoute = ({ children }) => {
-  const isAdmin = localStorage.getItem('isAdmin') === 'true';
-  return isAdmin ? children : <Navigate to="/dashboard" replace />;
+  const { currentUser, authLoading } = useAuth();
+  if (authLoading) return null;
+  return currentUser?.isAdmin ? children : <Navigate to="/dashboard" replace />;
 };
 
 // Create a theme instance
@@ -44,7 +46,7 @@ const theme = createTheme({
 
 function App() {
   return (
-
+    <AuthProvider>
     <ThemeProvider theme={theme}>
       <CssBaseline />
       <Router>
@@ -74,8 +76,8 @@ function App() {
        <Footer />
        </Box>
       </Router>
-      
     </ThemeProvider>
+    </AuthProvider>
   );
 }
 

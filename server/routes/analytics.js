@@ -8,7 +8,7 @@ const {Op} = require('sequelize');
 const sequelize = require('../config/db');
 const auth = require('../middleware/auth');
 
-router.get('/:teacherId/student/:studentId', async (req, res) => {
+router.get('/:teacherId/student/:studentId', auth, async (req, res) => {
     const teacherId = req.params.teacherId;
     const studentId = req.params.studentId;
     try{
@@ -41,7 +41,7 @@ router.get('/:teacherId/student/:studentId', async (req, res) => {
 //Need to work on getting Group Stats
 
 //GET /api/analytics/:teacherID
-router.get('/:teacherId', async (req, res)=>{
+router.get('/:teacherId', auth, async (req, res)=>{
     const {teacherId} = req.params;
     try{
         const totalSessions = await TutoringRequest.count({
@@ -50,17 +50,18 @@ router.get('/:teacherId', async (req, res)=>{
                 status:'active'
             }
         });
-        //All requests
-        const allRequests = await TutoringRequest.findAll({
-            where: {
-                status: 'active'
-            },
-            include:[{
-                model:Teacher
-            },{
-                model:Student
+        // Subject breakdown via SQL aggregation — avoids fetching all rows
+        const subjectRows = await TutoringRequest.findAll({
+            where: { status: 'active' },
+            attributes: [
+                [sequelize.fn('COUNT', sequelize.col('TutoringRequest.id')), 'count']
+            ],
+            include: [{
+                model: Teacher,
+                attributes: ['subject']
             }],
-            raw:true
+            group: ['Teacher.id', 'Teacher.subject'],
+            raw: true
         });
         //Personal Info - Total Tutoring Count
         
@@ -196,20 +197,15 @@ router.get('/:teacherId', async (req, res)=>{
             topStudents: topStudentsFormatted,
             dayOfWeekData
         };
-        //School stats - 
-        const subjectBreakdown = {
-            'CS':0,
-            'Math':0,
-            'Science':0,
-            'Humanities':0
-        };
-        allRequests.forEach(row => {
+        //School stats
+        const subjectBreakdown = { 'CS': 0, 'Math': 0, 'Science': 0, 'Humanities': 0 };
+        subjectRows.forEach(row => {
             const subject = row['Teacher.subject'];
-            subjectBreakdown[subject]++;
+            if (subject in subjectBreakdown) {
+                subjectBreakdown[subject] += parseInt(row.count);
+            }
         });
-        const schoolStats ={
-            subjectBreakdown
-        }
+        const schoolStats = { subjectBreakdown };
         res.json({
             personalStats,
             schoolStats

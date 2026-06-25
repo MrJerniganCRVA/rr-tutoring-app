@@ -7,10 +7,12 @@ const {Op} = require('sequelize');
 
 //New comment
 
+const TEACHER_PUBLIC_ATTRS = ['id', 'first_name', 'last_name', 'subject', 'lunch'];
+
 // @route   GET api/students/teacher/:teacherId
 // @desc    Get all students for a specific teacher
-// @access  Public
-router.get('/teacher/:teacherId', async (req, res) => {
+// @access  Private
+router.get('/teacher/:teacherId', auth, async (req, res) => {
   try {
     const teacherId = req.params.teacherId;
     // Find all students where this teacher is listed in any of the teaching slots
@@ -25,11 +27,11 @@ router.get('/teacher/:teacherId', async (req, res) => {
         ]
       },
       include: [
-        { model: Teacher, as: 'R1' },
-        { model: Teacher, as: 'R2' },
-        { model: Teacher, as: 'RR' },
-        { model: Teacher, as: 'R4' },
-        { model: Teacher, as: 'R5' }
+        { model: Teacher, as: 'R1', attributes: TEACHER_PUBLIC_ATTRS },
+        { model: Teacher, as: 'R2', attributes: TEACHER_PUBLIC_ATTRS },
+        { model: Teacher, as: 'RR', attributes: TEACHER_PUBLIC_ATTRS },
+        { model: Teacher, as: 'R4', attributes: TEACHER_PUBLIC_ATTRS },
+        { model: Teacher, as: 'R5', attributes: TEACHER_PUBLIC_ATTRS }
       ]
     });
     const lunchStudents = addLunch(students);
@@ -50,16 +52,16 @@ function addLunch(students){
 }
 // @route   GET api/students
 // @desc    Get all students
-// @access  Public
-router.get('/', async (req, res) => {
+// @access  Private
+router.get('/', auth, async (req, res) => {
   try {
     const students = await Student.findAll({
       include: [
-        { model: Teacher, as: 'R1' },
-        { model: Teacher, as: 'R2' },
-        { model: Teacher, as: 'RR' },
-        { model: Teacher, as: 'R4' },
-        { model: Teacher, as: 'R5' }
+        { model: Teacher, as: 'R1', attributes: TEACHER_PUBLIC_ATTRS },
+        { model: Teacher, as: 'R2', attributes: TEACHER_PUBLIC_ATTRS },
+        { model: Teacher, as: 'RR', attributes: TEACHER_PUBLIC_ATTRS },
+        { model: Teacher, as: 'R4', attributes: TEACHER_PUBLIC_ATTRS },
+        { model: Teacher, as: 'R5', attributes: TEACHER_PUBLIC_ATTRS }
       ]
     });
 
@@ -73,16 +75,9 @@ router.get('/', async (req, res) => {
 
 // @route   POST api/students
 // @desc    Add a new student
-// @access  Public
-router.post('/', async (req, res) => {
+// @access  Private
+router.post('/', auth, async (req, res) => {
   const { id, first_name, last_name, teachers } = req.body;
-  try{
-    await sequelize.query("SELECT * FROM Student LIMIT 1",
-      {type:sequelize.QueryTypes.SELECT}
-    );
-  } catch (err){
-    await Student.sync({force: false});
-  }
   try {
     const studentData = {
       id,
@@ -103,11 +98,11 @@ router.post('/', async (req, res) => {
     // Fetch the student with teacher associations
     const newStudent = await Student.findByPk(student.id, {
       include: [
-        { model: Teacher, as: 'R1' },
-        { model: Teacher, as: 'R2' },
-        { model: Teacher, as: 'RR' },
-        { model: Teacher, as: 'R4' },
-        { model: Teacher, as: 'R5' }
+        { model: Teacher, as: 'R1', attributes: TEACHER_PUBLIC_ATTRS },
+        { model: Teacher, as: 'R2', attributes: TEACHER_PUBLIC_ATTRS },
+        { model: Teacher, as: 'RR', attributes: TEACHER_PUBLIC_ATTRS },
+        { model: Teacher, as: 'R4', attributes: TEACHER_PUBLIC_ATTRS },
+        { model: Teacher, as: 'R5', attributes: TEACHER_PUBLIC_ATTRS }
       ]
     });
     
@@ -186,11 +181,11 @@ router.put('/:id', auth, async (req, res) => {
 
     const updated = await Student.findByPk(req.params.id, {
       include: [
-        { model: Teacher, as: 'R1' },
-        { model: Teacher, as: 'R2' },
-        { model: Teacher, as: 'RR' },
-        { model: Teacher, as: 'R4' },
-        { model: Teacher, as: 'R5' }
+        { model: Teacher, as: 'R1', attributes: TEACHER_PUBLIC_ATTRS },
+        { model: Teacher, as: 'R2', attributes: TEACHER_PUBLIC_ATTRS },
+        { model: Teacher, as: 'RR', attributes: TEACHER_PUBLIC_ATTRS },
+        { model: Teacher, as: 'R4', attributes: TEACHER_PUBLIC_ATTRS },
+        { model: Teacher, as: 'R5', attributes: TEACHER_PUBLIC_ATTRS }
       ]
     });
     const result = updated.toJSON();

@@ -46,3 +46,15 @@
 .chart-card-wide .chart-wrapper{
     height:400px;
 }
+
+@media (max-width: 768px) {
+    .stats-card {
+        grid-template-columns: 1fr !important;
+    }
+    .charts-container {
+        grid-template-columns: 1fr !important;
+    }
+    .chart-card-wide {
+        grid-column: span 1;
+    }
+}

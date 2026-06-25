@@ -1,38 +1,40 @@
 import React from 'react';
-import { 
-  AppBar, 
-  Toolbar, 
-  Typography, 
-  Button, 
-  Box, 
-  Tabs, 
+import {
+  AppBar,
+  Toolbar,
+  Typography,
+  Button,
+  Box,
+  Tabs,
   Tab
 } from '@mui/material';
 import { useNavigate, useLocation } from 'react-router-dom';
 import SchoolIcon from '@mui/icons-material/School';
+import { useAuth } from '../contexts/AuthContext';
 
 const API_URL = process.env.REACT_APP_API_BASE_URL || 'http://localhost:5000';
 
 const Header = () => {
   const navigate = useNavigate();
   const location = useLocation();
+  const { currentUser, clearUser } = useAuth();
 
-  const teacherId = localStorage.getItem('teacherId');
-  const teacherName = localStorage.getItem('teacherName');
-  const isAdmin = localStorage.getItem('isAdmin') === 'true';
-  
+  const teacherName = currentUser
+    ? `${currentUser.firstName} ${currentUser.lastName}`
+    : localStorage.getItem('teacherName');
+  const isAdmin = currentUser?.isAdmin ?? false;
+  const isLoggedIn = !!(currentUser || localStorage.getItem('teacherId'));
+
   const handleLogout = async () => {
     try{
       await fetch(`${API_URL}/auth/logout`, {
         credentials: 'include',
         method: 'GET'
       });
-
-      localStorage.removeItem('teacherId');
-      localStorage.removeItem('teacherName');
-      navigate('/select-teacher');
     } catch (err){
       console.error("Logout failed", err);
+    } finally {
+      clearUser();
       navigate('/select-teacher');
     }
   };
@@ -47,7 +49,7 @@ const Header = () => {
   };
   
   // Show navigation only if logged in
-  if (!teacherId) {
+  if (!isLoggedIn) {
     return (
       <AppBar position="static">
         <Toolbar>

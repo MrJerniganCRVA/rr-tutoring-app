@@ -4,11 +4,12 @@ import{
     Typography,
     Paper,
     Button,
-    Alert, 
+    Alert,
     CircularProgress
 } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 import GoogleIcon from '@mui/icons-material/Google';
+import { useAuth } from '../contexts/AuthContext';
 
 const API_URL = process.env.REACT_APP_API_BASE_URL || 'http://localhost:5000';
 
@@ -16,23 +17,18 @@ const Login = () =>{
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
     const navigate = useNavigate();
+    const { refreshUser } = useAuth();
 
     useEffect(()=>{
-        //check if user is already auth
         const checkAuth = async () =>{
             try{
                 const response = await fetch(`${API_URL}/auth/current`,{
                     credentials: 'include'
                 });
                 if(response.ok){
-                    const teacher = await response.json();
-                    //user logged in redirect to dashboard
-                    localStorage.setItem('teacherId',teacher.id);
-                    localStorage.setItem('teacherName', `${teacher.firstName} ${teacher.lastName}`);
-                    localStorage.setItem('isAdmin', teacher.isAdmin ? 'true' : 'false');
+                    await refreshUser();
                     navigate('/dashboard');
                 } else{
-                    //not logged in, show login
                     setLoading(false);
                 }
             } catch(err){

@@ -33,10 +33,12 @@ const hasSubjectPriority = (teacherSubject, date) =>{
 
 
 
-// @route   GET api/teachers/:id
-// @desc    Get teacher by ID
-// @access  Public
-router.get('/:id', async (req, res) => {
+const TEACHER_PUBLIC_ATTRS = ['id', 'first_name', 'last_name', 'subject', 'lunch'];
+
+// @route   GET api/tutoring/:id
+// @desc    Get tutoring request by ID
+// @access  Private
+router.get('/:id', auth, async (req, res) => {
   try {
     const tutoringevent = await TutoringRequest.findByPk(req.params.id);
     
@@ -52,20 +54,20 @@ router.get('/:id', async (req, res) => {
 });
 // @route   GET api/tutoring
 // @desc    Get all tutoring requests
-// @access  Public
-router.get('/', async (req, res) => {
+// @access  Private
+router.get('/', auth, async (req, res) => {
   try {
     const requests = await TutoringRequest.findAll({
       include: [
-        { model: Teacher },
-        { 
+        { model: Teacher, attributes: TEACHER_PUBLIC_ATTRS },
+        {
           model: Student,
           include: [
-            { model: Teacher, as: 'R1' },
-            { model: Teacher, as: 'R2' },
-            { model: Teacher, as: 'RR' },
-            { model: Teacher, as: 'R4' },
-            { model: Teacher, as: 'R5' }
+            { model: Teacher, as: 'R1', attributes: TEACHER_PUBLIC_ATTRS },
+            { model: Teacher, as: 'R2', attributes: TEACHER_PUBLIC_ATTRS },
+            { model: Teacher, as: 'RR', attributes: TEACHER_PUBLIC_ATTRS },
+            { model: Teacher, as: 'R4', attributes: TEACHER_PUBLIC_ATTRS },
+            { model: Teacher, as: 'R5', attributes: TEACHER_PUBLIC_ATTRS }
           ]
         }
       ]
@@ -133,21 +135,21 @@ router.post('/', auth, async (req, res) => {
       });
       //Fetch the created request
       const request = await TutoringRequest.findByPk(newRequest.id, {
-          include: [
-          { model: Teacher },
-          { 
+        include: [
+          { model: Teacher, attributes: TEACHER_PUBLIC_ATTRS },
+          {
             model: Student,
             include: [
-              { model: Teacher, as: 'R1' },
-              { model: Teacher, as: 'R2' },
-              { model: Teacher, as: 'RR' },
-              { model: Teacher, as: 'R4' },
-              { model: Teacher, as: 'R5' }
+              { model: Teacher, as: 'R1', attributes: TEACHER_PUBLIC_ATTRS },
+              { model: Teacher, as: 'R2', attributes: TEACHER_PUBLIC_ATTRS },
+              { model: Teacher, as: 'RR', attributes: TEACHER_PUBLIC_ATTRS },
+              { model: Teacher, as: 'R4', attributes: TEACHER_PUBLIC_ATTRS },
+              { model: Teacher, as: 'R5', attributes: TEACHER_PUBLIC_ATTRS }
             ]
           }
         ]
       });
-      return res.json(request); 
+      return res.json(request);
     }
     //a conflict exists need to figure out who has priority
     
@@ -189,20 +191,20 @@ router.post('/', auth, async (req, res) => {
       });
       const request = await TutoringRequest.findByPk(newRequest.id, {
         include: [
-          { model: Teacher },
-          { 
+          { model: Teacher, attributes: TEACHER_PUBLIC_ATTRS },
+          {
             model: Student,
             include: [
-              { model: Teacher, as: 'R1' },
-              { model: Teacher, as: 'R2' },
-              { model: Teacher, as: 'RR' },
-              { model: Teacher, as: 'R4' },
-              { model: Teacher, as: 'R5' }
+              { model: Teacher, as: 'R1', attributes: TEACHER_PUBLIC_ATTRS },
+              { model: Teacher, as: 'R2', attributes: TEACHER_PUBLIC_ATTRS },
+              { model: Teacher, as: 'RR', attributes: TEACHER_PUBLIC_ATTRS },
+              { model: Teacher, as: 'R4', attributes: TEACHER_PUBLIC_ATTRS },
+              { model: Teacher, as: 'R5', attributes: TEACHER_PUBLIC_ATTRS }
             ]
           }
         ]
       });
-      
+
       return res.json({
         request,
         overrideInfo: {

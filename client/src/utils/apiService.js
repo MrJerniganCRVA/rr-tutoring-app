@@ -11,16 +11,15 @@ const apiClient = axios.create({
   }
 });
 
-// Add a request interceptor to include teacher ID in headers
-apiClient.interceptors.request.use(
-  config => {
-    const teacherId = localStorage.getItem('teacherId');
-    if (teacherId) {
-      config.headers['x-teacher-id'] = teacherId;
-    }
-    return config;
-  },
+// Redirect to login on session expiry
+apiClient.interceptors.response.use(
+  response => response,
   error => {
+    if (error.response?.status === 401) {
+      localStorage.removeItem('teacherId');
+      localStorage.removeItem('teacherName');
+      window.location.href = '/select-teacher';
+    }
     return Promise.reject(error);
   }
 );

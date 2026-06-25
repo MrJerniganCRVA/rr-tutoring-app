@@ -117,8 +117,9 @@ export const TutoringProvider = ({children}) => {
     };
 
     const getSessionsForStudent = (studentId) => {
-        return sessions.filter(session => 
-            session.Student.id === studentId && session.status === 'active'
+        // Convert both sides to Number to handle string/numeric id mismatch from API vs props
+        return sessions.filter(session =>
+            Number(session.Student?.id) === Number(studentId) && session.status === 'active'
         );
     };
 
