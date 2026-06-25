@@ -3,3 +3,9 @@ temp/
 
 database.db
 database.sqlite
+node_modules/
+npm-debug.log*
+.npm
+.env
+dist/
+build/

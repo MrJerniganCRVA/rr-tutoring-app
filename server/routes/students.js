@@ -4,12 +4,15 @@ const Student = require('../models/Student');
 const Teacher = require('../models/Teacher');
 const auth = require('../middleware/auth');
 const {Op} = require('sequelize');
+
 //New comment
+
+const TEACHER_PUBLIC_ATTRS = ['id', 'first_name', 'last_name', 'subject', 'lunch'];
 
 // @route   GET api/students/teacher/:teacherId
 // @desc    Get all students for a specific teacher
-// @access  Public
-router.get('/teacher/:teacherId', async (req, res) => {
+// @access  Private
+router.get('/teacher/:teacherId', auth, async (req, res) => {
   try {
     const teacherId = req.params.teacherId;
     // Find all students where this teacher is listed in any of the teaching slots
@@ -24,11 +27,11 @@ router.get('/teacher/:teacherId', async (req, res) => {
         ]
       },
       include: [
-        { model: Teacher, as: 'R1' },
-        { model: Teacher, as: 'R2' },
-        { model: Teacher, as: 'RR' },
-        { model: Teacher, as: 'R4' },
-        { model: Teacher, as: 'R5' }
+        { model: Teacher, as: 'R1', attributes: TEACHER_PUBLIC_ATTRS },
+        { model: Teacher, as: 'R2', attributes: TEACHER_PUBLIC_ATTRS },
+        { model: Teacher, as: 'RR', attributes: TEACHER_PUBLIC_ATTRS },
+        { model: Teacher, as: 'R4', attributes: TEACHER_PUBLIC_ATTRS },
+        { model: Teacher, as: 'R5', attributes: TEACHER_PUBLIC_ATTRS }
       ]
     });
     const lunchStudents = addLunch(students);
@@ -49,16 +52,16 @@ function addLunch(students){
 }
 // @route   GET api/students
 // @desc    Get all students
-// @access  Public
-router.get('/', async (req, res) => {
+// @access  Private
+router.get('/', auth, async (req, res) => {
   try {
     const students = await Student.findAll({
       include: [
-        { model: Teacher, as: 'R1' },
-        { model: Teacher, as: 'R2' },
-        { model: Teacher, as: 'RR' },
-        { model: Teacher, as: 'R4' },
-        { model: Teacher, as: 'R5' }
+        { model: Teacher, as: 'R1', attributes: TEACHER_PUBLIC_ATTRS },
+        { model: Teacher, as: 'R2', attributes: TEACHER_PUBLIC_ATTRS },
+        { model: Teacher, as: 'RR', attributes: TEACHER_PUBLIC_ATTRS },
+        { model: Teacher, as: 'R4', attributes: TEACHER_PUBLIC_ATTRS },
+        { model: Teacher, as: 'R5', attributes: TEACHER_PUBLIC_ATTRS }
       ]
     });
 
@@ -72,19 +75,14 @@ router.get('/', async (req, res) => {
 
 // @route   POST api/students
 // @desc    Add a new student
-// @access  Public
-router.post('/', async (req, res) => {
-  const { name, teachers } = req.body;
-  try{
-    await sequelize.query("SELECT * FROM Student LIMIT 1",
-      {type:sequelize.QueryTypes.SELECT}
-    );
-  } catch (err){
-    await Student.sync({force: false});
-  }
+// @access  Private
+router.post('/', auth, async (req, res) => {
+  const { id, first_name, last_name, teachers } = req.body;
   try {
     const studentData = {
-      name,
+      id,
+      first_name,
+      last_name,
       R1Id: teachers?.R1 || null,
       R2Id: teachers?.R2 || null,
       RRId: teachers?.RR || null,
@@ -92,7 +90,7 @@ router.post('/', async (req, res) => {
       R5Id: teachers?.R5 || null
     };
     
-    let student_exists = await Student.findOne({ where: { name } });
+    let student_exists = await Student.findOne({ where: { first_name:first_name, last_name:last_name } });
     if (student_exists) {
       return res.status(400).json({ msg: 'Student already exists. Consider Updating instead of POST' });
     }
@@ -100,15 +98,99 @@ router.post('/', async (req, res) => {
     // Fetch the student with teacher associations
     const newStudent = await Student.findByPk(student.id, {
       include: [
-        { model: Teacher, as: 'R1' },
-        { model: Teacher, as: 'R2' },
-        { model: Teacher, as: 'RR' },
-        { model: Teacher, as: 'R4' },
-        { model: Teacher, as: 'R5' }
+        { model: Teacher, as: 'R1', attributes: TEACHER_PUBLIC_ATTRS },
+        { model: Teacher, as: 'R2', attributes: TEACHER_PUBLIC_ATTRS },
+        { model: Teacher, as: 'RR', attributes: TEACHER_PUBLIC_ATTRS },
+        { model: Teacher, as: 'R4', attributes: TEACHER_PUBLIC_ATTRS },
+        { model: Teacher, as: 'R5', attributes: TEACHER_PUBLIC_ATTRS }
       ]
     });
     
     res.json(newStudent);
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).send('Server Error');
+  }
+});
+
+// @route   POST api/students/bulk-rr
+// @desc    Bulk update RR teacher assignments
+// @access  Admin only
+router.post('/bulk-rr', auth, async (req, res) => {
+  try {
+    const requestingTeacher = await Teacher.findByPk(req.teacher.id);
+    if (!requestingTeacher?.is_admin) {
+      return res.status(403).json({ msg: 'Admin access required' });
+    }
+
+    const { updates } = req.body;
+    if (!Array.isArray(updates) || updates.length === 0) {
+      return res.status(400).json({ msg: 'updates array is required' });
+    }
+
+    const succeeded = [];
+    const failed = [];
+
+    for (const { studentId, rrTeacherId } of updates) {
+      try {
+        const student = await Student.findByPk(studentId);
+        if (!student) {
+          failed.push({ studentId, reason: 'Student not found' });
+          continue;
+        }
+        await student.update({ RRId: rrTeacherId });
+        succeeded.push(studentId);
+      } catch (rowErr) {
+        failed.push({ studentId, reason: rowErr.message });
+      }
+    }
+
+    res.json({ succeeded, failed });
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).send('Server Error');
+  }
+});
+
+// @route   PUT api/students/:id
+// @desc    Update a student's teacher assignments
+// @access  Admin only
+router.put('/:id', auth, async (req, res) => {
+  try {
+    const requestingTeacher = await Teacher.findByPk(req.teacher.id);
+    if (!requestingTeacher?.is_admin) {
+      return res.status(403).json({ msg: 'Admin access required' });
+    }
+
+    const student = await Student.findByPk(req.params.id);
+    if (!student) return res.status(404).json({ msg: 'Student not found' });
+
+    const { R1Id, R2Id, RRId, R4Id, R5Id } = req.body;
+    const updates = {};
+    for (const [field, val] of Object.entries({ R1Id, R2Id, RRId, R4Id, R5Id })) {
+      if (val !== undefined) {
+        if (val !== null) {
+          const exists = await Teacher.findByPk(val);
+          if (!exists) return res.status(400).json({ msg: `Teacher ${val} not found` });
+        }
+        updates[field] = val;
+      }
+    }
+
+    await student.update(updates);
+
+    const updated = await Student.findByPk(req.params.id, {
+      include: [
+        { model: Teacher, as: 'R1', attributes: TEACHER_PUBLIC_ATTRS },
+        { model: Teacher, as: 'R2', attributes: TEACHER_PUBLIC_ATTRS },
+        { model: Teacher, as: 'RR', attributes: TEACHER_PUBLIC_ATTRS },
+        { model: Teacher, as: 'R4', attributes: TEACHER_PUBLIC_ATTRS },
+        { model: Teacher, as: 'R5', attributes: TEACHER_PUBLIC_ATTRS }
+      ]
+    });
+    const result = updated.toJSON();
+    result.lunch = updated.RR?.lunch ?? null;
+    res.json(result);
   } catch (err) {
     console.error(err.message);
     res.status(500).send('Server Error');

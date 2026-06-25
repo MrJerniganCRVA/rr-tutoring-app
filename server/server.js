@@ -1,19 +1,117 @@
-
 const express = require('express');
 const cors = require('cors');
+const helmet = require('helmet');
+const compression = require('compression');
+const rateLimit = require('express-rate-limit');
+const session = require('express-session');
+const SequelizeStore = require('connect-session-sequelize')(session.Store);
 const sequelize = require('./config/db');
-
+const passport = require('passport');
 require('dotenv').config();
 
 const app = express();
 const PORT = process.env.PORT || 5000;
+const runMigration = process.env.RUN_MIGRATION === 'true';
+const isProduction = process.env.NODE_ENV === 'production';
 
-app.use(express.json());
-app.use(cors());
+// Trust Railway's reverse proxy so secure cookies work behind HTTPS termination
+if (isProduction) {
+  app.set('trust proxy', 1);
+}
+
+// Security headers
+app.use(helmet({
+  crossOriginResourcePolicy: { policy: 'cross-origin' }
+}));
+
+// Gzip compression for all responses
+app.use(compression());
+
+// CORS: allow frontend origin in dev and production
+const allowedOrigin = (process.env.CLIENT_URL || 'http://localhost:3000').replace(/\/+$/, '');
+app.use(cors({
+  origin: allowedOrigin,
+  credentials: true
+}));
+
+app.use(express.json({ limit: '1mb' }));
+
+// Auth endpoints — stricter limit to prevent brute force
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 20,
+  standardHeaders: true,
+  legacyHeaders: false
+});
+
+// General API limit
+const apiLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 200,
+  standardHeaders: true,
+  legacyHeaders: false
+});
+
+// Session store backed by the database
+const sessionStore = new SequelizeStore({
+  db: sequelize,
+  tableName: 'sessions',
+  checkExpirationInterval: 24*60*60*1000,
+  expiration: 30*24*60*60*1000
+});
+sessionStore.sync();
+
+app.use(
+  session({
+    store: sessionStore,
+    secret: process.env.SESSION_SECRET,
+    resave: false,
+    saveUninitialized: false,
+    cookie: {
+      maxAge: 30*24*60*60*1000,
+      secure: isProduction,
+      httpOnly: true,
+      sameSite: isProduction ? 'none' : 'lax'
+    }
+  })
+);
+
+//passport init
+app.use(passport.initialize());
+app.use(passport.session());
+
+// load passport
+require('./config/passport')(passport);
+
+// Simple test route
+app.get('/', (req, res) => {
+  res.json({ msg: 'Welcome to the RR Tutoring Scheduler API' });
+});
+//Auth Routes
+app.use('/auth', authLimiter, require('./routes/auth'));
+
 // Define routes
-app.use('/api/teachers', require('./routes/teachers'));
-app.use('/api/students', require('./routes/students'));
-app.use('/api/tutoring', require('./routes/tutoring'));
+app.use('/api/analytics', apiLimiter, require('./routes/analytics'));
+app.use('/api/teachers', apiLimiter, require('./routes/teachers'));
+app.use('/api/students', apiLimiter, require('./routes/students'));
+app.use('/api/tutoring', apiLimiter, require('./routes/tutoring'));
+app.use('/api/calendar', apiLimiter, require('./routes/calendar'));
+
+
+if(runMigration){
+
+  console.log('Starting migration');
+  sequelize.sync({ alter: true })
+    .then(()=> {
+      console.log('Migration Completed');
+      process.exit(0);
+    }).catch(e => {
+      console.error('Migration failed', e);
+      process.exit(1);
+    });
+
+
+} else{
 
 // Test database connection
 sequelize.authenticate()
@@ -28,8 +126,4 @@ sequelize.authenticate()
     });
   })
   .catch(err => console.error('Unable to connect to the database:', err));
-
-// Simple test route
-app.get('/', (req, res) => {
-  res.json({ msg: 'Welcome to the Tutoring Scheduler API' });
-});
+}

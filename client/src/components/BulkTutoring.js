@@ -19,13 +19,15 @@ import {
   ListItemText,
   ListItemIcon,
   Chip,
-  Grid
+  Grid,
+  Autocomplete
 } from '@mui/material';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
-import { isSaturday, isSunday, format } from 'date-fns';
+import { format } from 'date-fns';
 import apiService from '../utils/apiService';
+import {useTutoring} from '../contexts/TutoringContext.js'
 
 // Icons
 import AddIcon from '@mui/icons-material/Add';
@@ -34,6 +36,7 @@ import PersonIcon from '@mui/icons-material/Person';
 
 const BulkTutoring = () => {
   // State for form fields
+  const {createSession} = useTutoring();
   const [selectedDate, setSelectedDate] = useState(null);
   const [lunches, setLunches] = useState({
     A: false,
@@ -44,9 +47,11 @@ const BulkTutoring = () => {
   
   // State for students management
   const [allStudents, setAllStudents] = useState([]);
+  const [myStudents, setMyStudents] = useState([]);
+  const [showAllStudents, setShowAllStudents] = useState(false);
   const [selectedStudents, setSelectedStudents] = useState([]);
   const [selectedStudentId, setSelectedStudentId] = useState('');
-  const [studentFilter, setStudentFilter] = useState('');
+  // const [studentFilter, setStudentFilter] = useState('');
   
   // State for API interactions
   const [loading, setLoading] = useState(false);
@@ -57,51 +62,58 @@ const BulkTutoring = () => {
   
   // Get the logged in teacher
   const teacherId = localStorage.getItem('teacherId');
-  const teacherName = localStorage.getItem('teacherName');
-  
+
   // Load all students when component mounts
   useEffect(() => {
-    fetchStudents();
-  }, []);
-  
-  // Filter students when search term changes
-  const filteredStudents = allStudents.filter(student => 
-    student.name.toLowerCase().includes(studentFilter.toLowerCase())
-  );
-  
-  // Fetch all students from API
+    // Fetch all students from API
   const fetchStudents = async () => {
-    try {
-      setFetchingStudents(true);
-      const response = await apiService.getStudents();
-      
-      // Process students to add display info
-      const processedStudents = response.data.map(student => {
-        // Get lunch period from RR teacher if available
-        let lunchPeriod = null;
-        if (student.teachers && student.teachers.RR && student.teachers.RR.lunch) {
-          lunchPeriod = student.teachers.RR.lunch;
-        } else if (student.RR && student.RR.lunch) {
-          lunchPeriod = student.RR.lunch;
-        } else if (student.lunchPeriod) {
-          lunchPeriod = student.lunchPeriod;
-        }
-        
-        return {
-          ...student,
-          lunchPeriod,
-          displayName: lunchPeriod ? `[${lunchPeriod}] ${student.name}` : student.name
-        };
-      });
-      
-      setAllStudents(processedStudents);
-      setFetchingStudents(false);
-    } catch (err) {
-      console.error('Error fetching students:', err);
-      setError(apiService.formatError(err));
-      setFetchingStudents(false);
-    }
-  };
+           try {
+             setFetchingStudents(true);
+             const response = await apiService.getStudents();
+             const processStudent = (student) => {
+               let lunchPeriod = null;
+               if(student.teachers && student.teachers.RR && student.teachers.RR.lunch){
+                 lunchPeriod = student.teachers.RR.lunch;
+               } else if (student.RR && student.RR.lunch){
+                 lunchPeriod = student.RR.lunch;
+               } else if (student.lunchPeriod){
+                 lunchPeriod = student.lunchPeriod;
+               } else if (student.lunch){
+                 lunchPeriod = student.lunch;
+               }
+               const fullName = `${student.first_name} ${student.last_name}`;
+               return {
+                 ...student,
+                 lunchPeriod,
+                 displayName: lunchPeriod ? `[${lunchPeriod}] ${fullName}` : fullName
+               };
+             };
+             const processedAll = response.data.map(processStudent);
+             const processedMy = response.data
+               .filter(student =>
+                 student?.R1Id===parseInt(teacherId) ||
+                 student?.R2Id===parseInt(teacherId) ||
+                 student?.R4Id===parseInt(teacherId) ||
+                 student?.R5Id===parseInt(teacherId)
+               )
+               .map(processStudent);
+             setAllStudents(processedAll);
+             setMyStudents(processedMy);
+             setFetchingStudents(false);
+           } catch (err) {
+             console.error('Error fetching students:', err);
+             setError(apiService.formatError(err));
+             setFetchingStudents(false);
+           }
+         };
+    fetchStudents();
+  }, [teacherId]);
+
+//   // Filter students when search term changes
+//   const filteredStudents = allStudents.filter(student => {
+//     const fullName = `${student.first_name} ${student.last_name}`.toLowerCase();
+//     return fullName.includes(studentFilter.toLowerCase());
+// });
   
   // Handler for lunch checkbox changes
   const handleLunchChange = (event) => {
@@ -120,13 +132,21 @@ const BulkTutoring = () => {
     
     // Check if student is already selected
     if (selectedStudents.some(s => s.id === selectedStudentId)) {
-      setError(`${studentToAdd.name} is already in your selection.`);
+      const studentName = `${studentToAdd.first_name} ${studentToAdd.last_name}`;
+      setError(`${studentName} is already in your selection.`);
       return;
     }
     
     // Add to selected students
     setSelectedStudents([...selectedStudents, studentToAdd]);
     
+    //Clear out any lunches that have been selected
+    if (studentToAdd.lunchPeriod){
+      setLunches(prevLunches =>({
+        ...prevLunches,
+        [studentToAdd.lunchPeriod]: false
+      }));
+    }
     // Reset selection
     setSelectedStudentId('');
     setError('');
@@ -175,24 +195,28 @@ const BulkTutoring = () => {
       
       for (const student of selectedStudents) {
         try {
-          let constructedDate = new Date(selectedDate.toISOString().split('T')[0]);
-          constructedDate.setDate(constructedDate.getDate()+1);
-          console.log(constructedDate);
-          const response = await apiService.createTutoringRequest({
-              studentId: student.id,
-              date: constructedDate,
-              lunches
-          });
-         
-          
-          successfulStudents.push({
-            student: student.name,
-            id: response.data.id
-          });
+          const dateObject = new Date(selectedDate.toISOString().split('T')[0]);
+          const formData = {
+            studentId: student.id,
+            date: dateObject,
+            lunches
+          };
+          const result = await createSession(formData);
+          if(result.success){
+            successfulStudents.push({
+              student: `${student.first_name} ${student.last_name}`,
+              id: result.session.id
+            });
+          } else{
+            failedStudents.push({
+              student:`${student.first_name} ${student.last_name}`,
+              error: result.message || 'Failed to create session'
+            });
+          }
         } catch (studentError) {
           failedStudents.push({
-            student: student.name,
-            error: apiService.formatError(studentError)
+            student: `${student.first_name} ${student.last_name}`,
+            error: studentError.message || apiService.formatError(studentError)
           });
         }
       }
@@ -234,10 +258,21 @@ const BulkTutoring = () => {
       setLoading(false);
     }
   };
-  
+      // Helper function to disable lunches
+  // Returns a set
+  const getDisabledLunches = () => {
+    const disabledLunches = new Set();
+    selectedStudents.forEach(student => {
+      if(student.lunchPeriod){
+        disabledLunches.add(student.lunchPeriod);
+      }
+    });
+    return disabledLunches;
+  }
   // Function to check if a date should be disabled
-  const isWeekend = (date) => {
-    return isSaturday(date) || isSunday(date);
+  const isBlocked = (date) => {
+    const dayOfWeek = date.getDay();
+    return dayOfWeek === 0 || dayOfWeek ===3 || dayOfWeek === 6;
   };
   
   return (
@@ -304,7 +339,7 @@ const BulkTutoring = () => {
                   renderInput={(params) => (
                     <TextField {...params} fullWidth margin="normal" />
                   )}
-                  shouldDisableDate={isWeekend}
+                  shouldDisableDate={isBlocked}
                   minDate={new Date()}
                   disabled={loading}
                 />
@@ -316,7 +351,11 @@ const BulkTutoring = () => {
               
               <FormGroup>
                 <Grid container spacing={1}>
-                  {['A', 'B', 'C', 'D'].map((period) => (
+                  {['A', 'B', 'C', 'D'].map((period) => {
+                    const disabledLunches = getDisabledLunches();
+                    const isDisabled = disabledLunches.has(period);
+                    
+                  return (
                     <Grid item xs={6} key={period}>
                       <FormControlLabel 
                         control={
@@ -324,13 +363,14 @@ const BulkTutoring = () => {
                             checked={lunches[period]} 
                             onChange={handleLunchChange} 
                             name={period} 
-                            disabled={loading}
+                            disabled={loading || isDisabled}
                           />
                         } 
                         label={`Lunch ${period}`} 
                       />
                     </Grid>
-                  ))}
+                  );
+                })}
                 </Grid>
               </FormGroup>
             </Grid>
@@ -339,41 +379,72 @@ const BulkTutoring = () => {
               <Typography variant="subtitle1" gutterBottom>
                 Student Selection
               </Typography>
-              
-              {/* <TextField
-                fullWidth
-                margin="normal"
-                label="Filter Students"
-                value={studentFilter}
-                onChange={(e) => setStudentFilter(e.target.value)}
-                disabled={loading}
+
+              <FormControlLabel
+                control={
+                  <Checkbox
+                    checked={showAllStudents}
+                    onChange={(e) => {
+                      setShowAllStudents(e.target.checked);
+                      setSelectedStudentId('');
+                    }}
+                    disabled={fetchingStudents || loading}
+                  />
+                }
+                label="Show all students (for review sessions)"
+                sx={{ mb: 1 }}
               />
-               */}
-              <FormControl fullWidth margin="normal">
-                <InputLabel id="student-select-label">Add Student</InputLabel>
-                <Select
-                  labelId="student-select-label"
-                  value={selectedStudentId}
-                  label="Add Student"
-                  onChange={(e) => setSelectedStudentId(e.target.value)}
-                  disabled={fetchingStudents || loading}
-                >
-                  {fetchingStudents ? (
-                    <MenuItem disabled>Loading students...</MenuItem>
-                  ) : filteredStudents.length === 0 ? (
-                    <MenuItem disabled>No students match your filter</MenuItem>
-                  ) : (
-                    filteredStudents.map((student) => (
-                      <MenuItem 
-                        key={student.id} 
-                        value={student.id}
-                      >
-                        {student.displayName}
-                      </MenuItem>
-                    ))
-                  )}
-                </Select>
-              </FormControl>
+
+            <Autocomplete
+  id="student-autocomplete"
+  options={showAllStudents ? allStudents : myStudents}
+  getOptionLabel={(option) => option.displayName || `${option.first_name || ''} ${option.last_name || ''}`.trim()}
+  value={(showAllStudents ? allStudents : myStudents).find(student => student.id === selectedStudentId) || null}
+  onChange={(event, newValue) => {
+    const studentId = newValue ? newValue.id : '';
+    setSelectedStudentId(studentId);
+  }}
+  filterOptions={(options, { inputValue }) => {
+    const searchText = inputValue.toLowerCase();
+    return options.filter(option => {
+      const displayName = option.displayName || `${option.first_name || ''} ${option.last_name || ''}`.trim();
+      return displayName.toLowerCase().includes(searchText);
+    });
+  }}
+  renderInput={(params) => (
+    <TextField
+      {...params}
+      label="Add Student"
+      margin="normal"
+      fullWidth
+      placeholder="Type student name..."
+      disabled={fetchingStudents || loading}
+      helperText={fetchingStudents ? "Loading students..." : "Type to search by student name"}
+    />
+  )}
+  renderOption={(props, option) => {
+    const { key, ...cleanProps} = props;
+    return (
+      <Box component="li" key={key} {...cleanProps} sx={{ display: 'flex', alignItems: 'center', py: 1 }}>
+        <Box sx={{ flexGrow: 1 }}>
+          <Typography variant="body1">
+            {option.displayName || `${option.first_name || ''} ${option.last_name || ''}`.trim()}
+          </Typography>
+        </Box>
+      </Box>
+    );
+  }}
+  noOptionsText={
+    fetchingStudents ? "Loading students..." : "No students found"
+  }
+  loading={fetchingStudents}
+  disabled={loading}
+  clearOnBlur
+  selectOnFocus
+  handleHomeEndKeys
+  autoHighlight
+  openOnFocus
+/>
               
               <Button
                 variant="outlined"
@@ -415,7 +486,7 @@ const BulkTutoring = () => {
                         <PersonIcon />
                       </ListItemIcon>
                       <ListItemText 
-                        primary={student.name} 
+                        primary={`${student.first_name} ${student.last_name}`}
                         secondary={
                           student.lunchPeriod ? `Lunch: ${student.lunchPeriod}` : 'No lunch info'
                         } 

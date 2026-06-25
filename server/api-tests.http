@@ -1,0 +1,250 @@
+### Check if server is running
+GET http://localhost:5000
+
+### Check Monday priority (should be CS)
+GET http://localhost:5000/api/tutoring/priority/2025-08-25
+
+### Check Tuesday priority (should be Math)  
+GET http://localhost:5000/api/tutoring/priority/2024-01-16
+
+### Check Wednesday (should say no tutoring)
+GET http://localhost:5000/api/tutoring/priority/2024-01-17
+
+### Get all tutoring requests
+GET http://localhost:5000/api/tutoring
+
+
+### ====== PRIORITY SYSTEM TESTS ======
+### Teachers: Alice (Math, ID:1), Bob (Humanities, ID:2), Carol (Science, ID:3), David (CS, ID:4)
+### Priority Schedule: Monday=CS, Tuesday=Math, Wednesday=None, Thursday=Humanities, Friday=Science
+
+### ====== BASIC PRIORITY CHECKS ======
+
+### Check Monday Priority (should be CS)
+GET http://localhost:5000/api/tutoring/priority/2025-09-01
+
+### Check Tuesday Priority (should be Math)  
+GET http://localhost:5000/api/tutoring/priority/2025-09-02
+
+### Check Wednesday Priority (should be null - no tutoring)
+GET http://localhost:5000/api/tutoring/priority/2025-09-03
+
+### Check Thursday Priority (should be Humanities)
+GET http://localhost:5000/api/tutoring/priority/2025-09-04
+
+### Check Friday Priority (should be Science)
+GET http://localhost:5000/api/tutoring/priority/2025-09-05
+### ====== PRIORITY SYSTEM TESTS ======
+### Teachers: Alice (Math, ID:1), Bob (Humanities, ID:2), Carol (Science, ID:3), David (CS, ID:4)
+### Priority Schedule: Monday=CS, Tuesday=Math, Wednesday=None, Thursday=Humanities, Friday=Science
+
+### ====== BASIC PRIORITY CHECKS ======
+
+### Check Monday Priority (should be CS)
+GET http://localhost:5000/api/tutoring/priority/2025-09-01
+
+### Check Tuesday Priority (should be Math)  
+GET http://localhost:5000/api/tutoring/priority/2025-09-02
+
+### Check Wednesday Priority (should be null - no tutoring)
+GET http://localhost:5000/api/tutoring/priority/2025-09-03
+
+### Check Thursday Priority (should be Humanities)
+GET http://localhost:5000/api/tutoring/priority/2025-09-04
+
+### Check Friday Priority (should be Science)
+GET http://localhost:5000/api/tutoring/priority/2025-09-05
+
+### ====== BASELINE CHECK ======
+
+### Get all current requests (to see baseline)
+GET http://localhost:5000/api/tutoring
+x-teacher-id: 1
+
+### ====== TEST 1: NORMAL REQUESTS (NO CONFLICTS) ======
+
+### Alice (Math, ID:1) requests student 100000000 on Tuesday (Math priority day) - SHOULD SUCCESS
+POST http://localhost:5000/api/tutoring
+Content-Type: application/json
+x-teacher-id: 1
+
+{
+  "studentId": 100000000,
+  "date": "2025-09-02",
+  "lunches": {"A": true, "B": false, "C": false, "D": false}
+}
+
+### David (CS, ID:4) requests student 100000001 on Monday (CS priority day) - SHOULD SUCCESS
+POST http://localhost:5000/api/tutoring
+Content-Type: application/json
+x-teacher-id: 4
+
+{
+  "studentId": 100000001,
+  "date": "2025-09-01",
+  "lunches": {"A": true, "B": false, "C": false, "D": false}
+}
+
+### ====== TEST 2: WEDNESDAY BLOCKING ======
+
+### Alice (Math, ID:1) tries to request on Wednesday - SHOULD GET 400 ERROR
+POST http://localhost:5000/api/tutoring
+Content-Type: application/json
+x-teacher-id: 1
+
+{
+  "studentId": 100000002,
+  "date": "2025-09-03",
+  "lunches": {"A": true, "B": false, "C": false, "D": false}
+}
+
+### ====== TEST 3: PRIORITY OVERRIDE SCENARIOS ======
+
+### 3A: Bob (Humanities, ID:2) requests student 100000003 on Monday first (non-priority) - SHOULD SUCCESS
+POST http://localhost:5000/api/tutoring
+Content-Type: application/json
+x-teacher-id: 2
+
+{
+  "studentId": 100000003,
+  "date": "2025-09-01",
+  "lunches": {"A": true, "B": false, "C": false, "D": false}
+}
+
+### 3B: David (CS, ID:4) tries to request same student on Monday (CS priority) - SHOULD GET 409 CONFLICT
+POST http://localhost:5000/api/tutoring
+Content-Type: application/json
+x-teacher-id: 4
+
+{
+  "studentId": 100000003,
+  "date": "2025-09-01",
+  "lunches": {"B": true, "A": false, "C": false, "D": false}
+}
+
+### 3C: David (CS, ID:4) confirms override - SHOULD SUCCESS AND CANCEL BOB'S REQUEST
+POST http://localhost:5000/api/tutoring
+Content-Type: application/json
+x-teacher-id: 4
+
+{
+  "studentId": 100000003,
+  "date": "2025-09-01",
+  "lunches": {"B": true, "A": false, "C": false, "D": false},
+  "override": true
+}
+
+### ====== TEST 4: PRIORITY PROTECTION ======
+
+### 4A: Alice (Math, ID:1) requests student 100000004 on Tuesday first (Math priority) - SHOULD SUCCESS
+POST http://localhost:5000/api/tutoring
+Content-Type: application/json
+x-teacher-id: 1
+
+{
+  "studentId": 100000004,
+  "date": "2025-09-02",
+  "lunches": {"A": true, "B": false, "C": false, "D": false}
+}
+
+### 4B: Carol (Science, ID:3) tries to request same student on Tuesday - SHOULD GET 403 DENIED
+POST http://localhost:5000/api/tutoring
+Content-Type: application/json
+x-teacher-id: 3
+
+{
+  "studentId": 100000004,
+  "date": "2025-09-02",
+  "lunches": {"C": true, "A": false, "B": false, "D": false}
+}
+
+### ====== TEST 5: SAME PRIORITY CONFLICT ======
+
+### 5A: Alice (Math, ID:1) requests student 100000005 on Tuesday (Math priority) - SHOULD SUCCESS
+POST http://localhost:5000/api/tutoring
+Content-Type: application/json
+x-teacher-id: 1
+
+{
+  "studentId": 100000005,
+  "date": "2025-09-02",
+  "lunches": {"A": true, "B": false, "C": false, "D": false}
+}
+
+### 5B: Another Math teacher tries same student - SHOULD GET 400 ERROR
+### (Using Alice again since she's your only Math teacher)
+POST http://localhost:5000/api/tutoring
+Content-Type: application/json
+x-teacher-id: 1
+
+{
+  "studentId": 100000005,
+  "date": "2025-09-02",
+  "lunches": {"B": true, "A": false, "C": false, "D": false}
+}
+
+### ====== TEST 6: FIRST COME FIRST SERVED (NO PRIORITY) ======
+
+### 6A: Carol (Science, ID:3) requests student 100000006 on Monday (Science has no Monday priority) - SHOULD SUCCESS
+POST http://localhost:5000/api/tutoring
+Content-Type: application/json
+x-teacher-id: 3
+
+{
+  "studentId": 100000006,
+  "date": "2025-09-01",
+  "lunches": {"C": true, "A": false, "B": false, "D": false}
+}
+
+### 6B: Alice (Math, ID:1) tries same student on Monday (Math has no Monday priority) - SHOULD GET 400 ERROR
+POST http://localhost:5000/api/tutoring
+Content-Type: application/json
+x-teacher-id: 1
+
+{
+  "studentId": 100000006,
+  "date": "2025-09-01",
+  "lunches": {"A": true, "B": false, "C": false, "D": false}
+}
+
+### ====== TEST 7: CROSS-DAY PRIORITY TESTS ======
+
+### 7A: Carol (Science, ID:3) requests student 100000007 on Thursday (Humanities priority) - SHOULD SUCCESS
+POST http://localhost:5000/api/tutoring
+Content-Type: application/json
+x-teacher-id: 3
+
+{
+  "studentId": 100000007,
+  "date": "2025-09-04",
+  "lunches": {"C": true, "A": false, "B": false, "D": false}
+}
+
+### 7B: Bob (Humanities, ID:2) requests same student on Thursday (Humanities priority) - SHOULD GET 409 CONFLICT
+POST http://localhost:5000/api/tutoring
+Content-Type: application/json
+x-teacher-id: 2
+
+{
+  "studentId": 100000007,
+  "date": "2025-09-04",
+  "lunches": {"B": true, "A": false, "C": false, "D": false}
+}
+
+### 7C: Bob (Humanities, ID:2) confirms override on Thursday - SHOULD SUCCESS
+POST http://localhost:5000/api/tutoring
+Content-Type: application/json
+x-teacher-id: 2
+
+{
+  "studentId": 100000007,
+  "date": "2025-09-04",
+  "lunches": {"B": true, "A": false, "C": false, "D": false},
+  "override": true
+}
+
+### ====== FINAL CHECK ======
+
+### Get all requests to see final state
+GET http://localhost:5000/api/tutoring
+x-teacher-id: 1

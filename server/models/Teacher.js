@@ -7,7 +7,11 @@ const Teacher = sequelize.define('Teacher', {
     primaryKey: true,
     allowNull: false
   },
-  name: {
+  first_name: {
+    type:DataTypes.STRING,
+    allowNull: false
+  },
+  last_name: {
     type: DataTypes.STRING,
     allowNull: false
   },
@@ -25,6 +29,28 @@ const Teacher = sequelize.define('Teacher', {
     validate: {
       isIn: [['A','B','C','D']]
     }
+  },
+  google_id:{
+    type: DataTypes.STRING,
+    allowNull: true,
+    unique: true
+  },
+  access_token:{
+    type:DataTypes.TEXT,
+    allowNull:true
+  },
+  refresh_token:{
+    type:DataTypes.TEXT,
+    allowNull:true
+  },
+  token_expiry:{
+    type:DataTypes.DATE,
+    allowNull:true
+  },
+  is_admin:{
+    type:DataTypes.BOOLEAN,
+    allowNull:false,
+    defaultValue:false
   }
 });
 

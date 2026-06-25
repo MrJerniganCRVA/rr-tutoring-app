@@ -25,11 +25,32 @@ const TutoringRequest = sequelize.define('TutoringRequest', {
     defaultValue: false
   },
   status: {
+    type: DataTypes.ENUM('active','cancelled', 'conflict'),
+    defaultValue: 'active'
+  },
+  requestedAt :{
+    type: DataTypes.DATE,
+    defaultValue: DataTypes.NOW
+  },
+  priority:{
+    type: DataTypes.INTEGER,
+    defaultValue: 0
+  },
+  conflictReason:{
     type: DataTypes.STRING,
-    defaultValue: 'active',
-    validate: {
-      isIn: [['active', 'cancelled']]
-    }
+    allowNull: true
+  },
+  calendar_event_id:{
+    type:DataTypes.STRING,
+    allowNull: true
+  },
+  invite_sent:{
+    type: DataTypes.BOOLEAN,
+    defaultValue:false
+  },
+  invite_sent_at:{
+    type:DataTypes.DATE,
+    allowNull:true
   }
 });
 

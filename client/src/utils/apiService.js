@@ -5,21 +5,21 @@ const API_URL = process.env.REACT_APP_API_BASE_URL || 'http://localhost:5000';
 // Create an axios instance
 const apiClient = axios.create({
   baseURL: API_URL,
+  withCredentials: true,
   headers: {
     'Content-Type': 'application/json'
   }
 });
 
-// Add a request interceptor to include teacher ID in headers
-apiClient.interceptors.request.use(
-  config => {
-    const teacherId = localStorage.getItem('teacherId');
-    if (teacherId) {
-      config.headers['x-teacher-id'] = teacherId;
-    }
-    return config;
-  },
+// Redirect to login on session expiry
+apiClient.interceptors.response.use(
+  response => response,
   error => {
+    if (error.response?.status === 401) {
+      localStorage.removeItem('teacherId');
+      localStorage.removeItem('teacherName');
+      window.location.href = '/select-teacher';
+    }
     return Promise.reject(error);
   }
 );
@@ -51,6 +51,14 @@ const apiService = {
   createStudent: async (studentData) => {
     return apiClient.post('/api/students', studentData);
   },
+
+  updateStudent: async (id, data) => {
+    return apiClient.put(`/api/students/${id}`, data);
+  },
+
+  bulkUpdateRR: async (updates) => {
+    return apiClient.post('/api/students/bulk-rr', { updates });
+  },
   
   // Tutoring request endpoints
   getTutoringRequests: async () => {
@@ -61,11 +69,24 @@ const apiService = {
     return apiClient.post('/api/tutoring', requestData);
   },
   
+  // NEW: Create tutoring request with override
+  createTutoringRequestWithOverride: async (requestData) => {
+    return apiClient.post('/api/tutoring', {
+      ...requestData,
+      override: true
+    });
+  },
+  
+  // NEW: Check priority for a specific date
+  checkPriorityForDate: async (date) => {
+    return apiClient.get(`/api/tutoring/priority/${date}`);
+  },
+  
   cancelTutoringRequest: async (requestId) => {
     return apiClient.put(`/api/tutoring/cancel/${requestId}`);
   },
   
-  // Helper method to format errors
+  // Enhanced error formatting to handle conflict responses
   formatError: (error) => {
     let errorMessage = 'An unknown error occurred';
     
@@ -86,6 +107,41 @@ const apiService = {
     }
     
     return errorMessage;
+  },
+
+  // NEW: Helper to check if error is a conflict that can be overridden
+  isOverridableConflict: (error) => {
+    return error.response && 
+           error.response.status === 409 && 
+           error.response.data && 
+           error.response.data.requireOverride === true;
+  },
+
+  // NEW: Get conflict details from error response
+  getConflictDetails: (error) => {
+    if (error.response && error.response.data && error.response.data.conflict) {
+      return error.response.data.conflict;
+    }
+    return null;
+  },
+
+  getTeacherAnalytics: async (teacherId) => {
+    return await apiClient.get(`/api/analytics/${teacherId}`);
+  },
+  getStudentHistory: async (teacherId, studentId) => {
+    return await apiClient.get(`/api/analytics/${teacherId}/student/${studentId}`);
+  },
+  getPendingInviteCount: async () => {
+    return await apiClient.get('/api/calendar/pending-count');
+  },
+  sendCalendarInvites: async () => {
+    return await apiClient.post('/api/calendar/send-invites');
+  },
+  markInviteSent: async (requestId) => {
+    return await apiClient.patch(`/api/calendar/mark-sent/${requestId}`);
+  },
+  unmarkInviteSent: async (requestId) => {
+    return await apiClient.patch(`/api/calendar/unmark-sent/${requestId}`);
   }
 };
 

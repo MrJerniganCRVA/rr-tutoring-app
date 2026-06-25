@@ -13,82 +13,64 @@ import {
   Chip,
   TextField,
   InputAdornment,
-  Alert
+  Alert,
+  IconButton,
+  Tooltip
 } from '@mui/material';
-import { Search as SearchIcon } from '@mui/icons-material';
-import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
-import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
-import { DatePicker } from '@mui/x-date-pickers/DatePicker';
-import axios from 'axios';
+import { Search as SearchIcon, CheckCircleOutline as CheckCircleOutlineIcon, Undo as UndoIcon } from '@mui/icons-material';
 import { format, parseISO } from 'date-fns';
+import {useTutoring} from '../contexts/TutoringContext';
+import CalendarInviteButton from './CalendarInviteButton';
 
-const TutoringRequestList = ({ requests, onRequestCancelled }) => {
+const TutoringRequestList = () => {
   const [filterDate, setFilterDate] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
-  const [error, setError] = useState('');
-  const [checked, setChecked] = useState(false);
-  const teacherId = localStorage.getItem('teacherId');
-  const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || 'http://localhost:5000';
   
+  const teacherId = localStorage.getItem('teacherId');
+  const {sessions, error, cancelSession, markInviteSent, unmarkInviteSent} = useTutoring();
+  const getFullName = (person) => {
+    if (!person?.first_name || !person?.last_name) return '';
+    return `${person.first_name} ${person.last_name}`;
+  };
   const handleCancelRequest = async (requestId) => {
-    try {
-      await axios.put(
-        `${API_BASE_URL}/api/tutoring/cancel/${requestId}`,
-        {},
-        {
-          headers: {
-            'x-teacher-id': teacherId
-          }
-        }
-      );
-      
-      if (onRequestCancelled) {
-        onRequestCancelled(requestId);
-      }
-    } catch (err) {
-      console.error('Error cancelling request:', err);
-      setError('Failed to cancel the request. Please try again.');
-    }
+    cancelSession(requestId);
   };
   
   // Filter requests by date and search term as well as remove any non teacher requests
-  const filteredRequests = requests.filter(request => {
+  const filteredRequests = sessions.filter(request => {
     if(request.status==='cancelled'){
       return false;
     }
-    // Teacher Filter by local storage. Only want their requests on bottom
-    if(request.Teacher?.name?.toLowerCase() !== localStorage.getItem('teacherName').toLowerCase()){
+
+    const requestTeacherName = getFullName(request.Teacher).toLowerCase();
+    const currentTeacherName = (localStorage.getItem('teacherName') || '').toLowerCase();
+
+    if(requestTeacherName !== currentTeacherName){
       return false;
     }
 
-    const [year, month, day] = request.date.split('-');
-    const requestDate = new Date(year, month-1, day);
-    // Specific Date filter
     if (filterDate) {
-      const selectedDate = new Date(filterDate);
-      if (
-        requestDate.getFullYear() !== selectedDate.getFullYear() ||
-        requestDate.getMonth() !== selectedDate.getMonth() ||
-        requestDate.getDate() !== selectedDate.getDate()
-      ) {
+      const selectedDate = filterDate.toISOString().split('T')[0];
+      if (request.date !== selectedDate)
+      {
         return false;
       }
     }
-    // Search filter (student name)
+
     if (searchTerm) {
       const term = searchTerm.toLowerCase();
-      const studentName = request.Student?.name?.toLowerCase() || '';
+      const studentName = getFullName(request.Student).toLowerCase();
       return studentName.includes(term);
     }
-    //If no specific date or student then only future dates
-    const today = new Date();
-    return requestDate >= today;
+
+    if(!filterDate && !searchTerm){
+      const today = new Date().toISOString().split('T')[0];
+      return request.date >= today;
+    }
+
+    return true;
   });
-  //set check box
-  const handleChange = (event, request)=>{
-    setChecked(event.target.checked);
-    //on request send update table
-  };
+
   // Helper function to format date
   const formatDate = (dateString) => {
     return format(parseISO(dateString), 'MMM dd, yyyy');
@@ -114,7 +96,7 @@ const TutoringRequestList = ({ requests, onRequestCancelled }) => {
           Tutoring Requests by {localStorage.getItem('teacherName')}
         </Typography>
         
-        <Box sx={{ display: 'flex', mb: 3, gap: 2 }}>
+        <Box sx={{ display: 'flex', mb: 3, gap: 2, alignItems:'center' }}>
           <TextField
             label="Search by name"
             variant="outlined"
@@ -131,7 +113,7 @@ const TutoringRequestList = ({ requests, onRequestCancelled }) => {
             sx={{ flexGrow: 1 }}
           />
           
-          <LocalizationProvider dateAdapter={AdapterDateFns}>
+          {/* <LocalizationProvider dateAdapter={AdapterDateFns}>
             <DatePicker
               label="Filter by date"
               value={filterDate}
@@ -144,7 +126,7 @@ const TutoringRequestList = ({ requests, onRequestCancelled }) => {
                 />
               )}
             />
-          </LocalizationProvider>
+          </LocalizationProvider> */}
           <Button 
             variant="outlined" 
             onClick={() => {
@@ -154,6 +136,7 @@ const TutoringRequestList = ({ requests, onRequestCancelled }) => {
           >
             Clear Filters
           </Button>
+          <CalendarInviteButton />
         </Box>
         
         {filteredRequests.length === 0 ? (
@@ -167,14 +150,15 @@ const TutoringRequestList = ({ requests, onRequestCancelled }) => {
                   <TableCell>Student</TableCell>
                   <TableCell>Lunch Periods</TableCell>
                   <TableCell>Status</TableCell>
-                  <TableCell align="right">Actions</TableCell>
+                  <TableCell>Invite Status</TableCell>
+                  <TableCell align="right">Cancel Event?</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
                 {filteredRequests.map((request) => (
                   <TableRow key={request.id}>
                     <TableCell>{formatDate(request.date)}</TableCell>
-                    <TableCell>{request.Student?.name || 'Unknown'}</TableCell>
+                    <TableCell>{getFullName(request.Student) || 'Unknown'}</TableCell>
                     <TableCell>{getLunchPeriods(request)}</TableCell>
                     <TableCell>
                       <Chip 
@@ -182,6 +166,31 @@ const TutoringRequestList = ({ requests, onRequestCancelled }) => {
                         color={request.status === 'active' ? 'success' : 'default'} 
                         size="small" 
                       />
+                    </TableCell>
+                    <TableCell>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                        {request.invite_sent && request.calendar_event_id ? (
+                          <Chip label="Invited" color="success" size="small" />
+                        ) : request.invite_sent ? (
+                          <Chip label="Invited (Manual)" color="info" size="small" />
+                        ) : (
+                          <Chip label="Pending" color="warning" size="small" />
+                        )}
+                        {!request.invite_sent && (
+                          <Tooltip title="Mark as manually sent">
+                            <IconButton size="small" onClick={() => markInviteSent(request.id)}>
+                              <CheckCircleOutlineIcon fontSize="small" />
+                            </IconButton>
+                          </Tooltip>
+                        )}
+                        {request.invite_sent && !request.calendar_event_id && (
+                          <Tooltip title="Undo manual mark">
+                            <IconButton size="small" onClick={() => unmarkInviteSent(request.id)}>
+                              <UndoIcon fontSize="small" />
+                            </IconButton>
+                          </Tooltip>
+                        )}
+                      </Box>
                     </TableCell>
                     <TableCell align="right">
                       {request.status === 'active' && 

@@ -12,7 +12,7 @@ import {
   CircularProgress 
 } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
-import axios from 'axios';
+import apiService from '../utils/apiService';
 
 const TeacherSelect = () => {
   const [teachers, setTeachers] = useState([]);
@@ -20,8 +20,11 @@ const TeacherSelect = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const navigate = useNavigate();
-  const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || 'http://localhost:5000';
 
+  const getFullName = (teacher) => {
+    if (!teacher?.first_name || !teacher?.last_name) return 'Unknown Teacher';
+    return `${teacher.first_name} ${teacher.last_name}`;
+  };
   useEffect(() => {
     // Check if a teacher is already selected
     const savedTeacherId = localStorage.getItem('teacherId');
@@ -29,21 +32,17 @@ const TeacherSelect = () => {
       navigate('/dashboard');
       return;
     }
-
     // Fetch teachers from API
-    const fetchTeachers = async () => {
-      try {
-        setLoading(true);
-        const response = await axios.get(`${API_BASE_URL}/api/teachers`);
+    const fetchTeachers = async () =>{
+      try{
+        const response = await apiService.getTeachers();
         setTeachers(response.data);
         setLoading(false);
-      } catch (err) {
-        console.error('Error fetching teachers:', err);
-        setError('Failed to load teachers. Please try again later.');
+      } catch (e){
+        console.error("Error in fetching teachers",e);
         setLoading(false);
       }
     };
-
     fetchTeachers();
   }, [navigate]);
 
@@ -54,13 +53,15 @@ const TeacherSelect = () => {
     // Find the teacher name
     const teacher = teachers.find(t => t.id === teacherId);
     if (teacher) {
-      localStorage.setItem('teacherName', teacher.name);
+      localStorage.setItem('teacherName', getFullName(teacher));
     }
   };
 
   const handleSubmit = () => {
     if (selectedTeacher) {
       localStorage.setItem('teacherId', selectedTeacher);
+      const teacher = teachers.find(t => t.id === selectedTeacher);
+      localStorage.setItem('isAdmin', teacher?.is_admin ? 'true' : 'false');
       navigate('/dashboard');
     } else {
       setError('Please select a teacher');
@@ -77,7 +78,7 @@ const TeacherSelect = () => {
 
   return (
     <Box sx={{ mt: 8, display: 'flex', justifyContent: 'center' }}>
-      <Paper elevation={3} sx={{ p: 4, width: '100%', maxWidth: 500 }}>
+      <Paper elevation={3} sx={{ p: 4, width: '100%', maxWidth: 500, marginTop:10, marginBottom:10}}>
         <Typography variant="h5" component="h1" align="center" gutterBottom>
           Select Your Name Below:
         </Typography>
@@ -100,7 +101,7 @@ const TeacherSelect = () => {
               >
                 {teachers.map((teacher) => (
                   <MenuItem key={teacher.id} value={teacher.id}>
-                    {teacher.name} - {teacher.subject}
+                    {getFullName(teacher)} - {teacher.subject}
                   </MenuItem>
                 ))}
               </Select>

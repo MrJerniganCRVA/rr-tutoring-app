@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import {
   Box,
   Paper,
-  Typography,
   Table,
   TableBody,
   TableCell,
@@ -11,30 +10,45 @@ import {
   TableRow,
   Alert
 } from '@mui/material';
+import {useTutoring } from '../contexts/TutoringContext';
 
-const RaptorRotationEvents = ({ requests }) => {
-  const [error, setError] = useState('');
-  
-  const teacherId = localStorage.getItem('teacherId');
+const RaptorRotationEvents = () => {
+  const {sessions, loading, error } = useTutoring();
+
+  //RRs point to one main teacher so these are groups. 
+  //Doesn't change local storage just for this component maps to the "main" teacher
+  const getRRMainTeacherID = (teacherId) => {
+    const RR_GROUPS = {
+      '10040':'10028',
+      '10023':'10028',
+      '10015':'10004',
+      '10029':'10034',
+      '10027':'10034',
+      '10014':'10018',
+      '10002':'10018',
+      '10010':'10033',
+      '10003':'10033'
+    };
+    return RR_GROUPS[teacherId] || teacherId;
+  };
+
+  const teacherId = getRRMainTeacherID(localStorage.getItem('teacherId'));
  
   // Get today's requests for RR teacher
-  const todaysRequests = requests.filter(request => {
+  const todaysRequests = sessions.filter(request => {
+    if(request.status === 'cancelled') return false;
     const requestDate = new Date(request.date + 'T00:00:00');
-
     const today = new Date();
 
     const isToday = 
-    (
-      requestDate.getFullYear() === today.getFullYear() &&
-      requestDate.getMonth() === today.getMonth() &&
-      requestDate.getDate() === today.getDate() 
-    );
+      (
+        requestDate.getFullYear() === today.getFullYear() &&
+        requestDate.getMonth() === today.getMonth() &&
+        requestDate.getDate() === today.getDate()
+      );
     const isRRteacher = request.Student?.RR?.id === parseInt(teacherId);
-    console.log(request);
-
     return isToday && isRRteacher;
   });
-  
   
   // Helper function to show lunch periods
   const getLunchPeriods = (request) => {
@@ -46,7 +60,10 @@ const RaptorRotationEvents = ({ requests }) => {
     
     return periods.join(', ');
   };
-  
+  const getFullName = (person) => {
+    if(!person?.first_name || !person?.last_name) return 'Unknown';
+    return `${person.first_name} ${person.last_name}`;
+  };
   return (
     <Box>
       {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
@@ -65,8 +82,8 @@ const RaptorRotationEvents = ({ requests }) => {
               <TableBody>
                 {todaysRequests.map((request) => (
                   <TableRow key={request.id}>
-                    <TableCell>{request.Student?.name || 'Unknown'}</TableCell>
-                    <TableCell>{request.Teacher?.name || 'Unknown'}</TableCell>
+                    <TableCell>{getFullName(request.Student)}</TableCell>
+                    <TableCell>{getFullName(request.Teacher)}</TableCell>
                     <TableCell>{getLunchPeriods(request)}</TableCell>
                   </TableRow>
                 ))}

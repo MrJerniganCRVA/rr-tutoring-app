@@ -1,11 +1,24 @@
 import React from 'react';
 import { BrowserRouter as Router, Route, Routes, Navigate } from 'react-router-dom';
-import { Container, CssBaseline, ThemeProvider, createTheme } from '@mui/material';
+import { Box, Container, CssBaseline, ThemeProvider, createTheme } from '@mui/material';
+import Login from './components/Login';
 import TeacherSelect from './components/TeacherSelect';
 import RaptorRotation from './components/RaptorRotation';
+import TeacherDashboard from './components/TeacherDashboard';
 import Header from './components/Header';
 import Scheduling from './components/Scheduling';
 import TutoringEvents from './components/TutoringEvents';
+import StudentRoster from './components/StudentRoster';
+import {TutoringProvider } from './contexts/TutoringContext';
+import { AnalyticsProvider } from './contexts/AnalyticsContext';
+import { AuthProvider, useAuth } from './contexts/AuthContext';
+import Footer from './components/Footer';
+
+const AdminRoute = ({ children }) => {
+  const { currentUser, authLoading } = useAuth();
+  if (authLoading) return null;
+  return currentUser?.isAdmin ? children : <Navigate to="/dashboard" replace />;
+};
 
 // Create a theme instance
 const theme = createTheme({
@@ -33,21 +46,38 @@ const theme = createTheme({
 
 function App() {
   return (
+    <AuthProvider>
     <ThemeProvider theme={theme}>
       <CssBaseline />
       <Router>
+        <Box sx={{
+          display: 'flex',
+          flexDirection: 'column',
+          minHeight: '100vh'
+        }}>
         <Header />
-        <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
-          <Routes>
-            <Route path="/select-teacher" element={<TeacherSelect />} />
-            <Route path="/dashboard" element={<RaptorRotation />} />
-            <Route path="/tutoring" element={<Scheduling />} />
-            <Route path="/calendar" element={<TutoringEvents />} />
-            <Route path="/" element={<Navigate to="/select-teacher" replace />} />
-          </Routes>
+
+        <Container maxWidth="lg" sx={{ mt: 4, mb: 4, minHeight:'65vh', flex: 1}}>
+        <TutoringProvider>
+          <AnalyticsProvider>
+            <Routes>
+              <Route path="/select-teacher" element={<Login />} />
+              <Route path="/dashboard" element={<RaptorRotation />} />
+              <Route path="/tutoring" element={<Scheduling />} />
+              <Route path="/calendar" element={<TutoringEvents />} />
+              <Route path="/analytics" element={<TeacherDashboard />} />
+              <Route path="/roster" element={<AdminRoute><StudentRoster /></AdminRoute>} />
+              <Route path="/" element={<Navigate to="/select-teacher" replace />} />
+              <Route path="*" element={<div>Page Not Found</div>} />
+            </Routes>
+          </AnalyticsProvider>
+          </TutoringProvider>
         </Container>
+       <Footer />
+       </Box>
       </Router>
     </ThemeProvider>
+    </AuthProvider>
   );
 }
 
