@@ -8,7 +8,8 @@
     "db:seed-dev": "node init.js",
     "dev": "nodemon server.js",
     "dev-index": "nodemon index.js",
-    "db:reset-dev": "node migrate.js"
+    "db:reset-dev": "node migrate.js",
+    "admin:bootstrap": "node bootstrap-admin.js"
   },
   "keywords": [],
   "author": "Zach Jernigan <zachary.jernigan@coderva.org>",
