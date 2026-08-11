@@ -3,15 +3,10 @@ const { Sequelize, DataTypes } = require('sequelize');
 const path = require('path');
 const fs = require('fs');
 const sqlite3 = require('sqlite3').verbose();
+const { confirmDestructiveReset } = require('./utils/destructiveGuard');
 
-// Define database path
-const dbPath = path.join(__dirname, 'database.sqlite');
-
-// Delete the existing database file if it exists
-if (fs.existsSync(dbPath)) {
-  console.log('Removing existing database...');
-  fs.unlinkSync(dbPath);
-}
+// Define database path (must match the SQLite storage path in config/db.js)
+const dbPath = path.join(__dirname, 'database.db');
 
 const sequelize = require('./config/db')
 
@@ -23,6 +18,14 @@ const TutoringRequest = require('./models/TutoringRequest');
 // Function to initialize database and add test data
 async function initDatabase() {
   try {
+    await confirmDestructiveReset('db:seed-dev (init.js)');
+
+    // Delete the existing database file if it exists
+    if (fs.existsSync(dbPath)) {
+      console.log('Removing existing database...');
+      fs.unlinkSync(dbPath);
+    }
+
     // Sync models to create tables
     await sequelize.sync({ force: true });
     console.log('Database initialized successfully');

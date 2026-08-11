@@ -32,7 +32,7 @@ import BulkRRUpdate from './BulkRRUpdate';
 const ROTATIONS = ['R1', 'R2', 'RR', 'R4', 'R5'];
 
 const emptyEditState = { R1Id: null, R2Id: null, RRId: null, R4Id: null, R5Id: null };
-const emptyAddState = { id: '', first_name: '', last_name: '', R1: null, R2: null, RR: null, R4: null, R5: null };
+const emptyAddState = { id: '', first_name: '', last_name: '', email: '', R1: null, R2: null, RR: null, R4: null, R5: null };
 
 const StudentRoster = () => {
   const [students, setStudents] = useState([]);
@@ -127,6 +127,10 @@ const StudentRoster = () => {
       setAddError('First and last name are required.');
       return;
     }
+    if (!addFields.email.trim()) {
+      setAddError('Email is required.');
+      return;
+    }
     setAddSaving(true);
     setAddError('');
     try {
@@ -134,6 +138,7 @@ const StudentRoster = () => {
         id: Number(addFields.id),
         first_name: addFields.first_name.trim(),
         last_name: addFields.last_name.trim(),
+        email: addFields.email.trim(),
         teachers: {
           R1: addFields.R1,
           R2: addFields.R2,
@@ -309,6 +314,14 @@ const StudentRoster = () => {
             margin="dense"
             value={addFields.last_name}
             onChange={e => setAddFields(prev => ({ ...prev, last_name: e.target.value }))}
+          />
+          <TextField
+            label="Email"
+            type="email"
+            fullWidth
+            margin="dense"
+            value={addFields.email}
+            onChange={e => setAddFields(prev => ({ ...prev, email: e.target.value }))}
           />
           {ROTATIONS.map(rotation => (
             <FormControl fullWidth margin="dense" key={rotation}>
