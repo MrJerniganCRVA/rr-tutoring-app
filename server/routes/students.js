@@ -73,13 +73,37 @@ router.get('/', auth, async (req, res) => {
   }
 });
 
+// Thrown for expected, client-facing failures (bad input, duplicates) so callers
+// can distinguish them from unexpected server errors and respond 400 vs 500.
+class StudentInputError extends Error {}
+
+// Shared creation logic used by both the single-student and bulk-import routes.
+async function createStudentRecord({ id, first_name, last_name, email, R1Id, R2Id, RRId, R4Id, R5Id }) {
+  const id_exists = await Student.findByPk(id);
+  if (id_exists) {
+    throw new StudentInputError(`Student ID ${id} already exists.`);
+  }
+  const name_exists = await Student.findOne({ where: { first_name, last_name } });
+  if (name_exists) {
+    throw new StudentInputError('Student already exists. Consider Updating instead of POST');
+  }
+  try {
+    return await Student.create({ id, first_name, last_name, email, R1Id, R2Id, RRId, R4Id, R5Id });
+  } catch (err) {
+    if (err.name === 'SequelizeValidationError' || err.name === 'SequelizeUniqueConstraintError') {
+      throw new StudentInputError(err.errors?.[0]?.message || 'Invalid student data.');
+    }
+    throw err;
+  }
+}
+
 // @route   POST api/students
 // @desc    Add a new student
 // @access  Private
 router.post('/', auth, async (req, res) => {
   const { id, first_name, last_name, email, teachers } = req.body;
   try {
-    const studentData = {
+    const student = await createStudentRecord({
       id,
       first_name,
       last_name,
@@ -89,17 +113,7 @@ router.post('/', auth, async (req, res) => {
       RRId: teachers?.RR || null,
       R4Id: teachers?.R4 || null,
       R5Id: teachers?.R5 || null
-    };
-
-    const id_exists = await Student.findByPk(id);
-    if (id_exists) {
-      return res.status(400).json({ msg: `Student ID ${id} already exists.` });
-    }
-    const name_exists = await Student.findOne({ where: { first_name, last_name } });
-    if (name_exists) {
-      return res.status(400).json({ msg: 'Student already exists. Consider Updating instead of POST' });
-    }
-    const student = await Student.create(studentData);
+    });
     // Fetch the student with teacher associations
     const newStudent = await Student.findByPk(student.id, {
       include: [
@@ -113,9 +127,46 @@ router.post('/', auth, async (req, res) => {
 
     res.json(newStudent);
   } catch (err) {
-    if (err.name === 'SequelizeValidationError' || err.name === 'SequelizeUniqueConstraintError') {
-      return res.status(400).json({ msg: err.errors?.[0]?.message || 'Invalid student data.' });
+    if (err instanceof StudentInputError) {
+      return res.status(400).json({ msg: err.message });
     }
+    console.error(err.message);
+    res.status(500).send('Server Error');
+  }
+});
+
+// @route   POST api/students/bulk-create
+// @desc    Bulk-create students (e.g. onboarding a new year's population from CSV)
+// @access  Admin only
+router.post('/bulk-create', auth, async (req, res) => {
+  try {
+    const requestingTeacher = await Teacher.findByPk(req.teacher.id);
+    if (!requestingTeacher?.is_admin) {
+      return res.status(403).json({ msg: 'Admin access required' });
+    }
+
+    const { students } = req.body;
+    if (!Array.isArray(students) || students.length === 0) {
+      return res.status(400).json({ msg: 'students array is required' });
+    }
+
+    const succeeded = [];
+    const failed = [];
+
+    for (const studentData of students) {
+      try {
+        const student = await createStudentRecord(studentData);
+        succeeded.push(student.id);
+      } catch (rowErr) {
+        if (!(rowErr instanceof StudentInputError)) {
+          console.error(rowErr.message);
+        }
+        failed.push({ studentId: studentData.id, reason: rowErr.message });
+      }
+    }
+
+    res.json({ succeeded, failed });
+  } catch (err) {
     console.error(err.message);
     res.status(500).send('Server Error');
   }

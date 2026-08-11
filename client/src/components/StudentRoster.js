@@ -26,8 +26,10 @@ import {
 import EditIcon from '@mui/icons-material/Edit';
 import PersonAddIcon from '@mui/icons-material/PersonAdd';
 import UpdateIcon from '@mui/icons-material/Update';
+import GroupAddIcon from '@mui/icons-material/GroupAdd';
 import apiService from '../utils/apiService';
 import BulkRRUpdate from './BulkRRUpdate';
+import BulkStudentImport from './BulkStudentImport';
 
 const ROTATIONS = ['R1', 'R2', 'RR', 'R4', 'R5'];
 
@@ -50,6 +52,9 @@ const StudentRoster = () => {
 
   // Bulk RR dialog state
   const [bulkOpen, setBulkOpen] = useState(false);
+
+  // Bulk student import dialog state
+  const [bulkImportOpen, setBulkImportOpen] = useState(false);
 
   // Add dialog state
   const [addOpen, setAddOpen] = useState(false);
@@ -177,6 +182,13 @@ const StudentRoster = () => {
             Bulk RR Update
           </Button>
           <Button
+            variant="outlined"
+            startIcon={<GroupAddIcon />}
+            onClick={() => setBulkImportOpen(true)}
+          >
+            Bulk Import Students
+          </Button>
+          <Button
             variant="contained"
             color="primary"
             startIcon={<PersonAddIcon />}
@@ -283,6 +295,15 @@ const StudentRoster = () => {
       <BulkRRUpdate
         open={bulkOpen}
         onClose={() => setBulkOpen(false)}
+        onComplete={fetchData}
+        students={students}
+        teachers={teachers}
+      />
+
+      {/* Bulk Student Import Dialog */}
+      <BulkStudentImport
+        open={bulkImportOpen}
+        onClose={() => setBulkImportOpen(false)}
         onComplete={fetchData}
         students={students}
         teachers={teachers}

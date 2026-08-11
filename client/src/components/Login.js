@@ -44,7 +44,7 @@ const Login = () =>{
             setError('Authentication failed. Please make sure you are logging in with school email');
         }
         checkAuth();
-    }, [navigate]);
+    }, [navigate, refreshUser]);
 
     const handleGoogleLogin = () => {
         //redirect to backend

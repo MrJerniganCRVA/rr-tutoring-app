@@ -50,7 +50,6 @@ const PriorityDatePicker = ({
     fetchCurrentTeacher();
     
   }, []);
-  const getDay = (date) => date.toISOString().split('T')[0];
   // Get sessions for the selected student
   const studentSessions = studentId ? getSessionsForStudent(studentId) : [];
 

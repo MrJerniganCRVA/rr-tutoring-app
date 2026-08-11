@@ -2,7 +2,6 @@ import React from 'react';
 import { BrowserRouter as Router, Route, Routes, Navigate } from 'react-router-dom';
 import { Box, Container, CssBaseline, ThemeProvider, createTheme } from '@mui/material';
 import Login from './components/Login';
-import TeacherSelect from './components/TeacherSelect';
 import RaptorRotation from './components/RaptorRotation';
 import TeacherDashboard from './components/TeacherDashboard';
 import Header from './components/Header';
