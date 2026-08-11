@@ -7,7 +7,7 @@ import TeacherDashboard from './components/TeacherDashboard';
 import Header from './components/Header';
 import Scheduling from './components/Scheduling';
 import TutoringEvents from './components/TutoringEvents';
-import StudentRoster from './components/StudentRoster';
+import RosterPage from './components/RosterPage';
 import {TutoringProvider } from './contexts/TutoringContext';
 import { AnalyticsProvider } from './contexts/AnalyticsContext';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
@@ -65,7 +65,7 @@ function App() {
               <Route path="/tutoring" element={<Scheduling />} />
               <Route path="/calendar" element={<TutoringEvents />} />
               <Route path="/analytics" element={<TeacherDashboard />} />
-              <Route path="/roster" element={<AdminRoute><StudentRoster /></AdminRoute>} />
+              <Route path="/roster" element={<AdminRoute><RosterPage /></AdminRoute>} />
               <Route path="/" element={<Navigate to="/select-teacher" replace />} />
               <Route path="*" element={<div>Page Not Found</div>} />
             </Routes>

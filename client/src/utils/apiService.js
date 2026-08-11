@@ -38,6 +38,10 @@ const apiService = {
   createTeacher: async (teacherData) => {
     return apiClient.post('/api/teachers', teacherData);
   },
+
+  updateTeacher: async (id, data) => {
+    return apiClient.put(`/api/teachers/${id}`, data);
+  },
   
   // Student endpoints
   getStudents: async () => {
