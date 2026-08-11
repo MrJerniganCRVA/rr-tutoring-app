@@ -77,21 +77,26 @@ router.get('/', auth, async (req, res) => {
 // @desc    Add a new student
 // @access  Private
 router.post('/', auth, async (req, res) => {
-  const { id, first_name, last_name, teachers } = req.body;
+  const { id, first_name, last_name, email, teachers } = req.body;
   try {
     const studentData = {
       id,
       first_name,
       last_name,
+      email,
       R1Id: teachers?.R1 || null,
       R2Id: teachers?.R2 || null,
       RRId: teachers?.RR || null,
       R4Id: teachers?.R4 || null,
       R5Id: teachers?.R5 || null
     };
-    
-    let student_exists = await Student.findOne({ where: { first_name:first_name, last_name:last_name } });
-    if (student_exists) {
+
+    const id_exists = await Student.findByPk(id);
+    if (id_exists) {
+      return res.status(400).json({ msg: `Student ID ${id} already exists.` });
+    }
+    const name_exists = await Student.findOne({ where: { first_name, last_name } });
+    if (name_exists) {
       return res.status(400).json({ msg: 'Student already exists. Consider Updating instead of POST' });
     }
     const student = await Student.create(studentData);
@@ -105,9 +110,12 @@ router.post('/', auth, async (req, res) => {
         { model: Teacher, as: 'R5', attributes: TEACHER_PUBLIC_ATTRS }
       ]
     });
-    
+
     res.json(newStudent);
   } catch (err) {
+    if (err.name === 'SequelizeValidationError' || err.name === 'SequelizeUniqueConstraintError') {
+      return res.status(400).json({ msg: err.errors?.[0]?.message || 'Invalid student data.' });
+    }
     console.error(err.message);
     res.status(500).send('Server Error');
   }

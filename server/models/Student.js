@@ -22,6 +22,15 @@ const Student = sequelize.define('Student', {
     validate: {
       isEmail:true
     }
+  },
+  schoolYear: {
+    type: DataTypes.STRING,
+    allowNull: true
+  },
+  active: {
+    type: DataTypes.BOOLEAN,
+    allowNull: false,
+    defaultValue: true
   }
 });
 
