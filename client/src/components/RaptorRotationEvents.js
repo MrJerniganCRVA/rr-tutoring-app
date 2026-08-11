@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 import {
   Box,
   Paper,
@@ -13,7 +13,7 @@ import {
 import {useTutoring } from '../contexts/TutoringContext';
 
 const RaptorRotationEvents = () => {
-  const {sessions, loading, error } = useTutoring();
+  const {sessions, error } = useTutoring();
 
   //RRs point to one main teacher so these are groups. 
   //Doesn't change local storage just for this component maps to the "main" teacher
