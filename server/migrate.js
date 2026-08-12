@@ -6,6 +6,7 @@ const { confirmDestructiveReset } = require('./utils/destructiveGuard');
 // sequelize instance in the current process.
 require('./models/Teacher');
 require('./models/Student');
+require('./models/Enrollment');
 require('./models/TutoringRequest');
 
 async function migrate(){

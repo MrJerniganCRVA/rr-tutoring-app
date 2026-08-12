@@ -21,6 +21,7 @@ import {
 import apiService from '../utils/apiService';
 import PriorityDatePicker from './PriorityDatePicker.js';
 import {useTutoring} from '../contexts/TutoringContext.js';
+import { getMyStudents } from '../utils/enrollments';
 
 const TutoringRequestForm = () => {
   const { createSession, confirmOverride, dismissOverride, conflictDetails } = useTutoring();
@@ -68,14 +69,7 @@ const TutoringRequestForm = () => {
           };
         };
         const processedAll = response.data.map(processStudent);
-        const processedMy = response.data
-          .filter(student =>
-            student?.R1Id===parseInt(teacherId) ||
-            student?.R2Id===parseInt(teacherId) ||
-            student?.R4Id===parseInt(teacherId) ||
-            student?.R5Id===parseInt(teacherId)
-          )
-          .map(processStudent);
+        const processedMy = getMyStudents(response.data, teacherId).map(processStudent);
         setAllStudents(processedAll);
         setMyStudents(processedMy);
         setFetchingStudents(false);
