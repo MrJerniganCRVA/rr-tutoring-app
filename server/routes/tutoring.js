@@ -5,6 +5,21 @@ const TutoringRequest = require('../models/TutoringRequest');
 const Student = require('../models/Student');
 const Teacher = require('../models/Teacher');
 const auth = require('../middleware/auth');
+const { TEACHER_PUBLIC_ATTRS, STUDENT_ENROLLMENT_INCLUDE, reshapeStudent } = require('../utils/enrollments');
+
+// A TutoringRequest with its Teacher and (reshaped) Student eager-loaded -
+// used for every response in this file instead of repeating the same
+// nested include block.
+const REQUEST_INCLUDE = [
+  { model: Teacher, attributes: TEACHER_PUBLIC_ATTRS },
+  { model: Student, include: [STUDENT_ENROLLMENT_INCLUDE] }
+];
+
+function reshapeRequest(requestInstance) {
+  const data = requestInstance.toJSON();
+  if (data.Student) data.Student = reshapeStudent(data.Student);
+  return data;
+}
 
 const getPrioritySubjectForDay = (date) => {
   let dateObj; 
@@ -33,8 +48,6 @@ const hasSubjectPriority = (teacherSubject, date) =>{
 
 
 
-const TEACHER_PUBLIC_ATTRS = ['id', 'first_name', 'last_name', 'subject', 'lunch'];
-
 // @route   GET api/tutoring/:id
 // @desc    Get tutoring request by ID
 // @access  Private
@@ -57,22 +70,8 @@ router.get('/:id', auth, async (req, res) => {
 // @access  Private
 router.get('/', auth, async (req, res) => {
   try {
-    const requests = await TutoringRequest.findAll({
-      include: [
-        { model: Teacher, attributes: TEACHER_PUBLIC_ATTRS },
-        {
-          model: Student,
-          include: [
-            { model: Teacher, as: 'R1', attributes: TEACHER_PUBLIC_ATTRS },
-            { model: Teacher, as: 'R2', attributes: TEACHER_PUBLIC_ATTRS },
-            { model: Teacher, as: 'RR', attributes: TEACHER_PUBLIC_ATTRS },
-            { model: Teacher, as: 'R4', attributes: TEACHER_PUBLIC_ATTRS },
-            { model: Teacher, as: 'R5', attributes: TEACHER_PUBLIC_ATTRS }
-          ]
-        }
-      ]
-    });
-    res.json(requests);
+    const requests = await TutoringRequest.findAll({ include: REQUEST_INCLUDE });
+    res.json(requests.map(reshapeRequest));
   } catch (err) {
     console.error(err.message);
     res.status(500).send('Server Error');
@@ -134,22 +133,8 @@ router.post('/', auth, async (req, res) => {
         priority: hasSubjectPriority(requestingTeacher.subject, date) ? 1 :0
       });
       //Fetch the created request
-      const request = await TutoringRequest.findByPk(newRequest.id, {
-        include: [
-          { model: Teacher, attributes: TEACHER_PUBLIC_ATTRS },
-          {
-            model: Student,
-            include: [
-              { model: Teacher, as: 'R1', attributes: TEACHER_PUBLIC_ATTRS },
-              { model: Teacher, as: 'R2', attributes: TEACHER_PUBLIC_ATTRS },
-              { model: Teacher, as: 'RR', attributes: TEACHER_PUBLIC_ATTRS },
-              { model: Teacher, as: 'R4', attributes: TEACHER_PUBLIC_ATTRS },
-              { model: Teacher, as: 'R5', attributes: TEACHER_PUBLIC_ATTRS }
-            ]
-          }
-        ]
-      });
-      return res.json(request);
+      const request = await TutoringRequest.findByPk(newRequest.id, { include: REQUEST_INCLUDE });
+      return res.json(reshapeRequest(request));
     }
     //a conflict exists need to figure out who has priority
     
@@ -189,24 +174,10 @@ router.post('/', auth, async (req, res) => {
         lunchD: lunches.D || false,
         priority: 1 // Has priority
       });
-      const request = await TutoringRequest.findByPk(newRequest.id, {
-        include: [
-          { model: Teacher, attributes: TEACHER_PUBLIC_ATTRS },
-          {
-            model: Student,
-            include: [
-              { model: Teacher, as: 'R1', attributes: TEACHER_PUBLIC_ATTRS },
-              { model: Teacher, as: 'R2', attributes: TEACHER_PUBLIC_ATTRS },
-              { model: Teacher, as: 'RR', attributes: TEACHER_PUBLIC_ATTRS },
-              { model: Teacher, as: 'R4', attributes: TEACHER_PUBLIC_ATTRS },
-              { model: Teacher, as: 'R5', attributes: TEACHER_PUBLIC_ATTRS }
-            ]
-          }
-        ]
-      });
+      const request = await TutoringRequest.findByPk(newRequest.id, { include: REQUEST_INCLUDE });
 
       return res.json({
-        request,
+        request: reshapeRequest(request),
         overrideInfo: {
           overriddenTeacher: `${existingTeacher.first_name} ${existingTeacher.last_name}`,
           overriddenSubject: existingTeacher.subject,

@@ -2,71 +2,40 @@ const express = require('express');
 const router = express.Router();
 const Student = require('../models/Student');
 const Teacher = require('../models/Teacher');
+const Enrollment = require('../models/Enrollment');
 const auth = require('../middleware/auth');
-const {Op} = require('sequelize');
-
-//New comment
-
-const TEACHER_PUBLIC_ATTRS = ['id', 'first_name', 'last_name', 'subject', 'lunch'];
+const { STUDENT_ENROLLMENT_INCLUDE, reshapeStudent, setEnrollments } = require('../utils/enrollments');
 
 // @route   GET api/students/teacher/:teacherId
-// @desc    Get all students for a specific teacher
+// @desc    Get all students with any class assignment (any period) for a specific teacher
 // @access  Private
 router.get('/teacher/:teacherId', auth, async (req, res) => {
   try {
     const teacherId = req.params.teacherId;
-    // Find all students where this teacher is listed in any of the teaching slots
+    const studentIds = (
+      await Enrollment.findAll({ where: { TeacherId: teacherId }, attributes: ['StudentId'] })
+    ).map(e => e.StudentId);
+
     const students = await Student.findAll({
-      where: {
-        [Op.or]: [
-          { R1Id: teacherId },
-          { R2Id: teacherId },
-          { RRId: teacherId },
-          { R4Id: teacherId },
-          { R5Id: teacherId }
-        ]
-      },
-      include: [
-        { model: Teacher, as: 'R1', attributes: TEACHER_PUBLIC_ATTRS },
-        { model: Teacher, as: 'R2', attributes: TEACHER_PUBLIC_ATTRS },
-        { model: Teacher, as: 'RR', attributes: TEACHER_PUBLIC_ATTRS },
-        { model: Teacher, as: 'R4', attributes: TEACHER_PUBLIC_ATTRS },
-        { model: Teacher, as: 'R5', attributes: TEACHER_PUBLIC_ATTRS }
-      ]
+      where: { id: studentIds },
+      include: [STUDENT_ENROLLMENT_INCLUDE]
     });
-    const lunchStudents = addLunch(students);
-    res.json(lunchStudents);
+    res.json(students.map(reshapeStudent));
   } catch (err) {
     console.error(err.message);
     res.status(500).send('Server Error');
   }
 });
 
-function addLunch(students){
-  const newStudents = students.map(student =>{
-    const data = student.toJSON();
-    data.lunch = student.RR ? student.RR.lunch : null;
-    return data;
-  });
-  return newStudents;
-}
 // @route   GET api/students
 // @desc    Get all students
 // @access  Private
 router.get('/', auth, async (req, res) => {
   try {
     const students = await Student.findAll({
-      include: [
-        { model: Teacher, as: 'R1', attributes: TEACHER_PUBLIC_ATTRS },
-        { model: Teacher, as: 'R2', attributes: TEACHER_PUBLIC_ATTRS },
-        { model: Teacher, as: 'RR', attributes: TEACHER_PUBLIC_ATTRS },
-        { model: Teacher, as: 'R4', attributes: TEACHER_PUBLIC_ATTRS },
-        { model: Teacher, as: 'R5', attributes: TEACHER_PUBLIC_ATTRS }
-      ]
+      include: [STUDENT_ENROLLMENT_INCLUDE]
     });
-
-    const lunchStudents = addLunch(students);
-    res.json(lunchStudents);
+    res.json(students.map(reshapeStudent));
   } catch (err) {
     console.error(err.message);
     res.status(500).send('Server Error');
@@ -78,6 +47,8 @@ router.get('/', auth, async (req, res) => {
 class StudentInputError extends Error {}
 
 // Shared creation logic used by both the single-student and bulk-import routes.
+// R1Id/R2Id/RRId/R4Id/R5Id here are teacher IDs (or null/undefined) for each
+// named period - internally these become Enrollment rows, not columns.
 async function createStudentRecord({ id, first_name, last_name, email, R1Id, R2Id, RRId, R4Id, R5Id }) {
   const id_exists = await Student.findByPk(id);
   if (id_exists) {
@@ -87,14 +58,19 @@ async function createStudentRecord({ id, first_name, last_name, email, R1Id, R2I
   if (name_exists) {
     throw new StudentInputError('Student already exists. Consider Updating instead of POST');
   }
+
+  let student;
   try {
-    return await Student.create({ id, first_name, last_name, email, R1Id, R2Id, RRId, R4Id, R5Id });
+    student = await Student.create({ id, first_name, last_name, email });
   } catch (err) {
     if (err.name === 'SequelizeValidationError' || err.name === 'SequelizeUniqueConstraintError') {
       throw new StudentInputError(err.errors?.[0]?.message || 'Invalid student data.');
     }
     throw err;
   }
+
+  await setEnrollments(student.id, { R1: R1Id, R2: R2Id, RR: RRId, R4: R4Id, R5: R5Id });
+  return student;
 }
 
 // @route   POST api/students
@@ -114,18 +90,8 @@ router.post('/', auth, async (req, res) => {
       R4Id: teachers?.R4 || null,
       R5Id: teachers?.R5 || null
     });
-    // Fetch the student with teacher associations
-    const newStudent = await Student.findByPk(student.id, {
-      include: [
-        { model: Teacher, as: 'R1', attributes: TEACHER_PUBLIC_ATTRS },
-        { model: Teacher, as: 'R2', attributes: TEACHER_PUBLIC_ATTRS },
-        { model: Teacher, as: 'RR', attributes: TEACHER_PUBLIC_ATTRS },
-        { model: Teacher, as: 'R4', attributes: TEACHER_PUBLIC_ATTRS },
-        { model: Teacher, as: 'R5', attributes: TEACHER_PUBLIC_ATTRS }
-      ]
-    });
-
-    res.json(newStudent);
+    const newStudent = await Student.findByPk(student.id, { include: [STUDENT_ENROLLMENT_INCLUDE] });
+    res.json(reshapeStudent(newStudent));
   } catch (err) {
     if (err instanceof StudentInputError) {
       return res.status(400).json({ msg: err.message });
@@ -197,7 +163,7 @@ router.post('/bulk-rr', auth, async (req, res) => {
           failed.push({ studentId, reason: 'Student not found' });
           continue;
         }
-        await student.update({ RRId: rrTeacherId });
+        await setEnrollments(studentId, { RR: rrTeacherId });
         succeeded.push(studentId);
       } catch (rowErr) {
         failed.push({ studentId, reason: rowErr.message });
@@ -212,7 +178,8 @@ router.post('/bulk-rr', auth, async (req, res) => {
 });
 
 // @route   PUT api/students/:id
-// @desc    Update a student's teacher assignments
+// @desc    Update a student's teacher assignments (any period, not just the
+//          five named rotation slots - pass any period key to add/change/clear it)
 // @access  Admin only
 router.put('/:id', auth, async (req, res) => {
   try {
@@ -224,32 +191,29 @@ router.put('/:id', auth, async (req, res) => {
     const student = await Student.findByPk(req.params.id);
     if (!student) return res.status(404).json({ msg: 'Student not found' });
 
-    const { R1Id, R2Id, RRId, R4Id, R5Id } = req.body;
-    const updates = {};
-    for (const [field, val] of Object.entries({ R1Id, R2Id, RRId, R4Id, R5Id })) {
-      if (val !== undefined) {
-        if (val !== null) {
-          const exists = await Teacher.findByPk(val);
-          if (!exists) return res.status(400).json({ msg: `Teacher ${val} not found` });
-        }
-        updates[field] = val;
+    const { R1Id, R2Id, RRId, R4Id, R5Id, enrollments } = req.body;
+    const periodMap = {};
+    for (const [period, val] of Object.entries({ R1: R1Id, R2: R2Id, RR: RRId, R4: R4Id, R5: R5Id })) {
+      if (val !== undefined) periodMap[period] = val;
+    }
+    // Optional: arbitrary extra periods, e.g. { period: 'Online-CS', teacherId: 7 }
+    if (Array.isArray(enrollments)) {
+      for (const { period, teacherId } of enrollments) {
+        if (period) periodMap[period] = teacherId ?? null;
       }
     }
 
-    await student.update(updates);
+    for (const [period, val] of Object.entries(periodMap)) {
+      if (val !== null) {
+        const exists = await Teacher.findByPk(val);
+        if (!exists) return res.status(400).json({ msg: `Teacher ${val} not found` });
+      }
+    }
 
-    const updated = await Student.findByPk(req.params.id, {
-      include: [
-        { model: Teacher, as: 'R1', attributes: TEACHER_PUBLIC_ATTRS },
-        { model: Teacher, as: 'R2', attributes: TEACHER_PUBLIC_ATTRS },
-        { model: Teacher, as: 'RR', attributes: TEACHER_PUBLIC_ATTRS },
-        { model: Teacher, as: 'R4', attributes: TEACHER_PUBLIC_ATTRS },
-        { model: Teacher, as: 'R5', attributes: TEACHER_PUBLIC_ATTRS }
-      ]
-    });
-    const result = updated.toJSON();
-    result.lunch = updated.RR?.lunch ?? null;
-    res.json(result);
+    await setEnrollments(req.params.id, periodMap);
+
+    const updated = await Student.findByPk(req.params.id, { include: [STUDENT_ENROLLMENT_INCLUDE] });
+    res.json(reshapeStudent(updated));
   } catch (err) {
     console.error(err.message);
     res.status(500).send('Server Error');

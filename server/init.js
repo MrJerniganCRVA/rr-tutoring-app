@@ -13,6 +13,7 @@ const sequelize = require('./config/db')
 // Define models
 const Teacher = require('./models/Teacher');
 const Student = require('./models/Student');
+const Enrollment = require('./models/Enrollment');
 const TutoringRequest = require('./models/TutoringRequest');
 
 // Function to initialize database and add test data
@@ -78,64 +79,51 @@ async function initDatabase() {
     // Get the teacher IDs
     const teacherIds = teachers.map(teacher => teacher.id);
     
-    // Create sample students with random teacher assignments
+    // Create sample students, then their teacher assignments as separate
+    // Enrollment rows (period -> teacher) rather than fixed FK columns.
     const students = [];
-    students.push({
-      id:24000001,
-      first_name: 'Testing',
-      last_name: 'StudentA',
-      email: 'zachary.jernigan@coderva.org',
-      grade:'12',
-      R1Id: 1,
-      R2Id: 10015,
-      RRId:10015,
-      R4Id:2,
-      R5Id:3
-    }, {
-      id:250000001,
-      first_name:'Test',
-      last_name:'StudentB',
-      email:'zachary.jernigan@coderva.org',
-      grade:11,
-      R1Id:2,
-      R2Id: 10015,
-      RRId:3,
-      R4Id:1,
-      R5Id:3
-    });
+    const enrollmentsByPeriod = [];
+
+    const addStudentWithAssignments = (student, assignments) => {
+      students.push(student);
+      for (const [period, teacherId] of Object.entries(assignments)) {
+        if (teacherId) enrollmentsByPeriod.push({ StudentId: student.id, period, TeacherId: teacherId });
+      }
+    };
+
+    addStudentWithAssignments(
+      { id: 24000001, first_name: 'Testing', last_name: 'StudentA', email: 'zachary.jernigan@coderva.org' },
+      { R1: 1, R2: 10015, RR: 10015, R4: 2, R5: 3 }
+    );
+    addStudentWithAssignments(
+      { id: 250000001, first_name: 'Test', last_name: 'StudentB', email: 'zachary.jernigan@coderva.org' },
+      { R1: 2, R2: 10015, RR: 3, R4: 1, R5: 3 }
+    );
+
     const firstNames = ['Emma', 'Liam', 'Olivia', 'Noah', 'Ava', 'Ethan', 'Sophia', 'Lucas', 'Isabella', 'Mason'];
     const lastNames = ['Smith', 'Johnson', 'Brown', 'Davis', 'Wilson', 'Miller', 'Taylor', 'Anderson', 'Thomas', 'Jackson'];
-    const grades = ['9', '10', '11', '12'];
-    
+
     for (let i = 0; i < 10; i++) {
       const firstName = firstNames[i % firstNames.length];
       const lastName = lastNames[Math.floor(Math.random() * lastNames.length)];
-      const grade = grades[Math.floor(Math.random() * grades.length)];
-      
       const email = `${firstName.toLowerCase()}.${lastName.toLowerCase()}@students.coderva.org`;
-      // Randomly assign teachers
-      // For simplicity, we'll assign the same teacher for multiple periods sometimes
-      const R1Id = teacherIds[Math.floor(Math.random() * teacherIds.length)];
-      const R2Id = teacherIds[Math.floor(Math.random() * teacherIds.length)];
-      const RRId = teacherIds[Math.floor(Math.random() * teacherIds.length)];
-      const R4Id = teacherIds[Math.floor(Math.random() * teacherIds.length)];
-      const R5Id = teacherIds[Math.floor(Math.random() * teacherIds.length)];
-      
-      students.push({
-        id: 100000000 + i,
-        first_name: firstName,
-        last_name: lastName,
-        email: email,
-        grade,
-        R1Id,
-        R2Id,
-        RRId,
-        R4Id,
-        R5Id
-      });
+
+      // Randomly assign teachers - for simplicity, the same teacher may end
+      // up assigned to multiple periods sometimes.
+      addStudentWithAssignments(
+        { id: 100000000 + i, first_name: firstName, last_name: lastName, email },
+        {
+          R1: teacherIds[Math.floor(Math.random() * teacherIds.length)],
+          R2: teacherIds[Math.floor(Math.random() * teacherIds.length)],
+          RR: teacherIds[Math.floor(Math.random() * teacherIds.length)],
+          R4: teacherIds[Math.floor(Math.random() * teacherIds.length)],
+          R5: teacherIds[Math.floor(Math.random() * teacherIds.length)]
+        }
+      );
     }
-    
+
     await Student.bulkCreate(students);
+    await Enrollment.bulkCreate(enrollmentsByPeriod);
     console.log('Sample students created');
 
     // Create some sample tutoring requests

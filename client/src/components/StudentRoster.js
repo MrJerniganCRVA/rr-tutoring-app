@@ -21,17 +21,23 @@ import {
   Select,
   MenuItem,
   Alert,
-  CircularProgress
+  CircularProgress,
+  Chip
 } from '@mui/material';
 import EditIcon from '@mui/icons-material/Edit';
 import PersonAddIcon from '@mui/icons-material/PersonAdd';
 import UpdateIcon from '@mui/icons-material/Update';
 import GroupAddIcon from '@mui/icons-material/GroupAdd';
+import DeleteIcon from '@mui/icons-material/Delete';
+import AddIcon from '@mui/icons-material/Add';
 import apiService from '../utils/apiService';
 import BulkRRUpdate from './BulkRRUpdate';
 import BulkStudentImport from './BulkStudentImport';
 
 const ROTATIONS = ['R1', 'R2', 'RR', 'R4', 'R5'];
+
+const extraEnrollmentsOf = (student) =>
+  (student.enrollments || []).filter(e => !ROTATIONS.includes(e.period));
 
 const emptyEditState = { R1Id: null, R2Id: null, RRId: null, R4Id: null, R5Id: null };
 const emptyAddState = { id: '', first_name: '', last_name: '', email: '', R1: null, R2: null, RR: null, R4: null, R5: null };
@@ -49,6 +55,12 @@ const StudentRoster = () => {
   const [editFields, setEditFields] = useState(emptyEditState);
   const [editSaving, setEditSaving] = useState(false);
   const [editError, setEditError] = useState('');
+
+  // Additional (non-rotation) classes, e.g. an online class - within the edit dialog
+  const [editExtraEnrollments, setEditExtraEnrollments] = useState([]);
+  const [originalExtraPeriods, setOriginalExtraPeriods] = useState([]);
+  const [newClassPeriod, setNewClassPeriod] = useState('');
+  const [newClassTeacherId, setNewClassTeacherId] = useState('');
 
   // Bulk RR dialog state
   const [bulkOpen, setBulkOpen] = useState(false);
@@ -98,15 +110,50 @@ const StudentRoster = () => {
       R4Id: student.R4?.id ?? null,
       R5Id: student.R5?.id ?? null
     });
+    const extra = extraEnrollmentsOf(student).map(e => ({ period: e.period, teacherId: e.teacher.id }));
+    setEditExtraEnrollments(extra);
+    setOriginalExtraPeriods(extra.map(e => e.period));
+    setNewClassPeriod('');
+    setNewClassTeacherId('');
     setEditError('');
     setEditOpen(true);
+  };
+
+  const handleAddClass = () => {
+    if (!newClassPeriod.trim()) {
+      setEditError('Class name is required.');
+      return;
+    }
+    if (!newClassTeacherId) {
+      setEditError('Select a teacher for the new class.');
+      return;
+    }
+    if (ROTATIONS.includes(newClassPeriod.trim()) || editExtraEnrollments.some(e => e.period === newClassPeriod.trim())) {
+      setEditError(`"${newClassPeriod.trim()}" is already assigned - remove it first to change the teacher.`);
+      return;
+    }
+    setEditExtraEnrollments(prev => [...prev, { period: newClassPeriod.trim(), teacherId: newClassTeacherId }]);
+    setNewClassPeriod('');
+    setNewClassTeacherId('');
+    setEditError('');
+  };
+
+  const handleRemoveClass = (period) => {
+    setEditExtraEnrollments(prev => prev.filter(e => e.period !== period));
   };
 
   const handleEditSave = async () => {
     setEditSaving(true);
     setEditError('');
     try {
-      await apiService.updateStudent(editStudent.id, editFields);
+      const removedPeriods = originalExtraPeriods.filter(
+        p => !editExtraEnrollments.some(e => e.period === p)
+      );
+      const enrollments = [
+        ...editExtraEnrollments,
+        ...removedPeriods.map(period => ({ period, teacherId: null }))
+      ];
+      await apiService.updateStudent(editStudent.id, { ...editFields, enrollments });
       setEditOpen(false);
       await fetchData();
     } catch (e) {
@@ -218,13 +265,14 @@ const StudentRoster = () => {
               {ROTATIONS.map(r => (
                 <TableCell key={r} align="center"><strong>{r}</strong></TableCell>
               ))}
+              <TableCell><strong>Other Classes</strong></TableCell>
               <TableCell align="center"><strong>Edit</strong></TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
             {filteredStudents.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={7} align="center">No students found.</TableCell>
+                <TableCell colSpan={8} align="center">No students found.</TableCell>
               </TableRow>
             ) : (
               filteredStudents.map(student => (
@@ -235,6 +283,16 @@ const StudentRoster = () => {
                   <TableCell align="center">{getLastName(student.RR)}</TableCell>
                   <TableCell align="center">{getLastName(student.R4)}</TableCell>
                   <TableCell align="center">{getLastName(student.R5)}</TableCell>
+                  <TableCell>
+                    {extraEnrollmentsOf(student).map(e => (
+                      <Chip
+                        key={e.period}
+                        label={`${e.period}: ${e.teacher?.last_name ?? '—'}`}
+                        size="small"
+                        sx={{ mr: 0.5, mb: 0.5 }}
+                      />
+                    ))}
+                  </TableCell>
                   <TableCell align="center">
                     <IconButton size="small" color="primary" onClick={() => openEdit(student)}>
                       <EditIcon fontSize="small" />
@@ -277,6 +335,48 @@ const StudentRoster = () => {
               </FormControl>
             );
           })}
+
+          <Typography variant="subtitle2" sx={{ mt: 2, mb: 1 }}>
+            Additional Classes
+          </Typography>
+          {editExtraEnrollments.map(e => {
+            const teacher = teachers.find(t => t.id === e.teacherId);
+            return (
+              <Box key={e.period} sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
+                <Chip label={`${e.period}: ${teacher ? `${teacher.first_name} ${teacher.last_name}` : e.teacherId}`} sx={{ flexGrow: 1, justifyContent: 'flex-start' }} />
+                <IconButton size="small" color="error" onClick={() => handleRemoveClass(e.period)}>
+                  <DeleteIcon fontSize="small" />
+                </IconButton>
+              </Box>
+            );
+          })}
+          <Box sx={{ display: 'flex', gap: 1, alignItems: 'center', mt: 1 }}>
+            <TextField
+              label="Class name"
+              size="small"
+              placeholder="e.g. Online-CS"
+              value={newClassPeriod}
+              onChange={e => setNewClassPeriod(e.target.value)}
+              sx={{ flexGrow: 1 }}
+            />
+            <FormControl size="small" sx={{ minWidth: 160 }}>
+              <InputLabel>Teacher</InputLabel>
+              <Select
+                label="Teacher"
+                value={newClassTeacherId}
+                onChange={e => setNewClassTeacherId(e.target.value)}
+              >
+                {teachers.map(t => (
+                  <MenuItem key={t.id} value={t.id}>
+                    {t.first_name} {t.last_name}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+            <IconButton color="primary" onClick={handleAddClass}>
+              <AddIcon />
+            </IconButton>
+          </Box>
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setEditOpen(false)} disabled={editSaving}>Cancel</Button>
