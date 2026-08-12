@@ -110,13 +110,10 @@ const TeacherDashboard = () => {
                     <Card sx={{ borderTop: 4, borderColor: '#EC3984' }}>
                         <CardContent sx={{ textAlign: 'center' }}>
                             <Typography variant="overline" color="text.secondary" sx={{ fontWeight: 600 }}>
-                                Percentile
+                                Unique Students Tutored
                             </Typography>
                             <Typography variant="h2" sx={{ color: '#EC3984', fontWeight: 'bold', my: 2 }}>
-                                {personalStats.percentile}th
-                            </Typography>
-                            <Typography variant="caption" color="text.secondary">
-                                compared to other teachers
+                                {personalStats.uniqueStudentsTutored}
                             </Typography>
                         </CardContent>
                     </Card>

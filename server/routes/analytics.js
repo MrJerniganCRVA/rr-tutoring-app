@@ -106,25 +106,12 @@ router.get('/:teacherId', auth, async (req, res)=>{
             });
         
         const lastFourWeeksTotal = weeklyData.length;
-        const allTeachersCount = await TutoringRequest.findAll({
-            where: {status: 'active'},
-            attributes: [
-                'TeacherId',
-                [sequelize.fn('COUNT', sequelize.col('id')),'sessionCount']
-            ],
-            group: ['TeacherId'],
-            raw: true
+        const uniqueStudentsTutored = await TutoringRequest.count({
+            where: { TeacherId: teacherId, status: 'active' },
+            distinct: true,
+            col: 'StudentId'
         });
 
-        const teacherCounts = allTeachersCount.map(t=> parseInt(t.sessionCount));
-        teacherCounts.sort((a,b)=>a -b);
-
-        const teacherSessionsCounts = totalSessions;
-        const teacherBelowCount = teacherCounts.filter(count=> count<teacherSessionsCounts).length;
-        const percentile = teacherCounts.length > 0
-            ? Math.round((teacherBelowCount / teacherCounts.length)*100)
-            : 0;
-            
         const topStudents = await TutoringRequest.findAll({
             where:{
                 TeacherId: teacherId,
@@ -192,7 +179,7 @@ router.get('/:teacherId', auth, async (req, res)=>{
         const personalStats = {
             totalSessions,
             lastFourWeeksTotal,
-            percentile,
+            uniqueStudentsTutored,
             lastFourWeeks,
             topStudents: topStudentsFormatted,
             dayOfWeekData
