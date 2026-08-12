@@ -28,7 +28,9 @@ import {
 } from '@mui/material';
 import EditIcon from '@mui/icons-material/Edit';
 import PersonAddIcon from '@mui/icons-material/PersonAdd';
+import GroupAddIcon from '@mui/icons-material/GroupAdd';
 import apiService from '../utils/apiService';
+import BulkTeacherImport from './BulkTeacherImport';
 
 const LUNCHES = ['A', 'B', 'C', 'D'];
 
@@ -51,6 +53,8 @@ const TeacherRoster = ({ currentUserId }) => {
   const [addFields, setAddFields] = useState(emptyAddState);
   const [addSaving, setAddSaving] = useState(false);
   const [addError, setAddError] = useState('');
+
+  const [bulkImportOpen, setBulkImportOpen] = useState(false);
 
   const fetchData = useCallback(async () => {
     try {
@@ -159,14 +163,23 @@ const TeacherRoster = ({ currentUserId }) => {
     <Box>
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
         <Typography variant="h5">Teacher Roster</Typography>
-        <Button
-          variant="contained"
-          color="primary"
-          startIcon={<PersonAddIcon />}
-          onClick={openAdd}
-        >
-          Add Teacher
-        </Button>
+        <Box sx={{ display: 'flex', gap: 1 }}>
+          <Button
+            variant="outlined"
+            startIcon={<GroupAddIcon />}
+            onClick={() => setBulkImportOpen(true)}
+          >
+            Bulk Import Teachers
+          </Button>
+          <Button
+            variant="contained"
+            color="primary"
+            startIcon={<PersonAddIcon />}
+            onClick={openAdd}
+          >
+            Add Teacher
+          </Button>
+        </Box>
       </Box>
 
       {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
@@ -373,6 +386,14 @@ const TeacherRoster = ({ currentUserId }) => {
           </Button>
         </DialogActions>
       </Dialog>
+
+      {/* Bulk Teacher Import Dialog */}
+      <BulkTeacherImport
+        open={bulkImportOpen}
+        onClose={() => setBulkImportOpen(false)}
+        onComplete={fetchData}
+        teachers={teachers}
+      />
     </Box>
   );
 };
