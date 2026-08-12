@@ -227,15 +227,6 @@ router.post('/', auth, async (req, res) => {
     res.status(500).send('Server Error');
   }
 });
-//@route  POST api/tutoring/override
-//@desc   Handle Override requests
-//@access  Private
-router.post('/override', auth, async (req, res) => {
-  // same as regular POST but with override = true
-  req.body.override = true;
-  return router.post('/', auth)(req, res);
-});
-
 //@route   GET api/priority/:date
 //@desc    Helper route to check what subject has priroity 
 //@access  
