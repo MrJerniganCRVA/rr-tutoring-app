@@ -42,6 +42,10 @@ const apiService = {
   updateTeacher: async (id, data) => {
     return apiClient.put(`/api/teachers/${id}`, data);
   },
+
+  bulkCreateTeachers: async (teachers) => {
+    return apiClient.post('/api/teachers/bulk-create', { teachers });
+  },
   
   // Student endpoints
   getStudents: async () => {
