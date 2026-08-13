@@ -60,11 +60,6 @@ rr-tutoring-app/
 └── README.md               # Project documentation
 ```
 
-
-## Deployment
-
-This application is deployed on Railway with automatic builds from the main branch.
-
 ## Database Schema
 
 ### Teachers
