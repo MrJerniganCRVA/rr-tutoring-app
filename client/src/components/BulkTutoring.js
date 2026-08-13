@@ -33,7 +33,7 @@ import PersonIcon from '@mui/icons-material/Person';
 
 const BulkTutoring = () => {
   // State for form fields
-  const {createSession} = useTutoring();
+  const {createSession, dismissOverride} = useTutoring();
   const [selectedDate, setSelectedDate] = useState(null);
   const [lunches, setLunches] = useState({
     A: false,
@@ -197,6 +197,14 @@ const BulkTutoring = () => {
               student: `${student.first_name} ${student.last_name}`,
               id: result.session.id
             });
+          } else if (result.requiresOverride && result.conflictDetails){
+            failedStudents.push({
+              student:`${student.first_name} ${student.last_name}`,
+              error: `Already booked by ${result.conflictDetails.existingTeacher} — ${result.conflictDetails.reason}. Use the Individual Student tab to request an override.`
+            });
+            // Clear the shared conflict state so it doesn't leak a stray
+            // override dialog into the Individual Student tab later.
+            dismissOverride();
           } else{
             failedStudents.push({
               student:`${student.first_name} ${student.last_name}`,
