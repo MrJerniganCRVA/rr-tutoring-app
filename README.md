@@ -130,10 +130,6 @@ All routes below require an authenticated session (Google OAuth) unless noted; a
 - `GET /api/calendar/pending-count` - Count of tutoring requests awaiting a calendar invite
 - `PATCH /api/calendar/mark-sent/:id` / `PATCH /api/calendar/unmark-sent/:id` - Manually mark a request's invite as sent/unsent
 
-## 📈 Future Enhancements
-
-- [ ] Email/SMS notifications for schedule changes and cancellations (Google Calendar invites already cover session invites)
-
 ## Developer
 
 **Mr. Jernigan**  
