@@ -396,7 +396,7 @@ const BulkTutoring = () => {
             <Autocomplete
   id="student-autocomplete"
   options={showAllStudents ? allStudents : myStudents}
-  getOptionLabel={(option) => option.displayName || `${option.first_name || ''} ${option.last_name || ''}`.trim()}
+  getOptionLabel={(option) => option.name || `${option.first_name || ''} ${option.last_name || ''}`.trim()}
   value={(showAllStudents ? allStudents : myStudents).find(student => student.id === selectedStudentId) || null}
   onChange={(event, newValue) => {
     const studentId = newValue ? newValue.id : '';
@@ -405,8 +405,8 @@ const BulkTutoring = () => {
   filterOptions={(options, { inputValue }) => {
     const searchText = inputValue.toLowerCase();
     return options.filter(option => {
-      const displayName = option.displayName || `${option.first_name || ''} ${option.last_name || ''}`.trim();
-      return displayName.toLowerCase().includes(searchText);
+      const fullName = `${option.first_name || ''} ${option.last_name || ''}`.trim();
+      return fullName.toLowerCase().includes(searchText);
     });
   }}
   renderInput={(params) => (
@@ -426,9 +426,22 @@ const BulkTutoring = () => {
       <Box component="li" key={key} {...cleanProps} sx={{ display: 'flex', alignItems: 'center', py: 1 }}>
         <Box sx={{ flexGrow: 1 }}>
           <Typography variant="body1">
-            {option.displayName || `${option.first_name || ''} ${option.last_name || ''}`.trim()}
+            {`${option.first_name || ''} ${option.last_name || ''}`.trim()}
           </Typography>
         </Box>
+        {option.lunchPeriod && (
+          <Chip
+            label={`Lunch ${option.lunchPeriod}`}
+            size="small"
+            color={
+              option.lunchPeriod === 'A' ? 'error' :
+              option.lunchPeriod === 'B' ? 'success' :
+              option.lunchPeriod === 'C' ? 'primary' :
+              option.lunchPeriod === 'D' ? 'warning' : 'default'
+            }
+            sx={{ ml: 1 }}
+          />
+        )}
       </Box>
     );
   }}
@@ -491,13 +504,18 @@ const BulkTutoring = () => {
                         sx={{mr:2}}
                       />
                       {student.lunchPeriod && (
-                        <Box sx={{flexShrink: 0}}>
-                        <Chip 
-                          label={`Lunch ${student.lunchPeriod}`} 
-                          size="small" 
-                          color="primary"
+                        <Box sx={{ flexShrink: 0 }}>
+                          <Chip
+                            label={`Lunch ${student.lunchPeriod}`}
+                            size="small"
+                            color={
+                              student.lunchPeriod === 'A' ? 'error' :
+                              student.lunchPeriod === 'B' ? 'success' :
+                              student.lunchPeriod === 'C' ? 'primary' :
+                              student.lunchPeriod === 'D' ? 'warning' : 'default'
+                            }
                           />
-                          </Box>  
+                        </Box>
                       )}
                     </ListItem>
                   ))}
