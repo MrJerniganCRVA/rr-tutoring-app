@@ -19,15 +19,16 @@ const RaptorRotationEvents = () => {
   //Doesn't change local storage just for this component maps to the "main" teacher
   const getRRMainTeacherID = (teacherId) => {
     const RR_GROUPS = {
-      '10040':'10028',
-      '10023':'10028',
-      '10015':'10004',
-      '10029':'10034',
-      '10027':'10034',
-      '10014':'10018',
-      '10002':'10018',
-      '10010':'10033',
-      '10003':'10033'
+      '10025':'10006',
+      '10007':'10006',
+      '10010':'10001',
+      '10028':'10001',
+      '10008':'10023',
+      '10009':'10023',
+      '10024':'10005',
+      '10011':'10005',
+      '10012':'10023',
+      '10003':'10023'
     };
     return RR_GROUPS[teacherId] || teacherId;
   };
