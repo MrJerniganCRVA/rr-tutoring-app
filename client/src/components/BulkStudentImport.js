@@ -75,27 +75,27 @@ function parseCSV(text, existingStudents, teachers) {
       const csvRowNum = idx + 2;
       const parts = parseCSVLine(line);
       if (parts.length < 9) {
-        return { csvRowNum, status: 'error', reason: 'Invalid row format (expected 9 columns)' };
+        return { csvRowNum, studentId: parts[0]?.trim() || undefined, status: 'error', reason: 'Invalid row format (expected 9 columns)' };
       }
       const [studentId, first_name, last_name, email, r1Email, r2Email, rrEmail, r4Email, r5Email] =
         parts.map(p => p.trim());
 
       if (!studentId || !/^\d+$/.test(studentId)) {
-        return { csvRowNum, studentId, status: 'error', reason: 'Student ID must be a number' };
+        return { csvRowNum, studentId, first_name, last_name, email, status: 'error', reason: 'Student ID must be a number' };
       }
       if (seenIds.has(studentId)) {
-        return { csvRowNum, studentId, status: 'error', reason: `Duplicate student ID "${studentId}" earlier in this file` };
+        return { csvRowNum, studentId, first_name, last_name, email, status: 'error', reason: `Duplicate student ID "${studentId}" earlier in this file` };
       }
       seenIds.add(studentId);
 
       if (existingIds.has(studentId)) {
-        return { csvRowNum, studentId, status: 'error', reason: `Student ID "${studentId}" already exists` };
+        return { csvRowNum, studentId, first_name, last_name, email, status: 'error', reason: `Student ID "${studentId}" already exists` };
       }
       if (!first_name || !last_name) {
-        return { csvRowNum, studentId, status: 'error', reason: 'Missing first or last name' };
+        return { csvRowNum, studentId, first_name, last_name, email, status: 'error', reason: 'Missing first or last name' };
       }
       if (!email) {
-        return { csvRowNum, studentId, status: 'error', reason: 'Missing email' };
+        return { csvRowNum, studentId, first_name, last_name, email, status: 'error', reason: 'Missing email' };
       }
 
       const rotationEmails = { R1: r1Email, R2: r2Email, RR: rrEmail, R4: r4Email, R5: r5Email };
@@ -105,7 +105,7 @@ function parseCSV(text, existingStudents, teachers) {
         if (!rEmail) { rotationTeachers[rotation] = null; continue; }
         const teacher = teacherByEmail[rEmail.toLowerCase()];
         if (!teacher) {
-          return { csvRowNum, studentId, status: 'error_teacher_not_found', reason: `${rotation}: no teacher found with email "${rEmail}"` };
+          return { csvRowNum, studentId, first_name, last_name, email, status: 'error_teacher_not_found', reason: `${rotation}: no teacher found with email "${rEmail}"` };
         }
         rotationTeachers[rotation] = teacher;
       }
