@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const passport = require('passport');
+const { oauthLimiter, sessionLimiter } = require('../middleware/rateLimiters');
 
 const clientUrl = (process.env.CLIENT_URL || 'http://localhost:3000').replace(/\/+$/, '');
 
@@ -9,6 +10,7 @@ const clientUrl = (process.env.CLIENT_URL || 'http://localhost:3000').replace(/\
 
 router.get(
     '/google',
+    oauthLimiter,
     passport.authenticate('google',{
         scope: ['profile', 'email','https://www.googleapis.com/auth/calendar.events'],
         accessType: 'offline',
@@ -20,6 +22,7 @@ router.get(
 //@desc Handle google callback
 router.get(
     '/google/callback',
+    oauthLimiter,
     passport.authenticate('google',{
         failureRedirect: `${clientUrl}/select-teacher?error=auth_failed`
     }),
@@ -31,7 +34,7 @@ router.get(
 
 //@route GET /auth/logout
 //@desc logout the user
-router.get('/logout', (req, res)=>{
+router.get('/logout', sessionLimiter, (req, res)=>{
     req.logout((err)=>{
         if(err){
             return res.status(500).json({msg:'Error logging out'});
@@ -42,7 +45,7 @@ router.get('/logout', (req, res)=>{
 
 //@route GET /auth/current
 //@desc Get currently logged in teacher
-router.get('/current', (req, res)=>{
+router.get('/current', sessionLimiter, (req, res)=>{
     if(req.isAuthenticated()){
         res.json({
             id:req.user.id,
