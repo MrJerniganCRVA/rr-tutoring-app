@@ -14,43 +14,32 @@ import { useAuth } from '../contexts/AuthContext';
 const API_URL = process.env.REACT_APP_API_BASE_URL || 'http://localhost:5000';
 
 const Login = () =>{
-    const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
     const navigate = useNavigate();
-    const { refreshUser } = useAuth();
+    const { currentUser, authLoading } = useAuth();
 
+    //check for errors in url params
     useEffect(()=>{
-        const checkAuth = async () =>{
-            try{
-                const response = await fetch(`${API_URL}/auth/current`,{
-                    credentials: 'include'
-                });
-                if(response.ok){
-                    await refreshUser();
-                    navigate('/dashboard');
-                } else{
-                    setLoading(false);
-                }
-            } catch(err){
-                console.error('Auth check failed in Login component', err);
-                setLoading(false);
-            }
-        };
-
-        //check for errors in url params
         const urlParams = new URLSearchParams(window.location.search);
         const authError = urlParams.get('error');
         if(authError==='auth_failed'){
             setError('Authentication failed. Please make sure you are logging in with school email');
         }
-        checkAuth();
-    }, [navigate, refreshUser]);
+    }, []);
+
+    //AuthProvider already resolved the session, so react to its state instead of
+    //re-fetching here. The duplicate calls were draining the auth rate limiter.
+    useEffect(()=>{
+        if(!authLoading && currentUser){
+            navigate('/dashboard', { replace: true });
+        }
+    }, [authLoading, currentUser, navigate]);
 
     const handleGoogleLogin = () => {
         //redirect to backend
         window.location.href=`${API_URL}/auth/google`;
     };
-    if(loading){
+    if(authLoading || currentUser){
         return(
             <Box sx={{display:'flex', justifyContent:'center', minHeight:'100vh'}}>
                 <CircularProgress />
