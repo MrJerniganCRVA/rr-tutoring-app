@@ -20,8 +20,13 @@ const allowedOrigin = (process.env.CLIENT_URL || 'http://localhost:3000').replac
 // Trust the reverse proxy (Railway) so req.ip is the real client IP and secure cookies
 // work behind HTTPS termination. Set unconditionally rather than gated on NODE_ENV: when
 // it was gated, an unset NODE_ENV collapsed every user into a single rate-limit bucket.
-// Use 1, not true — `true` lets anyone spoof X-Forwarded-For past the rate limiter.
-app.set('trust proxy', Number(process.env.TRUST_PROXY ?? 1));
+//
+// Parse defensively and fall back to 1. A blank or non-numeric TRUST_PROXY must never
+// silently disable proxy trust: with secure cookies on, express-session drops Set-Cookie
+// entirely when req.secure is false, so logins fail with no error anywhere. Keep the
+// value numeric — `true` would let anyone spoof X-Forwarded-For past the rate limiters.
+const trustProxyHops = Number.parseInt(process.env.TRUST_PROXY ?? '', 10);
+app.set('trust proxy', Number.isInteger(trustProxyHops) && trustProxyHops >= 0 ? trustProxyHops : 1);
 
 console.log('[boot]', {
   nodeEnv: process.env.NODE_ENV || '(unset)',
@@ -68,6 +73,29 @@ app.use(
     }
   })
 );
+
+// express-session silently refuses to set a secure cookie when req.secure is false --
+// no Set-Cookie, no error, no log line -- which makes every new login fail invisibly
+// while existing sessions keep working. Surface that combination the first time it occurs.
+if (isProduction) {
+  let warnedInsecure = false;
+  app.use((req, res, next) => {
+    if (!warnedInsecure && !req.secure) {
+      warnedInsecure = true;
+      console.error(
+        '[auth] FATAL CONFIG: secure cookies are enabled but req.secure is false, so no ' +
+        'session cookie can be issued and every new sign-in will fail. Check trust proxy ' +
+        'and that the proxy forwards X-Forwarded-Proto.',
+        {
+          trustProxy: app.get('trust proxy'),
+          trustProxyEnv: process.env.TRUST_PROXY ?? '(unset)',
+          xForwardedProto: req.get('x-forwarded-proto') || null
+        }
+      );
+    }
+    next();
+  });
+}
 
 //passport init
 app.use(passport.initialize());
