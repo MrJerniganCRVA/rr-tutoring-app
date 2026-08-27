@@ -50,6 +50,22 @@ app.use(cors({
 
 app.use(express.json({ limit: '1mb' }));
 
+// Express derives req.secure from the FIRST value of X-Forwarded-Proto. Multi-hop proxy
+// chains (Railway's edge plus, e.g., a school content filter) can present "http,https" or
+// omit the header entirely, which makes req.secure false. express-session then refuses to
+// send the session cookie -- no Set-Cookie, no error, no log line -- so the OAuth callback
+// succeeds, the session is written, and the browser still ends up with no session at all.
+// Railway terminates TLS at its edge, so in production the browser connection is always
+// HTTPS regardless of what an intermediate hop reports. Keep the raw value for diagnostics,
+// since normalising it would otherwise destroy the evidence of why this was needed.
+if (isProduction) {
+  app.use((req, res, next) => {
+    req.rawForwardedProto = req.headers['x-forwarded-proto'] ?? '(absent)';
+    req.headers['x-forwarded-proto'] = 'https';
+    next();
+  });
+}
+
 // Session store backed by the database
 const sessionStore = new SequelizeStore({
   db: sequelize,
@@ -89,7 +105,8 @@ if (isProduction) {
         {
           trustProxy: app.get('trust proxy'),
           trustProxyEnv: process.env.TRUST_PROXY ?? '(unset)',
-          xForwardedProto: req.get('x-forwarded-proto') || null
+          xForwardedProto: req.get('x-forwarded-proto') || null,
+          rawForwardedProto: req.rawForwardedProto ?? '(not captured)'
         }
       );
     }
@@ -112,6 +129,9 @@ app.get('/', (req, res) => {
     ip: req.ip,
     ips: req.ips,
     xForwardedFor: req.get('x-forwarded-for') || null,
+    xForwardedProto: req.get('x-forwarded-proto') || null,
+    rawForwardedProto: req.rawForwardedProto ?? '(not normalised)',
+    protocol: req.protocol,
     secure: req.secure,
     nodeEnv: process.env.NODE_ENV || '(unset)'
   });
