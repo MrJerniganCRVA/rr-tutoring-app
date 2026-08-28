@@ -73,8 +73,11 @@ const apiService = {
   },
   
   // Tutoring request endpoints
-  getTutoringRequests: async () => {
-    return apiClient.get('/api/tutoring');
+  // params narrow what comes back - see GET /api/tutoring for the supported
+  // scopes. Called with no params it returns this teacher's requests for the
+  // current school year.
+  getTutoringRequests: async (params = {}) => {
+    return apiClient.get('/api/tutoring', { params });
   },
   
   createTutoringRequest: async (requestData) => {

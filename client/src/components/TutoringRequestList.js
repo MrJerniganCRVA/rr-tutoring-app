@@ -20,13 +20,16 @@ import {
 import { Search as SearchIcon, CheckCircleOutline as CheckCircleOutlineIcon, Undo as UndoIcon } from '@mui/icons-material';
 import { format, parseISO } from 'date-fns';
 import {useTutoring} from '../contexts/TutoringContext';
+import { useAuth } from '../contexts/AuthContext';
+import { toDateOnly, todayDateOnly } from '../utils/dates';
 import CalendarInviteButton from './CalendarInviteButton';
 
 const TutoringRequestList = () => {
   const [filterDate, setFilterDate] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
-  
-  const teacherId = localStorage.getItem('teacherId');
+
+  const { currentUser } = useAuth();
+  const teacherId = currentUser?.id;
   const {sessions, error, cancelSession, markInviteSent, unmarkInviteSent} = useTutoring();
   const getFullName = (person) => {
     if (!person?.first_name || !person?.last_name) return '';
@@ -35,22 +38,17 @@ const TutoringRequestList = () => {
   const handleCancelRequest = async (requestId) => {
     cancelSession(requestId);
   };
-  
-  // Filter requests by date and search term as well as remove any non teacher requests
+
+  // sessions is already scoped to this teacher for the current school year, so
+  // the date/search filters below are all that's left. Searching still reaches
+  // back over the year; clearing it returns to today-and-later.
   const filteredRequests = sessions.filter(request => {
     if(request.status==='cancelled'){
       return false;
     }
 
-    const requestTeacherName = getFullName(request.Teacher).toLowerCase();
-    const currentTeacherName = (localStorage.getItem('teacherName') || '').toLowerCase();
-
-    if(requestTeacherName !== currentTeacherName){
-      return false;
-    }
-
     if (filterDate) {
-      const selectedDate = filterDate.toISOString().split('T')[0];
+      const selectedDate = toDateOnly(filterDate);
       if (request.date !== selectedDate)
       {
         return false;
@@ -64,8 +62,7 @@ const TutoringRequestList = () => {
     }
 
     if(!filterDate && !searchTerm){
-      const today = new Date().toISOString().split('T')[0];
-      return request.date >= today;
+      return request.date >= todayDateOnly();
     }
 
     return true;
@@ -93,7 +90,7 @@ const TutoringRequestList = () => {
       
       <Paper elevation={3} sx={{ p: 3 }}>
         <Typography variant="h5" component="h2" gutterBottom>
-          Tutoring Requests by {localStorage.getItem('teacherName')}
+          Tutoring Requests by {currentUser ? `${currentUser.firstName} ${currentUser.lastName}` : ''}
         </Typography>
         
         <Box sx={{ display: 'flex', mb: 3, gap: 2, alignItems:'center' }}>
@@ -194,7 +191,7 @@ const TutoringRequestList = () => {
                     </TableCell>
                     <TableCell align="right">
                       {request.status === 'active' && 
-                       request.Teacher?.id === parseInt(teacherId) && (
+                       request.Teacher?.id === teacherId && (
                         <Button
                           variant="outlined"
                           color="error"

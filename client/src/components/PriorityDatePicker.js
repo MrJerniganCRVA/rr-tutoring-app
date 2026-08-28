@@ -6,7 +6,9 @@ import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 import { Box, Chip, Alert, Typography } from '@mui/material';
 import { useTutoring } from '../contexts/TutoringContext';
+import { useAuth } from '../contexts/AuthContext';
 import apiService from '../utils/apiService';
+import { toDateOnly } from '../utils/dates';
 
 // Priority mapping
 const SUBJECT_PRIORITIES = {
@@ -22,22 +24,24 @@ const PriorityDatePicker = ({
   onChange,
   ...muiDatePickerProps 
 }) => {
-  const {  getSessionsForStudent } = useTutoring();
+  const { fetchStudentSessions } = useTutoring();
+  const { currentUser } = useAuth();
   const [currentTeacher, setCurrentTeacher] = useState(null);
   const [dateStatus, setDateStatus] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [studentSessions, setStudentSessions] = useState([]);
+  const [sessionsLoading, setSessionsLoading] = useState(false);
 
-  // Get teacher from localStorage
+  // The teacher's subject decides which days they can override, so it has to
+  // be loaded before any date can be judged.
   useEffect(() => {
     const fetchCurrentTeacher = async () =>{
-      const teacherId = localStorage.getItem('teacherId');
-      if(!teacherId){
-        console.error("No teacher id in local storage");
+      if(!currentUser){
         setLoading(false);
         return;
       }
       try{
-        const response = await apiService.getTeacher(teacherId);
+        const response = await apiService.getTeacher(currentUser.id);
         setCurrentTeacher(response.data);
       } catch(e){
         console.error("Error fetching teacher", apiService.formatError(e));
@@ -48,18 +52,29 @@ const PriorityDatePicker = ({
     }
 
     fetchCurrentTeacher();
-    
-  }, []);
-  // Get sessions for the selected student
-  const studentSessions = studentId ? getSessionsForStudent(studentId) : [];
 
-  //all sessions work but the getSessionForStudent(studentId) isn't filtering
-  //fix or add filter to own section
+  }, [currentUser]);
 
-  // Utility functions
-  const isSameDay = (date1, date2) => {
-    return date1.toISOString().split('T')[0] === date2.toISOString().split('T')[0];
-  };
+  // Every teacher's active bookings for this student, fetched on demand -
+  // spotting a conflict means seeing other teachers' requests, which the
+  // teacher-scoped `sessions` list deliberately no longer carries.
+  useEffect(() => {
+    let cancelled = false;
+    if (!studentId) {
+      setStudentSessions([]);
+      return undefined;
+    }
+    setSessionsLoading(true);
+    fetchStudentSessions(studentId)
+      .then(rows => { if (!cancelled) setStudentSessions(rows); })
+      .finally(() => { if (!cancelled) setSessionsLoading(false); });
+    return () => { cancelled = true; };
+  }, [studentId, fetchStudentSessions]);
+
+  // A session's date is already a 'YYYY-MM-DD' string; compare against the
+  // picker's local calendar day rather than round-tripping both through UTC.
+  const sessionOn = (date) =>
+    studentSessions.find(session => session.date === toDateOnly(date));
 
   const shouldDisableDate = (date) => {
     const yesteday = new Date();
@@ -75,10 +90,8 @@ const PriorityDatePicker = ({
     if (!studentId || !currentTeacher) return false;
 
     // Check if student has a session on this date
-    const existingSession = studentSessions.find(session => 
-      isSameDay(new Date(session.date), date)
-    );
-    
+    const existingSession = sessionOn(date);
+
     if (!existingSession) {
       return false;
     }
@@ -95,9 +108,7 @@ const PriorityDatePicker = ({
     if (!studentId || !date || !currentTeacher) return null;
 
     const dayOfWeek = date.getDay();
-    const existingSession = studentSessions.find(session =>
-      isSameDay(new Date(session.date), date)
-    );
+    const existingSession = sessionOn(date);
     if (!existingSession) {
       return { type: 'available', message: 'Available' };
     }
@@ -128,11 +139,11 @@ const PriorityDatePicker = ({
     onChange(newDate);
   };
   //Don't render if loading
-  if(loading){
+  if(loading || sessionsLoading){
     return (
       <Box sx={{ p: 2, border: '1px dashed #ccc', borderRadius: 1 }}>
         <Typography color="text.secondary">
-          Loading teacher information...
+          {loading ? 'Loading teacher information...' : 'Checking existing bookings...'}
         </Typography>
       </Box>
     );

@@ -4,22 +4,69 @@ const { Op } = require('sequelize');
 const TutoringRequest = require('../models/TutoringRequest');
 const Student = require('../models/Student');
 const Teacher = require('../models/Teacher');
+const Enrollment = require('../models/Enrollment');
 const auth = require('../middleware/auth');
-const { TEACHER_PUBLIC_ATTRS, STUDENT_ENROLLMENT_INCLUDE, reshapeStudent } = require('../utils/enrollments');
+const { TEACHER_LEAN_ATTRS, STUDENT_LEAN_ATTRS } = require('../utils/enrollments');
+const { resolveRRMainTeacherId, schoolYearStartDate, parseDateOnly } = require('../utils/tutoringScope');
 
-// A TutoringRequest with its Teacher and (reshaped) Student eager-loaded -
-// used for every response in this file instead of repeating the same
-// nested include block.
-const REQUEST_INCLUDE = [
-  { model: Teacher, attributes: TEACHER_PUBLIC_ATTRS },
-  { model: Student, include: [STUDENT_ENROLLMENT_INCLUDE] }
-];
-
-function reshapeRequest(requestInstance) {
-  const data = requestInstance.toJSON();
-  if (data.Student) data.Student = reshapeStudent(data.Student);
-  return data;
+// Only the RR enrollment is ever needed alongside a tutoring request (the
+// "Leaving RR Today" board keys off it). Loading just that one period instead
+// of all five is what keeps this query from fanning out to
+// requests x enrollments rows and serializing every rotation teacher twice.
+//
+// `scope === 'rr'` turns the same include into the filter itself: an inner
+// join restricted to one RR teacher, so the database does the scoping.
+function buildRequestInclude(scope, rrMainTeacherId) {
+  const isRR = scope === 'rr';
+  return [
+    { model: Teacher, attributes: TEACHER_LEAN_ATTRS },
+    {
+      model: Student,
+      attributes: STUDENT_LEAN_ATTRS,
+      required: isRR,
+      include: [{
+        model: Enrollment,
+        attributes: ['id', 'period'],
+        where: isRR ? { period: 'RR', TeacherId: rrMainTeacherId } : { period: 'RR' },
+        required: isRR,
+        include: [{ model: Teacher, attributes: TEACHER_LEAN_ATTRS }]
+      }]
+    }
+  ];
 }
+
+// The shape every tutoring endpoint returns. Deliberately narrow: this is the
+// full set of fields the client actually reads. Notably absent are the
+// student's email and the rest of their schedule, which the old response
+// included for every request in the database.
+function toLeanRequest(requestInstance) {
+  const data = requestInstance.toJSON ? requestInstance.toJSON() : requestInstance;
+  const student = data.Student;
+  const rrTeacher = (student?.Enrollments || []).find(e => e.period === 'RR')?.Teacher || null;
+  const name = (person) => (person
+    ? { id: person.id, first_name: person.first_name, last_name: person.last_name }
+    : null);
+
+  return {
+    id: data.id,
+    date: data.date,
+    status: data.status,
+    lunchA: data.lunchA,
+    lunchB: data.lunchB,
+    lunchC: data.lunchC,
+    lunchD: data.lunchD,
+    invite_sent: data.invite_sent,
+    calendar_event_id: data.calendar_event_id,
+    TeacherId: data.TeacherId,
+    StudentId: data.StudentId,
+    Teacher: name(data.Teacher),
+    Student: student ? { ...name(student), RR: name(rrTeacher) } : null
+  };
+}
+
+// Used by the POST handlers, which always return a single request to the
+// teacher who just created it.
+const OWN_REQUEST_INCLUDE = buildRequestInclude('mine', null);
 
 const getPrioritySubjectForDay = (date) => {
   let dateObj; 
@@ -66,12 +113,68 @@ router.get('/:id', auth, async (req, res) => {
   }
 });
 // @route   GET api/tutoring
-// @desc    Get all tutoring requests
+// @desc    Get tutoring requests, scoped to what the caller actually needs
 // @access  Private
+//
+// Query params:
+//   scope=mine    (default) the caller's own requests. Defaults to this school
+//                 year so searching past requests by student name still works.
+//   scope=rr      requests for students in the caller's Raptor Rotation,
+//                 whoever booked them - the "Leaving RR Today" board.
+//   scope=student requests for one student across all teachers, for the
+//                 scheduling form's conflict check. Requires studentId.
+//   from/to/date  'YYYY-MM-DD' bounds on the request date.
+//   status        e.g. 'active'.
 router.get('/', auth, async (req, res) => {
   try {
-    const requests = await TutoringRequest.findAll({ include: REQUEST_INCLUDE });
-    res.json(requests.map(reshapeRequest));
+    const { scope = 'mine', from, to, date, studentId, status } = req.query;
+
+    if (!['mine', 'rr', 'student'].includes(scope)) {
+      return res.status(400).json({ msg: `Unknown scope '${scope}'` });
+    }
+
+    const where = {};
+    if (scope === 'mine') {
+      where.TeacherId = req.teacher.id;
+    } else if (scope === 'student') {
+      const id = parseInt(studentId, 10);
+      if (Number.isNaN(id)) {
+        return res.status(400).json({ msg: 'studentId is required for scope=student' });
+      }
+      where.StudentId = id;
+    }
+
+    if (status) where.status = status;
+
+    const exactDate = parseDateOnly(date);
+    const fromDate = parseDateOnly(from);
+    const toDate = parseDateOnly(to);
+    if ([exactDate, fromDate, toDate].includes(undefined)) {
+      return res.status(400).json({ msg: 'Dates must be formatted YYYY-MM-DD' });
+    }
+
+    if (exactDate) {
+      where.date = exactDate;
+    } else {
+      // Only a teacher's own history is bounded by default - the other scopes
+      // are already narrow (one RR board, or one student).
+      const lower = fromDate || (scope === 'mine' ? schoolYearStartDate() : null);
+      if (lower || toDate) {
+        where.date = {
+          ...(lower && { [Op.gte]: lower }),
+          ...(toDate && { [Op.lte]: toDate })
+        };
+      }
+    }
+
+    const rrMainTeacherId = scope === 'rr' ? resolveRRMainTeacherId(req.teacher.id) : null;
+
+    const requests = await TutoringRequest.findAll({
+      where,
+      include: buildRequestInclude(scope, rrMainTeacherId),
+      order: [['date', 'ASC']]
+    });
+    res.json(requests.map(toLeanRequest));
   } catch (err) {
     console.error(err.message);
     res.status(500).send('Server Error');
@@ -133,8 +236,8 @@ router.post('/', auth, async (req, res) => {
         priority: hasSubjectPriority(requestingTeacher.subject, date) ? 1 :0
       });
       //Fetch the created request
-      const request = await TutoringRequest.findByPk(newRequest.id, { include: REQUEST_INCLUDE });
-      return res.json(reshapeRequest(request));
+      const request = await TutoringRequest.findByPk(newRequest.id, { include: OWN_REQUEST_INCLUDE });
+      return res.json(toLeanRequest(request));
     }
     //a conflict exists need to figure out who has priority
     
@@ -174,10 +277,10 @@ router.post('/', auth, async (req, res) => {
         lunchD: lunches.D || false,
         priority: 1 // Has priority
       });
-      const request = await TutoringRequest.findByPk(newRequest.id, { include: REQUEST_INCLUDE });
+      const request = await TutoringRequest.findByPk(newRequest.id, { include: OWN_REQUEST_INCLUDE });
 
       return res.json({
-        request: reshapeRequest(request),
+        request: toLeanRequest(request),
         overrideInfo: {
           overriddenTeacher: `${existingTeacher.first_name} ${existingTeacher.last_name}`,
           overriddenSubject: existingTeacher.subject,
