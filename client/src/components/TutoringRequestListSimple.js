@@ -10,6 +10,7 @@ import {
   Alert
 } from '@mui/material';
 import {useTutoring} from '../contexts/TutoringContext';
+import { todayDateOnly } from '../utils/dates';
 
 const TutoringRequestListSimple = () => {
 
@@ -18,20 +19,15 @@ const TutoringRequestListSimple = () => {
     if (!person?.first_name || !person?.last_name) return '';
     return `${person.first_name} ${person.last_name}`;
   };
-  
-  // Filter requests by date 
+
+  // sessions is already this teacher's own requests, so only the day and the
+  // cancelled check are left. (This used to match teachers by comparing
+  // lowercased display names, which broke for any two teachers sharing one.)
   const filteredRequests = sessions.filter(request => {
     if(request.status==='cancelled'){
       return false;
     }
-    const requestTeacherName = getFullName(request.Teacher).toLowerCase();
-    const currentTeacherName = (localStorage.getItem('teacherName') || '').toLowerCase();
-
-    if(requestTeacherName !== currentTeacherName){
-      return false;
-    }
-    const today = new Date().toISOString().split('T')[0];
-    return request.date === today;
+    return request.date === todayDateOnly();
   });
 
   

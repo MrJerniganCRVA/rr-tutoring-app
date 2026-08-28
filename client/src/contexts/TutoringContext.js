@@ -1,19 +1,30 @@
-import React, {createContext, useContext, useState, useEffect } from 'react';
+import React, {createContext, useContext, useState, useEffect, useCallback } from 'react';
 import apiService from '../utils/apiService';
+import { useAuth } from './AuthContext';
+import { todayDateOnly } from '../utils/dates';
 const TutoringContext = createContext();
 
 export const TutoringProvider = ({children}) => {
+    const { currentUser, authLoading } = useAuth();
+    // This teacher's own requests for the current school year.
     const [sessions, setSessions] = useState([]);
+    // Today's requests for students in this teacher's Raptor Rotation,
+    // whichever teacher booked them. Scoped by the server from the session.
+    const [rrSessions, setRrSessions] = useState([]);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
     const [conflictDetails, setConflictDetails] = useState(null);
 
-    const fetchSessions = async () => {
+    const fetchSessions = useCallback(async () => {
         setLoading(true);
         setError(null);
         try{
-            const response = await apiService.getTutoringRequests();
-            setSessions(response.data);
+            const [mine, rr] = await Promise.all([
+                apiService.getTutoringRequests({ scope: 'mine' }),
+                apiService.getTutoringRequests({ scope: 'rr', date: todayDateOnly() })
+            ]);
+            setSessions(mine.data);
+            setRrSessions(rr.data);
         } catch (e){
             const errorMessage = apiService.formatError(e);
             setError(errorMessage);
@@ -21,7 +32,7 @@ export const TutoringProvider = ({children}) => {
         } finally {
             setLoading(false);
         }
-    };
+    }, []);
 
     // UPDATED: Enhanced createSession that handles conflicts
     const createSession = async (sessionData) => {
@@ -116,12 +127,25 @@ export const TutoringProvider = ({children}) => {
         } 
     };
 
-    const getSessionsForStudent = (studentId) => {
-        // Convert both sides to Number to handle string/numeric id mismatch from API vs props
-        return sessions.filter(session =>
-            Number(session.Student?.id) === Number(studentId) && session.status === 'active'
-        );
-    };
+    // Active bookings for one student from today forward, across every teacher -
+    // the scheduling form needs other teachers' requests to spot a conflict.
+    // Fetched on demand rather than filtered out of `sessions`, which only ever
+    // holds this teacher's own rows.
+    const fetchStudentSessions = useCallback(async (studentId) => {
+        if (!studentId) return [];
+        try {
+            const response = await apiService.getTutoringRequests({
+                scope: 'student',
+                studentId,
+                status: 'active',
+                from: todayDateOnly()
+            });
+            return response.data;
+        } catch (e) {
+            console.error('error fetching sessions for student', e);
+            return [];
+        }
+    }, []);
 
     const checkPriorityForDate = async (date) => {
         try {
@@ -133,11 +157,22 @@ export const TutoringProvider = ({children}) => {
         }
     };
 
+    // Load once the session is known, and reload if the signed-in teacher
+    // changes. Keyed on auth state rather than localStorage: after a Google
+    // login the app remounts before AuthProvider has resolved the session, so a
+    // mount-only fetch found no teacher and left the dashboard permanently
+    // empty until a manual refresh. Still never fires while logged out, which
+    // is what keeps a 401 from bouncing us into a redirect loop.
     useEffect(()=>{
-        if (localStorage.getItem('teacherId')) {
+        if (authLoading) return;
+        if (currentUser) {
             fetchSessions();
+        } else {
+            setSessions([]);
+            setRrSessions([]);
+            setError(null);
         }
-    }, []);
+    }, [authLoading, currentUser, fetchSessions]);
 
     const markInviteSent = async (requestId) => {
         await apiService.markInviteSent(requestId);
@@ -151,6 +186,7 @@ export const TutoringProvider = ({children}) => {
 
     const value = {
         sessions,
+        rrSessions,
         loading,
         error,
         conflictDetails,
@@ -158,7 +194,7 @@ export const TutoringProvider = ({children}) => {
         confirmOverride,
         dismissOverride,
         cancelSession,
-        getSessionsForStudent,
+        fetchStudentSessions,
         checkPriorityForDate,
         refreshSessions: fetchSessions,
         markInviteSent,

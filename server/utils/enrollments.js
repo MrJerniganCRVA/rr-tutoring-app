@@ -2,6 +2,11 @@ const Teacher = require('../models/Teacher');
 const Enrollment = require('../models/Enrollment');
 
 const TEACHER_PUBLIC_ATTRS = ['id', 'first_name', 'last_name', 'subject', 'lunch'];
+// Just enough to render a name. Used by endpoints that return people as a
+// label on someone else's record (e.g. a tutoring request's teacher, or the
+// student's RR teacher) rather than as the subject of the response.
+const TEACHER_LEAN_ATTRS = ['id', 'first_name', 'last_name'];
+const STUDENT_LEAN_ATTRS = ['id', 'first_name', 'last_name'];
 const KNOWN_PERIODS = ['R1', 'R2', 'RR', 'R4', 'R5'];
 
 // Eager-load config for fetching a Student (or a TutoringRequest's nested
@@ -67,6 +72,8 @@ async function setEnrollments(studentId, periodMap) {
 
 module.exports = {
   TEACHER_PUBLIC_ATTRS,
+  TEACHER_LEAN_ATTRS,
+  STUDENT_LEAN_ATTRS,
   KNOWN_PERIODS,
   STUDENT_ENROLLMENT_INCLUDE,
   reshapeStudent,
