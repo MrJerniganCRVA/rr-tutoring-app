@@ -90,7 +90,7 @@ const TutoringRequestList = () => {
       
       <Paper elevation={3} sx={{ p: 3 }}>
         <Typography variant="h5" component="h2" gutterBottom>
-          Tutoring Requests by {getFullName(currentUser)}
+          Tutoring Requests by {currentUser ? `${currentUser.firstName} ${currentUser.lastName}` : ''}
         </Typography>
         
         <Box sx={{ display: 'flex', mb: 3, gap: 2, alignItems:'center' }}>
