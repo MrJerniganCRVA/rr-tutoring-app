@@ -18,7 +18,8 @@ const RR_GROUPS = {
   10024: 10005,
   10011: 10005,
   10012: 10023,
-  10003: 10023
+  10003: 10023,
+  10031: 10002
 };
 
 function resolveRRMainTeacherId(teacherId) {
