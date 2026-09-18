@@ -147,6 +147,7 @@ app.use('/api/teachers', apiLimiter, require('./routes/teachers'));
 app.use('/api/students', apiLimiter, require('./routes/students'));
 app.use('/api/tutoring', apiLimiter, require('./routes/tutoring'));
 app.use('/api/calendar', apiLimiter, require('./routes/calendar'));
+app.use('/api/notifications', apiLimiter, require('./routes/notifications'));
 
 
 if(runMigration){

@@ -110,6 +110,18 @@ const apiService = {
       // that falls out of the range of 2xx
       if (error.response.data && error.response.data.msg) {
         errorMessage = error.response.data.msg;
+
+        // The non-overridable conflicts (403 existing-teacher-has-priority,
+        // 400 same-subject, 400 first-come-first-served) all ship the incumbent
+        // teacher's name in `conflict`, but `msg` alone never mentions them -
+        // so the teacher was left reading "Request denied" with no idea who
+        // holds the student.
+        const conflict = error.response.data.conflict;
+        if (conflict && conflict.existingTeacher) {
+          errorMessage += ` - already requested by ${conflict.existingTeacher}`;
+          if (conflict.existingSubject) errorMessage += ` (${conflict.existingSubject})`;
+          if (conflict.reason) errorMessage += `. ${conflict.reason}`;
+        }
       } else {
         errorMessage = `Server error: ${error.response.status}`;
       }
@@ -155,6 +167,18 @@ const apiService = {
   markInviteSent: async (requestId) => {
     return await apiClient.patch(`/api/calendar/mark-sent/${requestId}`);
   },
+  getNotifications: async ({ unreadOnly = false } = {}) => {
+    return await apiClient.get('/api/notifications', {
+      params: unreadOnly ? { unread: 'true' } : {}
+    });
+  },
+  markNotificationRead: async (notificationId) => {
+    return await apiClient.patch(`/api/notifications/${notificationId}/read`);
+  },
+  markAllNotificationsRead: async () => {
+    return await apiClient.patch('/api/notifications/read-all');
+  },
+
   unmarkInviteSent: async (requestId) => {
     return await apiClient.patch(`/api/calendar/unmark-sent/${requestId}`);
   }

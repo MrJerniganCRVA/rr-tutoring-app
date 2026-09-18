@@ -20,6 +20,10 @@ router.post('/send-invites', auth, async (req, res) => {
     const allRequests = await TutoringRequest.findAll({
       where: {
         TeacherId: req.teacher.id,
+        // Cancelled requests must be excluded, not just skipped: an overridden
+        // request that still reached this query would put its student back on
+        // the attendee list of an event they were just withdrawn from.
+        status: 'active',
         date: {
           [Op.gte]: today // Only future dates
         }
@@ -124,6 +128,7 @@ router.get('/pending-count', auth, async (req, res) => {
     const count = await TutoringRequest.count({
       where: {
         TeacherId: req.teacher.id,
+        status: 'active',
         date: {
           [Op.gte]: today
         },
@@ -144,7 +149,7 @@ router.get('/pending-count', auth, async (req, res) => {
 router.patch('/mark-sent/:id', auth, async (req, res) => {
   try {
     const request = await TutoringRequest.findOne({
-      where: { id: req.params.id, TeacherId: req.teacher.id }
+      where: { id: req.params.id, TeacherId: req.teacher.id, status: 'active' }
     });
 
     if (!request) {
@@ -165,7 +170,7 @@ router.patch('/mark-sent/:id', auth, async (req, res) => {
 router.patch('/unmark-sent/:id', auth, async (req, res) => {
   try {
     const request = await TutoringRequest.findOne({
-      where: { id: req.params.id, TeacherId: req.teacher.id }
+      where: { id: req.params.id, TeacherId: req.teacher.id, status: 'active' }
     });
 
     if (!request) {

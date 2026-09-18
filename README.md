@@ -8,7 +8,7 @@ A comprehensive web application for managing tutoring programs in educational in
 - **Teacher Dashboard** - View assigned students and tutoring schedules
 - **Session Management** - Create and manage tutoring requests
 - **Student Tracking** - Monitor student progress across different class periods
-- **Priority Scheduling** - Day-of-week subject priority with conflict detection and override
+- **Priority Scheduling** - Day-of-week subject priority with conflict detection and override. Overriding another teacher warns you first and names them; confirming it notifies them and withdraws the student from their calendar invite
 - **Teacher Analytics** - Look at data about your tutoring sessions
 
 ### For Admins
@@ -84,6 +84,16 @@ Join table linking Students to Teachers for a given class period. A student can 
 - `status` (active/cancelled/conflict), `priority`, `conflictReason`
 - Google Calendar invite tracking (`calendar_event_id`, `invite_sent`, `invite_sent_at`)
 
+### Notifications
+In-app messages addressed to a teacher. Written when a priority-day override cancels
+a booking they made — the only case where the app takes a session away from the teacher
+who scheduled it, and otherwise invisible to them since every list view hides cancelled rows.
+- Teacher ID (the **recipient**), Student ID (Foreign Keys)
+- `type`, `message` (rendered at write time), `relatedDate`, `read`, `readAt`
+
+The overriding teacher is named inside `message` rather than stored as a second
+foreign key, mirroring how `conflictReason` records them on the cancelled request.
+
 ## 🔧 API Endpoints
 
 All routes below require an authenticated session (Google OAuth) unless noted; admin-only routes additionally require `is_admin`.
@@ -115,6 +125,18 @@ All routes below require an authenticated session (Google OAuth) unless noted; a
 - `POST /api/tutoring` - Create a tutoring request (handles priority-day conflicts; pass `override: true` to confirm an override)
 - `GET /api/tutoring/priority/:date` - Check which subject has scheduling priority on a given date
 - `PUT /api/tutoring/cancel/:id` - Cancel a tutoring request
+
+Priority days: **Mon** CS, **Tue** Math, **Thu** Humanities, **Fri** Science. No tutoring
+Wednesdays or weekends. A teacher whose subject owns the day can override a booking made
+by a teacher whose subject does not; any other collision is first come, first served.
+An override cancels the incumbent's request, creates a `Notification` for them, and removes
+the student from the incumbent's Google Calendar event (deleting the event outright if that
+student was its only attendee).
+
+### Notifications
+- `GET /api/notifications` - The caller's own notifications, newest first (`?unread=true` to filter)
+- `PATCH /api/notifications/:id/read` - Mark one notification as read
+- `PATCH /api/notifications/read-all` - Mark all of the caller's notifications as read
 
 ### Analytics
 - `GET /api/analytics/:teacherId` - Get a teacher's personal + school-wide session analytics

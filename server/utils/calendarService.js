@@ -103,6 +103,67 @@ async function upsertCalendarEvent(teacherId, eventDetails, existingEventId = nu
   }
 }
 
+// Withdraw one student from an event the app previously created.
+//
+// `teacherId` is the event's *organizer* - the teacher whose calendar the event
+// lives on - which for the override path is the teacher being overridden, not
+// the one making the request. That works because getOAuth2Client() above builds
+// its client from whichever teacher's stored refresh_token it is handed.
+//
+// Deletes the event outright when the removed student was its last attendee;
+// otherwise patches the attendee list so the other students in the same lunch
+// block keep their invite. `sendUpdates: 'all'` is what makes Google mail the
+// student the cancellation.
+async function removeAttendeeFromEvent(teacherId, eventId, studentEmail) {
+  const oauth2Client = await getOAuth2Client(teacherId);
+  const calendar = google.calendar({ version: 'v3', auth: oauth2Client });
+  const target = (studentEmail || '').toLowerCase();
+
+  try {
+    const { data: event } = await calendar.events.get({
+      calendarId: 'primary',
+      eventId
+    });
+
+    const attendees = event.attendees || [];
+    const remaining = attendees.filter(a => (a.email || '').toLowerCase() !== target);
+
+    // Nothing to do - the student was never on this event.
+    if (remaining.length === attendees.length) {
+      return { action: 'not-attendee' };
+    }
+
+    if (remaining.length === 0) {
+      await calendar.events.delete({
+        calendarId: 'primary',
+        eventId,
+        sendUpdates: 'all'
+      });
+      console.log('Deleted calendar event (last attendee removed):', eventId);
+      return { action: 'deleted' };
+    }
+
+    await calendar.events.patch({
+      calendarId: 'primary',
+      eventId,
+      resource: { attendees: remaining },
+      sendUpdates: 'all'
+    });
+    console.log(`Removed ${studentEmail} from calendar event:`, eventId);
+    return { action: 'updated' };
+  } catch (error) {
+    // The event is already gone (deleted by hand, or a previous run got it).
+    // Nothing left to clean up, so this is a success, not a failure.
+    if (error.code === 404 || error.code === 410) {
+      console.log('Calendar event already gone, nothing to remove:', eventId);
+      return { action: 'gone' };
+    }
+    console.error('Calendar API error removing attendee:', error.message);
+    throw error;
+  }
+}
+
 module.exports = {
-  upsertCalendarEvent
+  upsertCalendarEvent,
+  removeAttendeeFromEvent
 };
