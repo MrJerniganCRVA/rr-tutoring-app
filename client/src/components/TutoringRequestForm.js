@@ -182,7 +182,21 @@ const TutoringRequestForm = () => {
       if (result.success) {
         setSuccess('Override successful! Student request has been processed.');
         if (result.overrideInfo) {
-          setSuccess(prev => `${prev} ${result.overrideInfo.overriddenTeacher}'s request was cancelled.`);
+          const { overriddenTeacher, notified, calendarCleanup } = result.overrideInfo;
+          setSuccess(prev => `${prev} ${overriddenTeacher}'s request was cancelled`
+            + `${notified ? ' and they have been notified' : ''}.`);
+
+          // Say so when the other teacher's calendar could not be updated -
+          // otherwise the teacher walks away assuming the student was pulled off
+          // an invite that still lists them.
+          if (calendarCleanup && calendarCleanup.attempted && !calendarCleanup.ok) {
+            setSuccess(prev => `${prev} Note: their Google Calendar invite could not be`
+              + ` updated automatically, so the student may still appear on it.`);
+          } else if (calendarCleanup && calendarCleanup.action === 'deleted') {
+            setSuccess(prev => `${prev} Their calendar event was removed.`);
+          } else if (calendarCleanup && calendarCleanup.action === 'updated') {
+            setSuccess(prev => `${prev} The student was removed from their calendar invite.`);
+          }
         }
         resetForm();
       }
@@ -368,7 +382,9 @@ const TutoringRequestForm = () => {
           )}
           
           <Alert severity="warning" sx={{ mt: 2 }}>
-            Confirming this override will cancel the existing teacher's request and create your request instead.
+            Confirming this override will cancel {conflictDetails?.existingTeacher || "the existing teacher"}'s
+            request and create your request instead. They will be notified, and if they had already sent a
+            calendar invite the student will be removed from it.
           </Alert>
         </DialogContent>
         <DialogActions>

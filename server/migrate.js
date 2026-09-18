@@ -8,6 +8,7 @@ require('./models/Teacher');
 require('./models/Student');
 require('./models/Enrollment');
 require('./models/TutoringRequest');
+require('./models/Notification');
 
 async function migrate(){
     try{

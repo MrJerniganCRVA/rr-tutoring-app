@@ -114,18 +114,26 @@ const PriorityDatePicker = ({
     }
 
     const dayPrioritySubject = SUBJECT_PRIORITIES[dayOfWeek];
-    
+    // The booking teacher is already on the session we just found - naming them
+    // here is what lets the teacher see who they are about to override before
+    // they submit, rather than only in the confirmation dialog.
+    const existingTeacher = existingSession.Teacher
+      ? `${existingSession.Teacher.first_name} ${existingSession.Teacher.last_name}`
+      : 'another teacher';
+
     if (currentTeacher.subject === dayPrioritySubject) {
       return { 
         type: 'canOverride', 
-        message: `Will override existing booking (${currentTeacher.subject} priority day)`,
+        message: `Will override ${existingTeacher}'s booking (${currentTeacher.subject} priority day)`,
+        existingTeacher,
         existingSession
       };
     }
 
     return { 
       type: 'blocked', 
-      message: `Already booked`,
+      message: `Already booked by ${existingTeacher}`,
+      existingTeacher,
       existingSession
     };
   };
@@ -190,8 +198,9 @@ const PriorityDatePicker = ({
             {dateStatus.type === 'canOverride' && (
               <Alert severity="warning" sx={{ mt: 1 }}>
                 <Typography variant="body2">
-                  This will override the existing booking because {currentTeacher?.subject} has 
+                  This will override {dateStatus.existingTeacher}'s booking because {currentTeacher?.subject} has 
                   priority on {value?.toLocaleDateString('en-US', { weekday: 'long' })}s.
+                  They will be notified and the student will be removed from their calendar invite.
                 </Typography>
               </Alert>
             )}

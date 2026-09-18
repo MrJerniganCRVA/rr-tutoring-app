@@ -1,13 +1,16 @@
 const express = require('express');
 const router = express.Router();
 const { Op } = require('sequelize');
+const sequelize = require('../config/db');
 const TutoringRequest = require('../models/TutoringRequest');
 const Student = require('../models/Student');
 const Teacher = require('../models/Teacher');
 const Enrollment = require('../models/Enrollment');
+const Notification = require('../models/Notification');
 const auth = require('../middleware/auth');
 const { TEACHER_LEAN_ATTRS, STUDENT_LEAN_ATTRS } = require('../utils/enrollments');
 const { resolveRRMainTeacherId, schoolYearStartDate, parseDateOnly } = require('../utils/tutoringScope');
+const { removeAttendeeFromEvent } = require('../utils/calendarService');
 
 // Only the RR enrollment is ever needed alongside a tutoring request (the
 // "Leaving RR Today" board keys off it). Loading just that one period instead
@@ -94,6 +97,67 @@ const hasSubjectPriority = (teacherSubject, date) =>{
 };
 
 
+
+// Pull the overridden student off the overridden teacher's Google Calendar
+// event, if one was ever sent. Reports what happened instead of throwing: the
+// overridden teacher may have revoked the app's access or never connected
+// Calendar at all, and neither should block a booking for someone else.
+async function withdrawStudentFromOverriddenEvent(teacherId, eventId, student) {
+  if (!eventId) {
+    return { attempted: false, ok: true, action: 'no-invite' };
+  }
+  try {
+    const result = await removeAttendeeFromEvent(teacherId, eventId, student.email);
+    return { attempted: true, ok: true, action: result.action };
+  } catch (err) {
+    console.error('Override calendar cleanup failed:', err.message);
+    return { attempted: true, ok: false, action: 'failed', error: err.message };
+  }
+}
+
+// Tell the overridden teacher their session is gone. Without this the request
+// just disappears from their dashboard - every list view filters cancelled rows
+// out, and conflictReason is not part of the API payload.
+async function notifyOverriddenTeacher({ overriddenTeacherId, student, date, requestingTeacher, calendarCleanup }) {
+  // `date` is a DATEONLY, which Sequelize reads back as 'YYYY-MM-DD'. Anchoring
+  // at midnight local keeps the weekday from drifting a day, and the guard keeps
+  // a Date instance from rendering as "Invalid Date".
+  const dateOnly = date instanceof Date ? date.toISOString().split('T')[0] : date;
+  const dayName = new Date(`${dateOnly}T00:00:00`).toLocaleDateString('en-US', {
+    weekday: 'long', month: 'long', day: 'numeric'
+  });
+
+  let message = `${student.first_name} ${student.last_name} has been requested for tutoring on ${dayName} `
+    + `by ${requestingTeacher.first_name} ${requestingTeacher.last_name} `
+    + `(${requestingTeacher.subject} priority day) and your tutoring event has been cancelled.`;
+
+  if (calendarCleanup.ok && calendarCleanup.action === 'deleted') {
+    message += ` ${student.first_name} was the only student on that calendar event, so the event was removed.`;
+  } else if (calendarCleanup.ok && calendarCleanup.action === 'updated') {
+    message += ` ${student.first_name} has been removed from your calendar invite.`;
+  } else if (!calendarCleanup.ok) {
+    message += ` Your calendar invite could not be updated automatically -`
+      + ` please remove ${student.first_name} from that event yourself.`;
+  }
+
+  try {
+    await Notification.create({
+      TeacherId: overriddenTeacherId,
+      StudentId: student.id,
+      type: 'override',
+      message,
+      relatedDate: dateOnly
+    });
+    return true;
+  } catch (err) {
+    // Same reasoning as the calendar cleanup: the booking swap already
+    // happened, so a failed notification is logged, not surfaced as an error.
+    // The caller reports it as notified:false rather than claiming a message
+    // the teacher will never see.
+    console.error('Failed to create override notification:', err.message);
+    return false;
+  }
+}
 
 // @route   GET api/tutoring/:id
 // @desc    Get tutoring request by ID
@@ -262,21 +326,52 @@ router.post('/', auth, async (req, res) => {
           requireOverride: true
         });
       }
-      //have confirmed override so cancel existing and create new
-      existingRequest.status = 'cancelled';
-      existingRequest.conflictReason = `Overriden by ${requestingTeacher.last_name}. Priority given`;
-      await existingRequest.save();
+      //have confirmed override so cancel existing and create new.
+      // Both writes go in one transaction: cancelling the incumbent without
+      // creating the replacement would leave the student with no session at all.
+      // The calendar event id is remembered before it is cleared below.
+      const overriddenEventId = existingRequest.calendar_event_id;
+      const overriddenTeacherId = existingRequest.TeacherId;
 
-      const newRequest = await TutoringRequest.create({
-        TeacherId: req.teacher.id,
-        StudentId: studentId,
-        date: dateObj,
-        lunchA: lunches.A || false,
-        lunchB: lunches.B || false,
-        lunchC: lunches.C || false,
-        lunchD: lunches.D || false,
-        priority: 1 // Has priority
+      const newRequest = await sequelize.transaction(async (t) => {
+        existingRequest.status = 'cancelled';
+        existingRequest.conflictReason = `Overriden by ${requestingTeacher.last_name}. Priority given`;
+        // Drop the invite bookkeeping so this cancelled row can never be
+        // re-grouped into a future calendar event for the overridden teacher.
+        existingRequest.calendar_event_id = null;
+        existingRequest.invite_sent = false;
+        existingRequest.invite_sent_at = null;
+        await existingRequest.save({ transaction: t });
+
+        return TutoringRequest.create({
+          TeacherId: req.teacher.id,
+          StudentId: studentId,
+          date: dateObj,
+          lunchA: lunches.A || false,
+          lunchB: lunches.B || false,
+          lunchC: lunches.C || false,
+          lunchD: lunches.D || false,
+          priority: 1 // Has priority
+        }, { transaction: t });
       });
+
+      // Side effects run only once the booking swap is committed, and neither
+      // is allowed to fail the override - the student is already reassigned, so
+      // throwing here would report failure for work that actually happened.
+      const calendarCleanup = await withdrawStudentFromOverriddenEvent(
+        overriddenTeacherId,
+        overriddenEventId,
+        student
+      );
+
+      const notified = await notifyOverriddenTeacher({
+        overriddenTeacherId,
+        student,
+        date: existingRequest.date,
+        requestingTeacher,
+        calendarCleanup
+      });
+
       const request = await TutoringRequest.findByPk(newRequest.id, { include: OWN_REQUEST_INCLUDE });
 
       return res.json({
@@ -284,7 +379,9 @@ router.post('/', auth, async (req, res) => {
         overrideInfo: {
           overriddenTeacher: `${existingTeacher.first_name} ${existingTeacher.last_name}`,
           overriddenSubject: existingTeacher.subject,
-          reason: 'Priority day override'
+          reason: 'Priority day override',
+          notified,
+          calendarCleanup
         }
       });
 

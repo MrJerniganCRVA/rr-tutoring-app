@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   AppBar,
   Toolbar,
@@ -6,11 +6,20 @@ import {
   Button,
   Box,
   Tabs,
-  Tab
+  Tab,
+  Badge,
+  IconButton,
+  Menu,
+  MenuItem,
+  ListItemText,
+  Divider,
+  Tooltip
 } from '@mui/material';
 import { useNavigate, useLocation } from 'react-router-dom';
 import SchoolIcon from '@mui/icons-material/School';
+import NotificationsIcon from '@mui/icons-material/Notifications';
 import { useAuth } from '../contexts/AuthContext';
+import apiService from '../utils/apiService';
 
 const API_URL = process.env.REACT_APP_API_BASE_URL || 'http://localhost:5000';
 
@@ -18,6 +27,9 @@ const Header = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { currentUser, clearUser } = useAuth();
+  const [notifications, setNotifications] = useState([]);
+  const [unreadCount, setUnreadCount] = useState(0);
+  const [bellAnchor, setBellAnchor] = useState(null);
 
   const teacherName = currentUser
     ? `${currentUser.firstName} ${currentUser.lastName}`
@@ -36,6 +48,52 @@ const Header = () => {
     } finally {
       clearUser();
       navigate('/select-teacher');
+    }
+  };
+
+  // Notifications are currently only written when a teacher is overridden on a
+  // priority day, so there is nothing to poll for - fetch once on login and
+  // again whenever the bell is opened.
+  const loadNotifications = useCallback(async () => {
+    try {
+      const response = await apiService.getNotifications();
+      setNotifications(response.data.notifications || []);
+      setUnreadCount(response.data.unreadCount || 0);
+    } catch (err) {
+      // A teacher who can't load their notifications should still get a working
+      // nav bar, so this stays a console warning rather than a visible error.
+      console.error('Failed to load notifications', err);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (currentUser) loadNotifications();
+  }, [currentUser, loadNotifications]);
+
+  const handleBellOpen = (event) => {
+    setBellAnchor(event.currentTarget);
+    loadNotifications();
+  };
+
+  const handleNotificationClick = async (notification) => {
+    if (notification.read) return;
+    try {
+      await apiService.markNotificationRead(notification.id);
+      setNotifications(prev =>
+        prev.map(n => (n.id === notification.id ? { ...n, read: true } : n)));
+      setUnreadCount(prev => Math.max(0, prev - 1));
+    } catch (err) {
+      console.error('Failed to mark notification read', err);
+    }
+  };
+
+  const handleMarkAllRead = async () => {
+    try {
+      await apiService.markAllNotificationsRead();
+      setNotifications(prev => prev.map(n => ({ ...n, read: true })));
+      setUnreadCount(0);
+    } catch (err) {
+      console.error('Failed to mark all notifications read', err);
     }
   };
 
@@ -84,6 +142,59 @@ const Header = () => {
         </Tabs>
         
         <Box sx={{ display: 'flex', alignItems: 'center' }}>
+          <Tooltip title="Notifications">
+            <IconButton color="inherit" onClick={handleBellOpen} sx={{ mr: 1 }}>
+              <Badge badgeContent={unreadCount} color="error">
+                <NotificationsIcon />
+              </Badge>
+            </IconButton>
+          </Tooltip>
+
+          <Menu
+            anchorEl={bellAnchor}
+            open={!!bellAnchor}
+            onClose={() => setBellAnchor(null)}
+            slotProps={{ paper: { sx: { maxWidth: 420, maxHeight: 400 } } }}
+          >
+            {notifications.length === 0 && (
+              <MenuItem disabled>
+                <ListItemText primary="No notifications" />
+              </MenuItem>
+            )}
+
+            {notifications.length > 0 && unreadCount > 0 && [
+              <MenuItem key="mark-all" onClick={handleMarkAllRead}>
+                <ListItemText
+                  primary="Mark all as read"
+                  primaryTypographyProps={{ variant: 'body2', color: 'primary' }}
+                />
+              </MenuItem>,
+              <Divider key="mark-all-divider" />
+            ]}
+
+            {notifications.map(notification => (
+              <MenuItem
+                key={notification.id}
+                onClick={() => handleNotificationClick(notification)}
+                sx={{
+                  whiteSpace: 'normal',
+                  alignItems: 'flex-start',
+                  backgroundColor: notification.read ? 'transparent' : 'action.hover'
+                }}
+              >
+                <ListItemText
+                  primary={notification.message}
+                  primaryTypographyProps={{
+                    variant: 'body2',
+                    fontWeight: notification.read ? 'normal' : 'bold'
+                  }}
+                  secondary={new Date(notification.createdAt).toLocaleString()}
+                  secondaryTypographyProps={{ variant: 'caption' }}
+                />
+              </MenuItem>
+            ))}
+          </Menu>
+
           <Typography variant="subtitle1" sx={{ mr: 2 }}>
             {teacherName || 'Login'}
           </Typography>
