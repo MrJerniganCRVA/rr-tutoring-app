@@ -10,7 +10,7 @@ const Notification = require('../models/Notification');
 const auth = require('../middleware/auth');
 const { TEACHER_LEAN_ATTRS, STUDENT_LEAN_ATTRS } = require('../utils/enrollments');
 const { resolveRRMainTeacherId, schoolYearStartDate, parseDateOnly } = require('../utils/tutoringScope');
-const { removeAttendeeFromEvent } = require('../utils/calendarService');
+const { removeAttendeeFromEvent, parseEventIds } = require('../utils/calendarService');
 
 // Only the RR enrollment is ever needed alongside a tutoring request (the
 // "Leaving RR Today" board keys off it). Loading just that one period instead
@@ -98,21 +98,36 @@ const hasSubjectPriority = (teacherSubject, date) =>{
 
 
 
-// Pull the overridden student off the overridden teacher's Google Calendar
-// event, if one was ever sent. Reports what happened instead of throwing: the
-// overridden teacher may have revoked the app's access or never connected
-// Calendar at all, and neither should block a booking for someone else.
-async function withdrawStudentFromOverriddenEvent(teacherId, eventId, student) {
-  if (!eventId) {
+// Pull a student off every Google Calendar event a request was sent as (one
+// per contiguous lunch chunk, so an A,B,D booking has two). `teacherId` is the
+// events' organizer. Reports what happened instead of throwing: the teacher may
+// have revoked the app's access or never connected Calendar at all, and neither
+// should block the booking change that triggered the cleanup.
+async function withdrawStudentFromEvents(teacherId, calendarEventIds, student) {
+  const eventIds = parseEventIds(calendarEventIds).filter(Boolean);
+  if (eventIds.length === 0) {
     return { attempted: false, ok: true, action: 'no-invite' };
   }
-  try {
-    const result = await removeAttendeeFromEvent(teacherId, eventId, student.email);
-    return { attempted: true, ok: true, action: result.action };
-  } catch (err) {
-    console.error('Override calendar cleanup failed:', err.message);
-    return { attempted: true, ok: false, action: 'failed', error: err.message };
+
+  const actions = [];
+  const errors = [];
+  for (const eventId of eventIds) {
+    try {
+      const result = await removeAttendeeFromEvent(teacherId, eventId, student.email);
+      actions.push(result.action);
+    } catch (err) {
+      console.error('Calendar cleanup failed:', err.message);
+      errors.push(err.message);
+    }
   }
+
+  if (errors.length > 0) {
+    return { attempted: true, ok: false, action: 'failed', error: errors.join('; ') };
+  }
+  // 'updated' wins over 'deleted' so the message never claims the whole event
+  // is gone while another student is still on one of them.
+  const action = ['updated', 'deleted', 'gone', 'not-attendee'].find(a => actions.includes(a));
+  return { attempted: true, ok: true, action };
 }
 
 // Tell the overridden teacher their session is gone. Without this the request
@@ -358,7 +373,7 @@ router.post('/', auth, async (req, res) => {
       // Side effects run only once the booking swap is committed, and neither
       // is allowed to fail the override - the student is already reassigned, so
       // throwing here would report failure for work that actually happened.
-      const calendarCleanup = await withdrawStudentFromOverriddenEvent(
+      const calendarCleanup = await withdrawStudentFromEvents(
         overriddenTeacherId,
         overriddenEventId,
         student
@@ -470,7 +485,9 @@ router.get('/priority/:date', (req, res) => {
 // @access  Private
 router.put('/cancel/:id', auth, async (req, res) => {
   try {
-    const request = await TutoringRequest.findByPk(req.params.id);
+    const request = await TutoringRequest.findByPk(req.params.id, {
+      include: [{ model: Student, attributes: ['id', 'email'] }]
+    });
     
     if (!request) {
       return res.status(404).json({ msg: 'Request not found' });
@@ -481,11 +498,24 @@ router.put('/cancel/:id', auth, async (req, res) => {
       return res.status(401).json({ msg: 'Not authorized to cancel this request' });
     }
     
-    // Update to cancelled status
+    // Update to cancelled status. The invite bookkeeping is cleared (same as
+    // an override) after remembering the event ids to withdraw the student from.
+    const cancelledEventIds = request.calendar_event_id;
     request.status = 'cancelled';
+    request.calendar_event_id = null;
+    request.invite_sent = false;
+    request.invite_sent_at = null;
     await request.save();
+
+    // Runs after the save and never throws: a calendar failure must not undo
+    // or misreport a cancellation that already happened.
+    const calendarCleanup = request.Student
+      ? await withdrawStudentFromEvents(request.TeacherId, cancelledEventIds, request.Student)
+      : { attempted: false, ok: true, action: 'no-invite' };
     
-    res.json({ msg: 'Request cancelled successfully', request });
+    // The Student include was only loaded for its email; keep it out of the response.
+    const { Student: _student, ...requestData } = request.toJSON();
+    res.json({ msg: 'Request cancelled successfully', request: requestData, calendarCleanup });
   } catch (err) {
     console.error(err.message);
     res.status(500).send('Server Error');

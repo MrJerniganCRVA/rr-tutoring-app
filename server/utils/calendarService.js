@@ -163,7 +163,24 @@ async function removeAttendeeFromEvent(teacherId, eventId, studentEmail) {
   }
 }
 
+// A request with non-contiguous lunches (e.g. A, B, D) needs one event per
+// contiguous chunk, so `calendar_event_id` holds a comma-separated list ordered
+// by chunk index ("idAB,idD"). A legacy single id is simply chunk 0. Positions
+// are preserved: a chunk without an event yet is an empty slot (",idD").
+function parseEventIds(value) {
+  if (!value) return [];
+  return value.split(',').map(id => id.trim());
+}
+
+function joinEventIds(ids) {
+  const slots = Array.from(ids, id => id || '');
+  while (slots.length && !slots[slots.length - 1]) slots.pop();
+  return slots.length ? slots.join(',') : null;
+}
+
 module.exports = {
   upsertCalendarEvent,
-  removeAttendeeFromEvent
+  removeAttendeeFromEvent,
+  parseEventIds,
+  joinEventIds
 };
