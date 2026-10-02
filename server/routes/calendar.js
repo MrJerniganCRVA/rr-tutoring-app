@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const auth = require('../middleware/auth');
-const { upsertCalendarEvent } = require('../utils/calendarService');
+const { upsertCalendarEvent, parseEventIds, joinEventIds } = require('../utils/calendarService');
 const TutoringRequest = require('../models/TutoringRequest');
 const Student = require('../models/Student');
 const { Op } = require('sequelize');
@@ -48,16 +48,27 @@ router.post('/send-invites', auth, async (req, res) => {
     // when Google Calendar replaces the attendee list on an update.
     const groupedByDateAndTime = groupByDateAndTimeSlot(allRequests);
 
+    // Snapshot which requests are pending *before* any group is processed. A
+    // request with non-contiguous lunches (A, B, D) sits in two groups, and
+    // reading the live `invite_sent` flag would make the second group skip it
+    // once the first group has marked it sent.
+    const pendingIds = new Set(allRequests.filter(r => !r.invite_sent).map(r => r.id));
+
     const results = [];
 
     // For each unique date+time combination
     for (const group of groupedByDateAndTime) {
       // Skip groups where every request has already been sent
-      const pendingInGroup = group.requests.filter(r => !r.invite_sent);
+      const pendingInGroup = group.entries.filter(e => pendingIds.has(e.request.id));
       if (pendingInGroup.length === 0) continue;
 
-      // Find existing event ID from any request in this group (sent or unsent)
-      const existingEventId = group.requests.find(r => r.calendar_event_id)?.calendar_event_id;
+      // Find this chunk's existing event from any request in the group. Each
+      // request stores one id per chunk, so look up the slot for this chunk -
+      // otherwise the D group of an A,B,D request would pick up (and move) the
+      // A+B event.
+      const existingEventId = group.entries
+        .map(e => parseEventIds(e.request.calendar_event_id)[e.chunkIndex])
+        .find(Boolean);
 
       // Exclude students whose requests are manually marked (invite_sent=true, calendar_event_id=null)
       // so the app never sends a duplicate Google Calendar invite for teacher-handled students.
@@ -88,12 +99,18 @@ router.post('/send-invites', auth, async (req, res) => {
       // Create or update the event
       const event = await upsertCalendarEvent(req.teacher.id, eventDetails, existingEventId);
 
-      // Only mark previously-unsent requests as sent; avoid clobbering already-sent records
-      for (const request of pendingInGroup) {
+      // Record this chunk's event on each previously-unsent request; avoid
+      // clobbering already-sent records. A request is only marked sent once
+      // every one of its chunks has an event, so a failure partway through
+      // leaves it pending and the next run reuses the events already created.
+      for (const { request, chunkIndex, chunkCount } of pendingInGroup) {
+        const eventIds = parseEventIds(request.calendar_event_id);
+        eventIds[chunkIndex] = event.id;
+        const allChunksSent = Array.from({ length: chunkCount }, (_, i) => eventIds[i]).every(Boolean);
         await request.update({
-          invite_sent: true,
-          invite_sent_at: new Date(),
-          calendar_event_id: event.id
+          invite_sent: allChunksSent,
+          invite_sent_at: allChunksSent ? new Date() : null,
+          calendar_event_id: joinEventIds(eventIds)
         });
       }
 
@@ -203,7 +220,7 @@ function groupByDateAndTimeSlot(requests) {
     // Break into contiguous chunks
     const chunks = getContiguousChunks(lunchPeriods);
 
-    chunks.forEach(chunk => {
+    chunks.forEach((chunk, chunkIndex) => {
       const timeSlot = getMergedTimeSlot(chunk, request.date);
       const key = `${request.date}-${timeSlot.start}-${timeSlot.end}`;
 
@@ -214,7 +231,10 @@ function groupByDateAndTimeSlot(requests) {
           startDateTime: timeSlot.start,
           endDateTime: timeSlot.end,
           students: [],
-          requests: []
+          requests: [],
+          // Which chunk of each request this group covers, so the request's
+          // per-chunk event id can be found and stored.
+          entries: []
         };
       }
 
@@ -224,6 +244,7 @@ function groupByDateAndTimeSlot(requests) {
       }
       
       groups[key].requests.push(request);
+      groups[key].entries.push({ request, chunkIndex, chunkCount: chunks.length });
     });
   });
 
