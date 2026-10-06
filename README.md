@@ -15,7 +15,7 @@ A comprehensive web application for managing tutoring programs in educational in
 ### For Admins
 - **Student & Teacher Rosters** - Add, edit, and manage student and teacher records
 - **Bulk CSV Import** - Onboard students or teachers in bulk, and bulk-update RR assignments
-- **Admin Dashboard** - Today at a glance (sessions by lunch and department, every RR's leaving list), school-wide trends over any date range, and a one-click download of the full Excel report
+- **Admin Dashboard** - Today at a glance (sessions by lunch and department, every RR's leaving list), school-wide trends over any date range
 
 ### System Features
 - **Real-time Updates** - Live data synchronization
@@ -150,14 +150,6 @@ Both routes return 403 unless `:teacherId` is the caller (admins can read any te
 ### Admin (admin only)
 - `GET /api/admin/today` - Today's sessions school-wide: totals, by lunch, by department, priority subject, and students leaving each RR
 - `GET /api/admin/trends?from&to` - Trends over a date range (defaults to this school year): per week, department, teacher (with percentile), day of week, grade level, status
-- `GET /api/admin/report` - Runs the Kotlin [tutoring-analytics-report](https://github.com/MrJerniganCRVA/tutoring-analytics-report) service and streams back the `.xlsx`
-
-#### Report service setup (Railway)
-The report runs as a second service in the same Railway project, so admins can generate it from a button without a rewrite:
-1. Add the `tutoring-analytics-report` repo as a new service (it builds from its Dockerfile).
-2. On that service set `DATABASE_URL` (reference the Postgres service's private URL) and `REPORT_TOKEN` (a long random string). Don't generate a public domain.
-3. Enable Serverless (sleep when idle) - it only wakes when an admin clicks the button.
-4. On this server set `REPORT_SERVICE_URL=http://<report-service>.railway.internal:<PORT>` and the same `REPORT_TOKEN`.
 
 ### Calendar
 - `POST /api/calendar/send-invites` - Send pending Google Calendar invites for the teacher's tutoring requests
