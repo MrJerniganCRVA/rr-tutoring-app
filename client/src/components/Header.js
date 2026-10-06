@@ -103,6 +103,7 @@ const Header = () => {
     if (location.pathname === '/calendar') return 2;
     if (location.pathname === '/analytics') return 3;
     if (location.pathname === '/roster') return 4;
+    if (location.pathname === '/admin') return 5;
     return false;
   };
   
@@ -138,7 +139,8 @@ const Header = () => {
           <Tab label="Requests" onClick={() => navigate('/tutoring')} />
           <Tab label="Events" onClick={() => navigate('/calendar')} />
           <Tab label="Analytics" onClick={() => navigate('/analytics')} />
-          {isAdmin && <Tab label="Roster" onClick={() => navigate('/roster')} />}
+          {isAdmin && <Tab label="Roster" value={4} onClick={() => navigate('/roster')} />}
+          {isAdmin && <Tab label="Admin" value={5} onClick={() => navigate('/admin')} />}
         </Tabs>
         
         <Box sx={{ display: 'flex', alignItems: 'center' }}>

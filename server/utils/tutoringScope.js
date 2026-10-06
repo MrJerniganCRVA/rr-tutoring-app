@@ -49,9 +49,25 @@ function parseDateOnly(value) {
   return Number.isNaN(parsed.getTime()) ? undefined : value;
 }
 
+// "Today" as the school sees it. The server runs in UTC, so a plain
+// toISOString() rolls over to tomorrow during the evening in Virginia; the
+// coverage and admin views pin the day server-side and must not drift.
+const SCHOOL_TIME_ZONE = 'America/New_York';
+
+function schoolTodayDateOnly(now = new Date()) {
+  // en-CA formats as YYYY-MM-DD.
+  return new Intl.DateTimeFormat('en-CA', {
+    timeZone: SCHOOL_TIME_ZONE,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit'
+  }).format(now);
+}
+
 module.exports = {
   RR_GROUPS,
   resolveRRMainTeacherId,
   schoolYearStartDate,
+  schoolTodayDateOnly,
   parseDateOnly
 };

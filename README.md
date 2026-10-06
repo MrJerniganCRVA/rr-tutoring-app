@@ -10,10 +10,12 @@ A comprehensive web application for managing tutoring programs in educational in
 - **Student Tracking** - Monitor student progress across different class periods
 - **Priority Scheduling** - Day-of-week subject priority with conflict detection and override. Overriding another teacher warns you first and names them; confirming it notifies them and withdraws the student from their calendar invite
 - **Teacher Analytics** - Look at data about your tutoring sessions
+- **RR Coverage** - "Are you covering today?" on the Raptor Rotation page: pick the RR you're covering to see which students are leaving it for tutoring today. Names only, today only
 
 ### For Admins
 - **Student & Teacher Rosters** - Add, edit, and manage student and teacher records
 - **Bulk CSV Import** - Onboard students or teachers in bulk, and bulk-update RR assignments
+- **Admin Dashboard** - Today at a glance (sessions by lunch and department, every RR's leaving list), school-wide trends over any date range, and a one-click download of the full Excel report
 
 ### System Features
 - **Real-time Updates** - Live data synchronization
@@ -120,8 +122,10 @@ All routes below require an authenticated session (Google OAuth) unless noted; a
 - `PUT /api/students/:id` - Update a student's class enrollments (admin only)
 
 ### Tutoring
-- `GET /api/tutoring` - Get all tutoring requests
-- `GET /api/tutoring/:id` - Get a specific tutoring request
+- `GET /api/tutoring` - Tutoring requests, scoped by `scope=mine|rr|student`. For non-admins `scope=student` only returns active requests from today forward (what the scheduling conflict check needs)
+- `GET /api/tutoring/:id` - A specific tutoring request; only the teacher who booked it, the student's RR teacher, or an admin (404 otherwise)
+- `GET /api/tutoring/rr-teachers` - Teachers whose RR can be covered (names only)
+- `GET /api/tutoring/coverage/:teacherId` - Today's leaving list for that RR: student names only
 - `POST /api/tutoring` - Create a tutoring request (handles priority-day conflicts; pass `override: true` to confirm an override)
 - `GET /api/tutoring/priority/:date` - Check which subject has scheduling priority on a given date
 - `PUT /api/tutoring/cancel/:id` - Cancel a tutoring request
@@ -139,8 +143,21 @@ student was its only attendee).
 - `PATCH /api/notifications/read-all` - Mark all of the caller's notifications as read
 
 ### Analytics
+Both routes return 403 unless `:teacherId` is the caller (admins can read any teacher).
 - `GET /api/analytics/:teacherId` - Get a teacher's personal + school-wide session analytics
 - `GET /api/analytics/:teacherId/student/:studentId` - Get a teacher's session history with a specific student
+
+### Admin (admin only)
+- `GET /api/admin/today` - Today's sessions school-wide: totals, by lunch, by department, priority subject, and students leaving each RR
+- `GET /api/admin/trends?from&to` - Trends over a date range (defaults to this school year): per week, department, teacher (with percentile), day of week, grade level, status
+- `GET /api/admin/report` - Runs the Kotlin [tutoring-analytics-report](https://github.com/MrJerniganCRVA/tutoring-analytics-report) service and streams back the `.xlsx`
+
+#### Report service setup (Railway)
+The report runs as a second service in the same Railway project, so admins can generate it from a button without a rewrite:
+1. Add the `tutoring-analytics-report` repo as a new service (it builds from its Dockerfile).
+2. On that service set `DATABASE_URL` (reference the Postgres service's private URL) and `REPORT_TOKEN` (a long random string). Don't generate a public domain.
+3. Enable Serverless (sleep when idle) - it only wakes when an admin clicks the button.
+4. On this server set `REPORT_SERVICE_URL=http://<report-service>.railway.internal:<PORT>` and the same `REPORT_TOKEN`.
 
 ### Calendar
 - `POST /api/calendar/send-invites` - Send pending Google Calendar invites for the teacher's tutoring requests
