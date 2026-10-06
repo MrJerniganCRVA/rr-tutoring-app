@@ -175,7 +175,7 @@ const TrendsSection = ({ trends }) => {
           <StatCard label="Students tutored" value={trends.uniqueStudents} color={GREEN} />
         </Grid>
         <Grid item xs={6} md={3}>
-          <StatCard label="Active students never tutored" value={trends.activeStudentsWithoutSessions} color={PINK} />
+          <StatCard label="Student never tutored" value={trends.activeStudentsWithoutSessions} color={PINK} />
         </Grid>
         <Grid item xs={6} md={3}>
           <StatCard label="Cancelled / overridden" value={cancelled} color={LIGHT_BLUE} />
