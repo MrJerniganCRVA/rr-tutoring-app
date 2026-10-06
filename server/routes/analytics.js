@@ -7,8 +7,23 @@ const TutoringRequest = require('../models/TutoringRequest');
 const {Op} = require('sequelize');
 const sequelize = require('../config/db');
 const auth = require('../middleware/auth');
+const { isAdmin } = require('../middleware/requireAdmin');
 
-router.get('/:teacherId/student/:studentId', auth, async (req, res) => {
+// A teacher's analytics are their own. Admins can read anyone's; everyone else
+// gets 403 for any id but their own.
+async function ownOrAdmin(req, res, next) {
+    try {
+        if (String(req.params.teacherId) === String(req.teacher.id) || await isAdmin(req.teacher.id)) {
+            return next();
+        }
+        return res.status(403).json({ msg: 'You can only view your own analytics' });
+    } catch (error) {
+        console.error('Analytics Error:', error);
+        res.status(500).json({ error: error.message });
+    }
+}
+
+router.get('/:teacherId/student/:studentId', auth, ownOrAdmin, async (req, res) => {
     const teacherId = req.params.teacherId;
     const studentId = req.params.studentId;
     try{
@@ -41,7 +56,7 @@ router.get('/:teacherId/student/:studentId', auth, async (req, res) => {
 //Need to work on getting Group Stats
 
 //GET /api/analytics/:teacherID
-router.get('/:teacherId', auth, async (req, res)=>{
+router.get('/:teacherId', auth, ownOrAdmin, async (req, res)=>{
     const {teacherId} = req.params;
     try{
         const totalSessions = await TutoringRequest.count({

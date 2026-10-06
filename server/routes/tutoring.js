@@ -8,95 +8,23 @@ const Teacher = require('../models/Teacher');
 const Enrollment = require('../models/Enrollment');
 const Notification = require('../models/Notification');
 const auth = require('../middleware/auth');
-const { TEACHER_LEAN_ATTRS, STUDENT_LEAN_ATTRS } = require('../utils/enrollments');
-const { resolveRRMainTeacherId, schoolYearStartDate, parseDateOnly } = require('../utils/tutoringScope');
+const {
+  buildRequestInclude,
+  toLeanRequest,
+  OWN_REQUEST_INCLUDE,
+  getPrioritySubjectForDay,
+  hasSubjectPriority
+} = require('../utils/tutoringQueries');
+const { TEACHER_LEAN_ATTRS } = require('../utils/enrollments');
+const { isAdmin } = require('../middleware/requireAdmin');
+const {
+  RR_GROUPS,
+  resolveRRMainTeacherId,
+  schoolYearStartDate,
+  schoolTodayDateOnly,
+  parseDateOnly
+} = require('../utils/tutoringScope');
 const { removeAttendeeFromEvent, parseEventIds } = require('../utils/calendarService');
-
-// Only the RR enrollment is ever needed alongside a tutoring request (the
-// "Leaving RR Today" board keys off it). Loading just that one period instead
-// of all five is what keeps this query from fanning out to
-// requests x enrollments rows and serializing every rotation teacher twice.
-//
-// `scope === 'rr'` turns the same include into the filter itself: an inner
-// join restricted to one RR teacher, so the database does the scoping.
-function buildRequestInclude(scope, rrMainTeacherId) {
-  const isRR = scope === 'rr';
-  return [
-    { model: Teacher, attributes: TEACHER_LEAN_ATTRS },
-    {
-      model: Student,
-      attributes: STUDENT_LEAN_ATTRS,
-      required: isRR,
-      include: [{
-        model: Enrollment,
-        attributes: ['id', 'period'],
-        where: isRR ? { period: 'RR', TeacherId: rrMainTeacherId } : { period: 'RR' },
-        required: isRR,
-        include: [{ model: Teacher, attributes: TEACHER_LEAN_ATTRS }]
-      }]
-    }
-  ];
-}
-
-// The shape every tutoring endpoint returns. Deliberately narrow: this is the
-// full set of fields the client actually reads. Notably absent are the
-// student's email and the rest of their schedule, which the old response
-// included for every request in the database.
-function toLeanRequest(requestInstance) {
-  const data = requestInstance.toJSON ? requestInstance.toJSON() : requestInstance;
-  const student = data.Student;
-  const rrTeacher = (student?.Enrollments || []).find(e => e.period === 'RR')?.Teacher || null;
-  const name = (person) => (person
-    ? { id: person.id, first_name: person.first_name, last_name: person.last_name }
-    : null);
-
-  return {
-    id: data.id,
-    date: data.date,
-    status: data.status,
-    lunchA: data.lunchA,
-    lunchB: data.lunchB,
-    lunchC: data.lunchC,
-    lunchD: data.lunchD,
-    invite_sent: data.invite_sent,
-    calendar_event_id: data.calendar_event_id,
-    TeacherId: data.TeacherId,
-    StudentId: data.StudentId,
-    Teacher: name(data.Teacher),
-    Student: student ? { ...name(student), RR: name(rrTeacher) } : null
-  };
-}
-
-// Used by the POST handlers, which always return a single request to the
-// teacher who just created it.
-const OWN_REQUEST_INCLUDE = buildRequestInclude('mine', null);
-
-const getPrioritySubjectForDay = (date) => {
-  let dateObj; 
-  if(typeof date === 'string'){
-    const [year, month, day] = date.split('-').map(num => parseInt(num, 10));
-    dateObj = new Date(year, month - 1, day);
-  } else {
-    dateObj = new Date(date);
-  }
-  const dayOfWeek = dateObj.getDay()
-  const priorityMap = {
-    0: null,
-    1: 'CS',
-    2: 'Math',
-    3: null,
-    4: 'Humanities',
-    5: 'Science',
-    6: null
-  };
-  return priorityMap[dayOfWeek];
-};
-const hasSubjectPriority = (teacherSubject, date) =>{
-  const prioritySubject = getPrioritySubjectForDay(date);
-  return teacherSubject === prioritySubject;
-};
-
-
 
 // Pull a student off every Google Calendar event a request was sent as (one
 // per contiguous lunch chunk, so an A,B,D booking has two). `teacherId` is the
@@ -174,18 +102,102 @@ async function notifyOverriddenTeacher({ overriddenTeacherId, student, date, req
   }
 }
 
+// @route   GET api/tutoring/rr-teachers
+// @desc    Teachers whose Raptor Rotation can be covered - the picker for the
+//          "Are you covering today?" dialog. Names only.
+// @access  Private
+//
+// Includes every member of a shared RR group (RR_GROUPS), not just the main
+// teacher students are enrolled under, so a covering teacher can pick the name
+// they were actually told. /coverage resolves the group either way.
+router.get('/rr-teachers', auth, async (req, res) => {
+  try {
+    const rrRows = await Enrollment.findAll({
+      where: { period: 'RR' },
+      attributes: [[sequelize.fn('DISTINCT', sequelize.col('TeacherId')), 'TeacherId']],
+      raw: true
+    });
+    const ids = new Set(rrRows.map(r => r.TeacherId));
+    for (const [member, main] of Object.entries(RR_GROUPS)) {
+      if (ids.has(main)) ids.add(Number(member));
+    }
+
+    const teachers = await Teacher.findAll({
+      where: { id: [...ids], active: true },
+      attributes: TEACHER_LEAN_ATTRS,
+      order: [['last_name', 'ASC'], ['first_name', 'ASC']]
+    });
+    res.json(teachers);
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).send('Server Error');
+  }
+});
+
+// @route   GET api/tutoring/coverage/:teacherId
+// @desc    Today's "Leaving RR" list for an RR someone is covering
+// @access  Private
+//
+// Deliberately the narrowest view in the app: today only (no date param, so it
+// can't be used to browse history or upcoming days), and student names only -
+// no tutoring teacher, no lunches. The covering teacher just needs to know who
+// should leave the room; anything more is information about a student's
+// tutoring they have no reason to see.
+router.get('/coverage/:teacherId', auth, async (req, res) => {
+  try {
+    const mainTeacherId = resolveRRMainTeacherId(req.params.teacherId);
+    if (mainTeacherId === null) {
+      return res.status(400).json({ msg: 'Invalid teacher id' });
+    }
+
+    const requests = await TutoringRequest.findAll({
+      where: { date: schoolTodayDateOnly(), status: 'active' },
+      attributes: ['id', 'StudentId'],
+      include: buildRequestInclude('rr', mainTeacherId)
+    });
+
+    // A student booked for two lunch chunks has two requests; list them once.
+    const byId = new Map();
+    for (const r of requests) {
+      const s = r.Student;
+      if (s && !byId.has(s.id)) {
+        byId.set(s.id, { id: s.id, first_name: s.first_name, last_name: s.last_name });
+      }
+    }
+    const students = [...byId.values()].sort((a, b) =>
+      a.last_name.localeCompare(b.last_name) || a.first_name.localeCompare(b.first_name));
+
+    res.json({ date: schoolTodayDateOnly(), students });
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).send('Server Error');
+  }
+});
+
 // @route   GET api/tutoring/:id
 // @desc    Get tutoring request by ID
-// @access  Private
+// @access  Private - the teacher who booked it, the student's RR teacher, or an admin
 router.get('/:id', auth, async (req, res) => {
   try {
-    const tutoringevent = await TutoringRequest.findByPk(req.params.id);
-    
-    if (!tutoringevent) {
+    const request = await TutoringRequest.findByPk(req.params.id, {
+      include: buildRequestInclude('mine', null)
+    });
+    const lean = request && toLeanRequest(request);
+
+    const callerId = req.teacher.id;
+    const rrTeacherId = lean?.Student?.RR?.id;
+    const allowed = lean && (
+      lean.TeacherId === callerId
+      || (rrTeacherId != null && rrTeacherId === resolveRRMainTeacherId(callerId))
+      || await isAdmin(callerId)
+    );
+
+    // Same 404 whether it doesn't exist or isn't theirs, so ids can't be probed.
+    if (!allowed) {
       return res.status(404).json({ msg: 'Tutoring Event not found' });
     }
-    
-    res.json(tutoringevent);
+
+    res.json(lean);
   } catch (err) {
     console.error(err.message);
     res.status(500).send('Server Error');
@@ -202,6 +214,9 @@ router.get('/:id', auth, async (req, res) => {
 //                 whoever booked them - the "Leaving RR Today" board.
 //   scope=student requests for one student across all teachers, for the
 //                 scheduling form's conflict check. Requires studentId.
+//                 For non-admins this is clamped to active requests from today
+//                 forward - enough to spot a conflict, but not a way to read a
+//                 student's tutoring history with other teachers.
 //   from/to/date  'YYYY-MM-DD' bounds on the request date.
 //   status        e.g. 'active'.
 router.get('/', auth, async (req, res) => {
@@ -226,10 +241,18 @@ router.get('/', auth, async (req, res) => {
     if (status) where.status = status;
 
     const exactDate = parseDateOnly(date);
-    const fromDate = parseDateOnly(from);
+    let fromDate = parseDateOnly(from);
     const toDate = parseDateOnly(to);
     if ([exactDate, fromDate, toDate].includes(undefined)) {
       return res.status(400).json({ msg: 'Dates must be formatted YYYY-MM-DD' });
+    }
+
+    if (scope === 'student' && !(await isAdmin(req.teacher.id))) {
+      const today = schoolTodayDateOnly();
+      where.status = 'active';
+      // DATEONLY strings compare correctly as strings.
+      if (exactDate && exactDate < today) return res.json([]);
+      if (!fromDate || fromDate < today) fromDate = today;
     }
 
     if (exactDate) {

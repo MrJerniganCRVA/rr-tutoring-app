@@ -148,6 +148,7 @@ app.use('/api/students', apiLimiter, require('./routes/students'));
 app.use('/api/tutoring', apiLimiter, require('./routes/tutoring'));
 app.use('/api/calendar', apiLimiter, require('./routes/calendar'));
 app.use('/api/notifications', apiLimiter, require('./routes/notifications'));
+app.use('/api/admin', apiLimiter, require('./middleware/auth'), require('./middleware/requireAdmin'), require('./routes/admin'));
 
 
 if(runMigration){

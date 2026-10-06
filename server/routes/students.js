@@ -4,6 +4,7 @@ const Student = require('../models/Student');
 const Teacher = require('../models/Teacher');
 const Enrollment = require('../models/Enrollment');
 const auth = require('../middleware/auth');
+const requireAdmin = require('../middleware/requireAdmin');
 const { STUDENT_ENROLLMENT_INCLUDE, reshapeStudent, setEnrollments } = require('../utils/enrollments');
 
 // @route   GET api/students/teacher/:teacherId
@@ -104,13 +105,8 @@ router.post('/', auth, async (req, res) => {
 // @route   POST api/students/bulk-create
 // @desc    Bulk-create students (e.g. onboarding a new year's population from CSV)
 // @access  Admin only
-router.post('/bulk-create', auth, async (req, res) => {
+router.post('/bulk-create', auth, requireAdmin, async (req, res) => {
   try {
-    const requestingTeacher = await Teacher.findByPk(req.teacher.id);
-    if (!requestingTeacher?.is_admin) {
-      return res.status(403).json({ msg: 'Admin access required' });
-    }
-
     const { students } = req.body;
     if (!Array.isArray(students) || students.length === 0) {
       return res.status(400).json({ msg: 'students array is required' });
@@ -141,13 +137,8 @@ router.post('/bulk-create', auth, async (req, res) => {
 // @route   POST api/students/bulk-rr
 // @desc    Bulk update RR teacher assignments
 // @access  Admin only
-router.post('/bulk-rr', auth, async (req, res) => {
+router.post('/bulk-rr', auth, requireAdmin, async (req, res) => {
   try {
-    const requestingTeacher = await Teacher.findByPk(req.teacher.id);
-    if (!requestingTeacher?.is_admin) {
-      return res.status(403).json({ msg: 'Admin access required' });
-    }
-
     const { updates } = req.body;
     if (!Array.isArray(updates) || updates.length === 0) {
       return res.status(400).json({ msg: 'updates array is required' });
@@ -181,13 +172,8 @@ router.post('/bulk-rr', auth, async (req, res) => {
 // @desc    Update a student's teacher assignments (any period, not just the
 //          five named rotation slots - pass any period key to add/change/clear it)
 // @access  Admin only
-router.put('/:id', auth, async (req, res) => {
+router.put('/:id', auth, requireAdmin, async (req, res) => {
   try {
-    const requestingTeacher = await Teacher.findByPk(req.teacher.id);
-    if (!requestingTeacher?.is_admin) {
-      return res.status(403).json({ msg: 'Admin access required' });
-    }
-
     const student = await Student.findByPk(req.params.id);
     if (!student) return res.status(404).json({ msg: 'Student not found' });
 
