@@ -97,85 +97,64 @@ const schoolYearStart = () => {
   return `${year}-08-01`;
 };
 
-const TodaySection = ({ today }) => {
-  const departments = Object.keys(today.byDepartment);
-  return (
-    <>
-      <Grid container spacing={3} sx={{ mb: 3 }}>
-        <Grid item xs={6} md={3}>
-          <StatCard label="Sessions today" value={today.totalSessions} color={BLUE} />
-        </Grid>
-        <Grid item xs={6} md={3}>
-          <StatCard label="Students leaving RR" value={today.uniqueStudents} color={GREEN} />
-        </Grid>
-        <Grid item xs={6} md={3}>
-          <StatCard label="Priority today" value={today.prioritySubject || '—'} color={PINK} />
-        </Grid>
-        <Grid item xs={6} md={3}>
-          <StatCard label="RRs affected" value={today.leavingByRR.length} color={LIGHT_BLUE} />
-        </Grid>
+// Just what an admin needs at a glance: whose priority day it is, and how
+// many students will be moving around. A student can only be booked once a
+// day, so the student count is also the session count.
+const TodaySection = ({ today }) => (
+  <>
+    <Grid container spacing={3} sx={{ mb: 3 }}>
+      <Grid item xs={12} sm={6}>
+        <StatCard label="Priority today" value={today.prioritySubject || 'No tutoring'} color={PINK} />
       </Grid>
-
-      <Grid container spacing={3} sx={{ mb: 3 }}>
-        <Grid item xs={12} md={6}>
-          <ChartCard title="Today by Lunch" height={260}>
-            <Bar data={barData(['A', 'B', 'C', 'D'].map(l => `Lunch ${l}`), Object.values(today.byLunch), BLUE)} options={noLegend} />
-          </ChartCard>
-        </Grid>
-        <Grid item xs={12} md={6}>
-          <ChartCard title="Today by Department" height={260}>
-            {departments.length > 0
-              ? <Bar data={barData(departments, Object.values(today.byDepartment), PINK)} options={noLegend} />
-              : <Alert severity="info">No sessions today.</Alert>}
-          </ChartCard>
-        </Grid>
+      <Grid item xs={12} sm={6}>
+        <StatCard label="Students leaving RR" value={today.uniqueStudents} color={GREEN} />
       </Grid>
+    </Grid>
 
-      <Typography variant="h6" sx={{ mb: 1 }}>Leaving RR Today, by RR</Typography>
-      {today.leavingByRR.length === 0 && <Alert severity="info">No one is leaving RR for tutoring today.</Alert>}
-      {today.leavingByRR.map(group => {
-        const uniqueStudents = new Set(group.students.map(s => s.studentId)).size;
-        return (
-          <Accordion key={group.rrTeacher?.id ?? 'none'} disableGutters>
-            <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-              <Stack direction="row" spacing={1} alignItems="center" sx={{ flexWrap: 'wrap' }}>
-                <Typography sx={{ fontWeight: 600 }}>
-                  {group.rrTeacher ? group.rrTeacher.name : 'No RR assigned'}
+    <Typography variant="h6" sx={{ mb: 1 }}>Leaving RR Today, by RR</Typography>
+    {today.leavingByRR.length === 0 && <Alert severity="info">No one is leaving RR for tutoring today.</Alert>}
+    {today.leavingByRR.map(group => {
+      const uniqueStudents = new Set(group.students.map(s => s.studentId)).size;
+      return (
+        <Accordion key={group.rrTeacher?.id ?? 'none'} disableGutters>
+          <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+            <Stack direction="row" spacing={1} alignItems="center" sx={{ flexWrap: 'wrap' }}>
+              <Typography sx={{ fontWeight: 600 }}>
+                {group.rrTeacher ? group.rrTeacher.name : 'No RR assigned'}
+              </Typography>
+              {group.sharedWith.length > 0 && (
+                <Typography variant="body2" color="text.secondary">
+                  (with {group.sharedWith.join(', ')})
                 </Typography>
-                {group.sharedWith.length > 0 && (
-                  <Typography variant="body2" color="text.secondary">
-                    (with {group.sharedWith.join(', ')})
-                  </Typography>
-                )}
-                <Chip size="small" label={`${uniqueStudents} student${uniqueStudents === 1 ? '' : 's'}`} />
-              </Stack>
-            </AccordionSummary>
-            <AccordionDetails>
-              <Table size="small">
-                <TableHead>
-                  <TableRow>
-                    <TableCell>Student</TableCell>
-                    <TableCell>Tutoring Teacher</TableCell>
-                    <TableCell>Lunch</TableCell>
+              )}
+              <Chip size="small" label={`${uniqueStudents} student${uniqueStudents === 1 ? '' : 's'}`} />
+            </Stack>
+          </AccordionSummary>
+          <AccordionDetails>
+            <Table size="small">
+              <TableHead>
+                <TableRow>
+                  <TableCell>Student</TableCell>
+                  <TableCell>Tutoring Teacher</TableCell>
+                  <TableCell>Lunch</TableCell>
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {group.students.map(s => (
+                  <TableRow key={s.requestId}>
+                    <TableCell>{s.studentName}</TableCell>
+                    <TableCell>{s.tutoringTeacher}</TableCell>
+                    <TableCell>{s.lunches.join(', ')}</TableCell>
                   </TableRow>
-                </TableHead>
-                <TableBody>
-                  {group.students.map(s => (
-                    <TableRow key={s.requestId}>
-                      <TableCell>{s.studentName}</TableCell>
-                      <TableCell>{s.tutoringTeacher}</TableCell>
-                      <TableCell>{s.lunches.join(', ')}</TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </AccordionDetails>
-          </Accordion>
-        );
-      })}
-    </>
-  );
-};
+                ))}
+              </TableBody>
+            </Table>
+          </AccordionDetails>
+        </Accordion>
+      );
+    })}
+  </>
+);
 
 const TrendsSection = ({ trends }) => {
   const departments = Object.keys(trends.byDepartment);

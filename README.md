@@ -15,7 +15,7 @@ A comprehensive web application for managing tutoring programs in educational in
 ### For Admins
 - **Student & Teacher Rosters** - Add, edit, and manage student and teacher records
 - **Bulk CSV Import** - Onboard students or teachers in bulk, and bulk-update RR assignments
-- **Admin Dashboard** - Today at a glance (sessions by lunch and department, every RR's leaving list), school-wide trends over any date range
+- **Admin Dashboard** - Today at a glance (priority day, students leaving RR, every RR's leaving list), school-wide trends over any date range
 
 ### System Features
 - **Real-time Updates** - Live data synchronization
@@ -148,7 +148,7 @@ Both routes return 403 unless `:teacherId` is the caller (admins can read any te
 - `GET /api/analytics/:teacherId/student/:studentId` - Get a teacher's session history with a specific student
 
 ### Admin (admin only)
-- `GET /api/admin/today` - Today's sessions school-wide: totals, by lunch, by department, priority subject, and students leaving each RR
+- `GET /api/admin/today` - Today's priority subject, number of students leaving RR, and the students leaving each RR
 - `GET /api/admin/trends?from&to` - Trends over a date range (defaults to this school year): per week, department, teacher (with percentile), day of week, grade level, status
 
 ### Calendar
