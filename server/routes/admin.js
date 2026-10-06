@@ -1,6 +1,5 @@
 const express = require('express');
 const router = express.Router();
-const { Readable } = require('stream');
 const { Op } = require('sequelize');
 const sequelize = require('../config/db');
 const TutoringRequest = require('../models/TutoringRequest');
@@ -40,7 +39,7 @@ function weekStart(date) {
 }
 
 // Student ids start with the two-digit year they entered (e.g. 25xxxx), the
-// same rule the Kotlin report's Student.getGradeLevel uses.
+// same rule the tutoring-analytics-report repo's Student.getGradeLevel uses.
 function gradeLevel(studentId, schoolYearStart) {
   const startYear = parseInt(String(studentId).slice(0, 2), 10);
   const years = (schoolYearStart % 100) - startYear;
@@ -139,7 +138,8 @@ router.get('/today', async (req, res) => {
 // @desc    School-wide trends over a date range (defaults to this school year)
 // @access  Admin
 //
-// The same measures as the Kotlin Excel report, served live. Aggregation runs
+// The same measures as the Kotlin Excel report (tutoring-analytics-report
+// repo), served live. Aggregation runs
 // in SQL down to per-day / per-teacher / per-student rows, and the calendar
 // bucketing (weeks, weekdays, grades) happens here so it behaves identically
 // on SQLite in development and Postgres in production.
@@ -246,47 +246,6 @@ router.get('/trends', async (req, res) => {
   } catch (err) {
     console.error('Admin trends error:', err);
     res.status(500).send('Server Error');
-  }
-});
-
-// @route   GET api/admin/report
-// @desc    Run the Kotlin Excel report and stream the .xlsx back
-// @access  Admin
-//
-// The report lives in its own Railway service (tutoring-analytics-report),
-// reachable only over the project's private network and guarded by a shared
-// token. That service sleeps when idle, so the first request after a quiet
-// spell includes a JVM cold start - hence the generous timeout.
-router.get('/report', async (req, res) => {
-  const baseUrl = process.env.REPORT_SERVICE_URL;
-  const token = process.env.REPORT_TOKEN;
-  if (!baseUrl || !token) {
-    return res.status(503).json({
-      msg: 'The report service is not configured. Set REPORT_SERVICE_URL and REPORT_TOKEN on the server.'
-    });
-  }
-
-  try {
-    const upstream = await fetch(`${baseUrl.replace(/\/+$/, '')}/report`, {
-      headers: { 'X-Report-Token': token },
-      signal: AbortSignal.timeout(120_000)
-    });
-    if (!upstream.ok || !upstream.body) {
-      console.error('Report service responded', upstream.status);
-      return res.status(502).json({ msg: `The report service failed (HTTP ${upstream.status}).` });
-    }
-
-    const filename = `tutoring_report_${schoolTodayDateOnly()}.xlsx`;
-    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
-    res.setHeader('Cache-Control', 'no-store');
-    Readable.fromWeb(upstream.body).pipe(res);
-  } catch (err) {
-    console.error('Report service error:', err.message);
-    const timedOut = err.name === 'TimeoutError';
-    res.status(timedOut ? 504 : 502).json({
-      msg: timedOut ? 'The report took too long to generate.' : 'Could not reach the report service.'
-    });
   }
 });
 

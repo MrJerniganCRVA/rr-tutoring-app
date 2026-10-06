@@ -116,12 +116,6 @@ const apiService = {
     return apiClient.get('/api/admin/trends', { params });
   },
 
-  // Runs the Kotlin report service, which may be waking from sleep - so a long
-  // timeout, and a Blob response the caller saves as a file.
-  downloadReport: async () => {
-    return apiClient.get('/api/admin/report', { responseType: 'blob', timeout: 150000 });
-  },
-
   cancelTutoringRequest: async (requestId) => {
     return apiClient.put(`/api/tutoring/cancel/${requestId}`);
   },
