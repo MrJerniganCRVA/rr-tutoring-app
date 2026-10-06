@@ -67,23 +67,6 @@ router.get('/today', async (req, res) => {
     });
     const lean = requests.map(toLeanRequest);
 
-    // The lean include only carries names; departments come from one lookup.
-    const teacherIds = [...new Set(lean.map(r => r.TeacherId))];
-    const teachers = await Teacher.findAll({
-      where: { id: teacherIds },
-      attributes: ['id', 'subject'],
-      raw: true
-    });
-    const subjectById = Object.fromEntries(teachers.map(t => [t.id, t.subject]));
-
-    const byLunch = Object.fromEntries(LUNCHES.map(l => [l, 0]));
-    const byDepartment = {};
-    for (const r of lean) {
-      for (const l of LUNCHES) if (r[`lunch${l}`]) byLunch[l]++;
-      const subject = subjectById[r.TeacherId] || 'Unknown';
-      byDepartment[subject] = (byDepartment[subject] || 0) + 1;
-    }
-
     // Group by the student's RR (the main teacher students are enrolled under).
     const groups = new Map();
     for (const r of lean) {
@@ -122,10 +105,7 @@ router.get('/today', async (req, res) => {
     res.json({
       date: today,
       prioritySubject: getPrioritySubjectForDay(today),
-      totalSessions: lean.length,
       uniqueStudents: new Set(lean.map(r => r.StudentId)).size,
-      byLunch,
-      byDepartment,
       leavingByRR
     });
   } catch (err) {
