@@ -330,19 +330,6 @@ const AdminDashboard = () => {
       <Stack direction={{ xs: 'column', sm: 'row' }} justifyContent="space-between" alignItems={{ sm: 'center' }} spacing={2} sx={{ mb: 3 }}>
         <Typography variant="h4" sx={{ fontWeight: 600 }}>Admin Dashboard</Typography>
         <Box sx={{ textAlign: { sm: 'right' } }}>
-          <Button
-            variant="contained"
-            startIcon={reportState.loading ? <CircularProgress size={18} color="inherit" /> : <DownloadIcon />}
-            onClick={handleDownload}
-            disabled={reportState.loading}
-          >
-            {reportState.loading ? 'Generating report…' : 'Download full report (.xlsx)'}
-          </Button>
-          {reportState.loading && (
-            <Typography variant="caption" display="block" color="text.secondary" sx={{ mt: 0.5 }}>
-              The first run can take a little while as the report service wakes up.
-            </Typography>
-          )}
         </Box>
       </Stack>
 
