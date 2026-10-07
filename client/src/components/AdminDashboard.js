@@ -315,7 +315,7 @@ const AdminDashboard = () => {
             onClick={handleDownload}
             disabled={report.loading}
           >
-            {report.loading ? 'Generating report…' : 'Download full report (.xlsx)'}
+            {report.loading ? 'Generating report…' : 'Download full report'}
           </Button>
           {report.loading && (
             <Typography variant="caption" display="block" color="text.secondary" sx={{ mt: 0.5 }}>
