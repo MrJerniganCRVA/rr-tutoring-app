@@ -15,7 +15,7 @@ A comprehensive web application for managing tutoring programs in educational in
 ### For Admins
 - **Student & Teacher Rosters** - Add, edit, and manage student and teacher records
 - **Bulk CSV Import** - Onboard students or teachers in bulk, and bulk-update RR assignments
-- **Admin Dashboard** - Today at a glance (priority day, students leaving RR, every RR's leaving list), school-wide trends over any date range
+- **Admin Dashboard** - Today at a glance (priority day, students leaving RR, every RR's leaving list), school-wide trends over any date range, and a download of the full Excel report
 
 ### System Features
 - **Real-time Updates** - Live data synchronization
@@ -150,6 +150,20 @@ Both routes return 403 unless `:teacherId` is the caller (admins can read any te
 ### Admin (admin only)
 - `GET /api/admin/today` - Today's priority subject, number of students leaving RR, and the students leaving each RR
 - `GET /api/admin/trends?from&to` - Trends over a date range (defaults to this school year): per week, department, teacher (with percentile), day of week, grade level, status
+- `GET /api/admin/report` - Runs the Kotlin [tutoring-analytics-report](https://github.com/MrJerniganCRVA/tutoring-analytics-report) service and streams back the `.xlsx`
+
+#### Report service setup (Railway)
+The report runs as its own service in the same Railway project. Only the backend talks to it, so the frontend needs no changes:
+
+| Service | `REPORT_TOKEN` | `REPORT_SERVICE_URL` |
+| --- | --- | --- |
+| Frontend (React) | - | - |
+| Backend (Express) | same token | `http://<report-service>.railway.internal:8080` |
+| Report (Kotlin) | same token | - |
+
+1. Add the `tutoring-analytics-report` repo as a new service (it builds from its Dockerfile).
+2. On the report service set `DATABASE_URL` (reference the Postgres service's private URL), `DB_SSL=false`, `PORT=8080`, and `REPORT_TOKEN` (a long random string, e.g. `openssl rand -hex 32`). Don't generate a public domain; enable Serverless so it sleeps when idle.
+3. On the backend service set `REPORT_SERVICE_URL` and the same `REPORT_TOKEN`. Never put the token on the frontend - React env vars are compiled into the code every browser downloads.
 
 ### Calendar
 - `POST /api/calendar/send-invites` - Send pending Google Calendar invites for the teacher's tutoring requests
