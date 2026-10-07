@@ -1,5 +1,6 @@
 const express = require('express');
 const router = express.Router();
+const { Readable } = require('stream');
 const { Op } = require('sequelize');
 const sequelize = require('../config/db');
 const TutoringRequest = require('../models/TutoringRequest');
@@ -226,6 +227,48 @@ router.get('/trends', async (req, res) => {
   } catch (err) {
     console.error('Admin trends error:', err);
     res.status(500).send('Server Error');
+  }
+});
+
+// @route   GET api/admin/report
+// @desc    Run the Kotlin Excel report and stream the .xlsx back
+// @access  Admin
+//
+// The report is its own Railway service (tutoring-analytics-report), reachable
+// only over the project's private network and guarded by a shared token, so
+// REPORT_SERVICE_URL and REPORT_TOKEN live on this backend service - never on
+// the frontend, whose env vars are compiled into the browser bundle. The
+// service sleeps when idle, so the first request after a quiet spell includes
+// a JVM cold start - hence the generous timeout.
+router.get('/report', async (req, res) => {
+  const baseUrl = process.env.REPORT_SERVICE_URL;
+  const token = process.env.REPORT_TOKEN;
+  if (!baseUrl || !token) {
+    return res.status(503).json({
+      msg: 'The report service is not configured. Set REPORT_SERVICE_URL and REPORT_TOKEN on the backend service.'
+    });
+  }
+
+  try {
+    const upstream = await fetch(`${baseUrl.replace(/\/+$/, '')}/report`, {
+      headers: { 'X-Report-Token': token },
+      signal: AbortSignal.timeout(120_000)
+    });
+    if (!upstream.ok || !upstream.body) {
+      console.error('Report service responded', upstream.status);
+      return res.status(502).json({ msg: `The report service failed (HTTP ${upstream.status}).` });
+    }
+
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    res.setHeader('Content-Disposition', `attachment; filename="tutoring_report_${schoolTodayDateOnly()}.xlsx"`);
+    res.setHeader('Cache-Control', 'no-store');
+    Readable.fromWeb(upstream.body).pipe(res);
+  } catch (err) {
+    console.error('Report service error:', err.message);
+    const timedOut = err.name === 'TimeoutError';
+    res.status(timedOut ? 504 : 502).json({
+      msg: timedOut ? 'The report took too long to generate.' : 'Could not reach the report service.'
+    });
   }
 });
 

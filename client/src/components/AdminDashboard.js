@@ -5,6 +5,7 @@ import {
   AccordionSummary,
   Alert,
   Box,
+  Button,
   Card,
   CardContent,
   Chip,
@@ -20,6 +21,7 @@ import {
   Typography
 } from '@mui/material';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
+import DownloadIcon from '@mui/icons-material/Download';
 import {
   Chart as ChartJS,
   ArcElement,
@@ -100,6 +102,16 @@ const schoolYearStart = () => {
 // Just what an admin needs at a glance: whose priority day it is, and how
 // many students will be moving around. A student can only be booked once a
 // day, so the student count is also the session count.
+// With responseType 'blob', an error body arrives as a Blob too.
+async function blobErrorMessage(err) {
+  try {
+    const text = await err.response?.data?.text?.();
+    return JSON.parse(text).msg;
+  } catch {
+    return apiService.formatError(err);
+  }
+}
+
 const TodaySection = ({ today }) => (
   <>
     <Grid container spacing={3} sx={{ mb: 3 }}>
@@ -255,6 +267,7 @@ const AdminDashboard = () => {
   const [trends, setTrends] = useState(null);
   const [range, setRange] = useState({ from: schoolYearStart(), to: todayDateOnly() });
   const [error, setError] = useState(null);
+  const [report, setReport] = useState({ loading: false, error: null });
 
   useEffect(() => {
     apiService.getAdminToday()
@@ -271,13 +284,53 @@ const AdminDashboard = () => {
 
   useEffect(() => { loadTrends(); }, [loadTrends]);
 
+  const handleDownload = async () => {
+    setReport({ loading: true, error: null });
+    try {
+      const res = await apiService.downloadReport();
+      const url = URL.createObjectURL(res.data);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `tutoring_report_${todayDateOnly()}.xlsx`;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(url);
+      setReport({ loading: false, error: null });
+    } catch (err) {
+      setReport({ loading: false, error: await blobErrorMessage(err) });
+    }
+  };
+
   const loading = <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}><CircularProgress /></Box>;
 
   return (
     <Box sx={{ p: { xs: 0, md: 3 }, maxWidth: 1400, mx: 'auto' }}>
-      <Typography variant="h4" sx={{ fontWeight: 600, mb: 3 }}>Admin Dashboard</Typography>
+      <Stack direction={{ xs: 'column', sm: 'row' }} justifyContent="space-between" alignItems={{ sm: 'center' }} spacing={2} sx={{ mb: 3 }}>
+        <Typography variant="h4" sx={{ fontWeight: 600 }}>Admin Dashboard</Typography>
+        <Box sx={{ textAlign: { sm: 'right' } }}>
+          <Button
+            variant="contained"
+            startIcon={report.loading ? <CircularProgress size={18} color="inherit" /> : <DownloadIcon />}
+            onClick={handleDownload}
+            disabled={report.loading}
+          >
+            {report.loading ? 'Generating report…' : 'Download full report (.xlsx)'}
+          </Button>
+          {report.loading && (
+            <Typography variant="caption" display="block" color="text.secondary" sx={{ mt: 0.5 }}>
+              The first run can take a little while as the report service wakes up.
+            </Typography>
+          )}
+        </Box>
+      </Stack>
 
       {error && <Alert severity="error" sx={{ mb: 3 }}>{error}</Alert>}
+      {report.error && (
+        <Alert severity="error" sx={{ mb: 3 }} onClose={() => setReport({ loading: false, error: null })}>
+          {report.error}
+        </Alert>
+      )}
 
       <Typography variant="h5" sx={{ mb: 2 }}>
         Today{today && ` — ${new Date(`${today.date}T00:00:00`).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}`}
