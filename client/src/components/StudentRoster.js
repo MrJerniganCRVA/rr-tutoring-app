@@ -64,6 +64,7 @@ const StudentRoster = () => {
 
   // Bulk RR dialog state
   const [bulkOpen, setBulkOpen] = useState(false);
+  const [caseloadBulkOpen, setCaseloadBulkOpen] = useState(false);
 
   // Bulk student import dialog state
   const [bulkImportOpen, setBulkImportOpen] = useState(false);
@@ -230,6 +231,13 @@ const StudentRoster = () => {
           </Button>
           <Button
             variant="outlined"
+            startIcon={<UpdateIcon />}
+            onClick={() => setCaseloadBulkOpen(true)}
+          >
+            Bulk Caseload Update
+          </Button>
+          <Button
+            variant="outlined"
             startIcon={<GroupAddIcon />}
             onClick={() => setBulkImportOpen(true)}
           >
@@ -393,8 +401,19 @@ const StudentRoster = () => {
 
       {/* Bulk RR Update Dialog */}
       <BulkRRUpdate
+        period="RR"
         open={bulkOpen}
         onClose={() => setBulkOpen(false)}
+        onComplete={fetchData}
+        students={students}
+        teachers={teachers}
+      />
+
+      {/* Bulk SPED caseload (case manager) Dialog */}
+      <BulkRRUpdate
+        period="SPED"
+        open={caseloadBulkOpen}
+        onClose={() => setCaseloadBulkOpen(false)}
         onComplete={fetchData}
         students={students}
         teachers={teachers}

@@ -9,6 +9,7 @@ import Scheduling from './components/Scheduling';
 import TutoringEvents from './components/TutoringEvents';
 import RosterPage from './components/RosterPage';
 import AdminDashboard from './components/AdminDashboard';
+import CaseloadPage from './components/CaseloadPage';
 import {TutoringProvider } from './contexts/TutoringContext';
 import { AnalyticsProvider } from './contexts/AnalyticsContext';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
@@ -18,6 +19,14 @@ const AdminRoute = ({ children }) => {
   const { currentUser, authLoading } = useAuth();
   if (authLoading) return null;
   return currentUser?.isAdmin ? children : <Navigate to="/dashboard" replace />;
+};
+
+// Case managers (teachers with SPED caseload students) only. The server scopes
+// /api/caseload to the caller regardless; this just keeps the page tidy.
+const CaseloadRoute = ({ children }) => {
+  const { currentUser, authLoading } = useAuth();
+  if (authLoading) return null;
+  return currentUser?.hasCaseload ? children : <Navigate to="/dashboard" replace />;
 };
 
 // Create a theme instance
@@ -68,6 +77,7 @@ function App() {
               <Route path="/analytics" element={<TeacherDashboard />} />
               <Route path="/roster" element={<AdminRoute><RosterPage /></AdminRoute>} />
               <Route path="/admin" element={<AdminRoute><AdminDashboard /></AdminRoute>} />
+              <Route path="/caseload" element={<CaseloadRoute><CaseloadPage /></CaseloadRoute>} />
               <Route path="/" element={<Navigate to="/select-teacher" replace />} />
               <Route path="*" element={<div>Page Not Found</div>} />
             </Routes>

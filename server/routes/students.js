@@ -134,8 +134,53 @@ router.post('/bulk-create', auth, requireAdmin, async (req, res) => {
   }
 });
 
+// Periods that can be bulk-assigned from a CSV: RR homerooms, and SPED
+// caseloads (case manager per student).
+const BULK_PERIODS = ['RR', 'SPED'];
+
+async function applyBulkEnrollment(period, updates) {
+  const succeeded = [];
+  const failed = [];
+
+  for (const { studentId, teacherId } of updates) {
+    try {
+      const student = await Student.findByPk(studentId);
+      if (!student) {
+        failed.push({ studentId, reason: 'Student not found' });
+        continue;
+      }
+      await setEnrollments(studentId, { [period]: teacherId });
+      succeeded.push(studentId);
+    } catch (rowErr) {
+      failed.push({ studentId, reason: rowErr.message });
+    }
+  }
+
+  return { succeeded, failed };
+}
+
+// @route   POST api/students/bulk-enrollment
+// @desc    Bulk set one period's teacher (RR or SPED case manager) per student
+// @access  Admin only
+router.post('/bulk-enrollment', auth, requireAdmin, async (req, res) => {
+  try {
+    const { period, updates } = req.body;
+    if (!BULK_PERIODS.includes(period)) {
+      return res.status(400).json({ msg: `period must be one of ${BULK_PERIODS.join(', ')}` });
+    }
+    if (!Array.isArray(updates) || updates.length === 0) {
+      return res.status(400).json({ msg: 'updates array is required' });
+    }
+    res.json(await applyBulkEnrollment(period, updates));
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).send('Server Error');
+  }
+});
+
 // @route   POST api/students/bulk-rr
-// @desc    Bulk update RR teacher assignments
+// @desc    Bulk update RR teacher assignments (kept for existing callers;
+//          same as bulk-enrollment with period 'RR')
 // @access  Admin only
 router.post('/bulk-rr', auth, requireAdmin, async (req, res) => {
   try {
@@ -143,25 +188,8 @@ router.post('/bulk-rr', auth, requireAdmin, async (req, res) => {
     if (!Array.isArray(updates) || updates.length === 0) {
       return res.status(400).json({ msg: 'updates array is required' });
     }
-
-    const succeeded = [];
-    const failed = [];
-
-    for (const { studentId, rrTeacherId } of updates) {
-      try {
-        const student = await Student.findByPk(studentId);
-        if (!student) {
-          failed.push({ studentId, reason: 'Student not found' });
-          continue;
-        }
-        await setEnrollments(studentId, { RR: rrTeacherId });
-        succeeded.push(studentId);
-      } catch (rowErr) {
-        failed.push({ studentId, reason: rowErr.message });
-      }
-    }
-
-    res.json({ succeeded, failed });
+    const normalized = updates.map(({ studentId, rrTeacherId }) => ({ studentId, teacherId: rrTeacherId }));
+    res.json(await applyBulkEnrollment('RR', normalized));
   } catch (err) {
     console.error(err.message);
     res.status(500).send('Server Error');

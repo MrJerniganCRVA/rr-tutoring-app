@@ -14,3 +14,10 @@ export function toDateOnly(date = new Date()) {
 export function todayDateOnly() {
   return toDateOnly();
 }
+
+// First day of the current school year (Aug 1), matching the server's default
+// window for the trends, caseload and student-lookup views.
+export function schoolYearStartDateOnly(now = new Date()) {
+  const year = now.getMonth() >= 7 ? now.getFullYear() : now.getFullYear() - 1;
+  return `${year}-08-01`;
+}

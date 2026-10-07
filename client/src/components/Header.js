@@ -35,6 +35,8 @@ const Header = () => {
     ? `${currentUser.firstName} ${currentUser.lastName}`
     : localStorage.getItem('teacherName');
   const isAdmin = currentUser?.isAdmin ?? false;
+  // Case managers (SPED caseload) get the Caseload tab.
+  const hasCaseload = currentUser?.hasCaseload ?? false;
   const isLoggedIn = !!(currentUser || localStorage.getItem('teacherId'));
 
   const handleLogout = async () => {
@@ -104,6 +106,7 @@ const Header = () => {
     if (location.pathname === '/analytics') return 3;
     if (location.pathname === '/roster') return 4;
     if (location.pathname === '/admin') return 5;
+    if (location.pathname === '/caseload') return 6;
     return false;
   };
   
@@ -139,6 +142,7 @@ const Header = () => {
           <Tab label="Requests" onClick={() => navigate('/tutoring')} />
           <Tab label="Events" onClick={() => navigate('/calendar')} />
           <Tab label="Analytics" onClick={() => navigate('/analytics')} />
+          {hasCaseload && <Tab label="Caseload" value={6} onClick={() => navigate('/caseload')} />}
           {isAdmin && <Tab label="Roster" value={4} onClick={() => navigate('/roster')} />}
           {isAdmin && <Tab label="Admin" value={5} onClick={() => navigate('/admin')} />}
         </Tabs>

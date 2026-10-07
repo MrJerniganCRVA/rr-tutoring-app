@@ -4,6 +4,7 @@ import {
   AccordionDetails,
   AccordionSummary,
   Alert,
+  Autocomplete,
   Box,
   Button,
   Card,
@@ -37,6 +38,8 @@ import {
 import { Pie, Bar, Line } from 'react-chartjs-2';
 import apiService from '../utils/apiService';
 import { todayDateOnly } from '../utils/dates';
+import DateRangeFields, { defaultRange } from './DateRangeFields';
+import TutoringSummaryTable from './TutoringSummaryTable';
 
 ChartJS.register(ArcElement, CategoryScale, LinearScale, BarElement, LineElement, PointElement, Title, Tooltip, Legend);
 
@@ -92,11 +95,64 @@ const ChartCard = ({ title, height = 320, children }) => (
   </Card>
 );
 
-// School year runs August-July, matching the server's default range.
-const schoolYearStart = () => {
-  const now = new Date();
-  const year = now.getMonth() >= 7 ? now.getFullYear() : now.getFullYear() - 1;
-  return `${year}-08-01`;
+// Look up any student's tutoring, by tutoring teacher. Teachers only ever see
+// their own SPED caseload (CaseloadPage); admins can pick anyone here. The
+// student list is fetched the first time the picker is opened.
+const StudentLookup = () => {
+  const [students, setStudents] = useState(null);
+  const [selected, setSelected] = useState(null);
+  const [range, setRange] = useState(defaultRange);
+  const [result, setResult] = useState(null);
+  const [error, setError] = useState(null);
+
+  const loadStudents = () => {
+    if (students) return;
+    setStudents([]);
+    apiService.getStudents()
+      .then(res => setStudents(
+        [...res.data].sort((a, b) => a.last_name.localeCompare(b.last_name) || a.first_name.localeCompare(b.first_name))
+      ))
+      .catch(err => setError(apiService.formatError(err)));
+  };
+
+  useEffect(() => {
+    if (!selected) {
+      setResult(null);
+      return;
+    }
+    let cancelled = false;
+    setResult(null);
+    setError(null);
+    apiService.getStudentTutoring(selected.id, range)
+      .then(res => { if (!cancelled) setResult(res.data.student); })
+      .catch(err => { if (!cancelled) setError(apiService.formatError(err)); });
+    return () => { cancelled = true; };
+  }, [selected, range]);
+
+  return (
+    <>
+      <Stack direction={{ xs: 'column', md: 'row' }} justifyContent="space-between" alignItems={{ md: 'center' }} spacing={2} sx={{ mt: 5, mb: 2 }}>
+        <Typography variant="h5">Student Lookup</Typography>
+        <DateRangeFields range={range} onChange={setRange} />
+      </Stack>
+      <Autocomplete
+        options={students || []}
+        loading={students !== null && students.length === 0}
+        onOpen={loadStudents}
+        value={selected}
+        onChange={(_, value) => setSelected(value)}
+        getOptionLabel={s => `${s.last_name}, ${s.first_name} (${s.id})`}
+        isOptionEqualToValue={(a, b) => a.id === b.id}
+        renderInput={params => <TextField {...params} label="Search by name or ID" size="small" />}
+        sx={{ maxWidth: 480, mb: 2 }}
+      />
+      {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
+      {selected && !result && !error && (
+        <Box sx={{ display: 'flex', justifyContent: 'center', py: 2 }}><CircularProgress size={28} /></Box>
+      )}
+      {result && <TutoringSummaryTable students={[result]} />}
+    </>
+  );
 };
 
 // Just what an admin needs at a glance: whose priority day it is, and how
@@ -265,7 +321,7 @@ const TrendsSection = ({ trends }) => {
 const AdminDashboard = () => {
   const [today, setToday] = useState(null);
   const [trends, setTrends] = useState(null);
-  const [range, setRange] = useState({ from: schoolYearStart(), to: todayDateOnly() });
+  const [range, setRange] = useState(defaultRange);
   const [error, setError] = useState(null);
   const [report, setReport] = useState({ loading: false, error: null });
 
@@ -337,26 +393,11 @@ const AdminDashboard = () => {
       </Typography>
       {today ? <TodaySection today={today} /> : !error && loading}
 
+      <StudentLookup />
+
       <Stack direction={{ xs: 'column', md: 'row' }} justifyContent="space-between" alignItems={{ md: 'center' }} spacing={2} sx={{ mt: 5, mb: 2 }}>
         <Typography variant="h5">School-wide Trends</Typography>
-        <Stack direction="row" spacing={2}>
-          <TextField
-            type="date"
-            size="small"
-            label="From"
-            value={range.from}
-            onChange={e => e.target.value && setRange(r => ({ ...r, from: e.target.value }))}
-            InputLabelProps={{ shrink: true }}
-          />
-          <TextField
-            type="date"
-            size="small"
-            label="To"
-            value={range.to}
-            onChange={e => e.target.value && setRange(r => ({ ...r, to: e.target.value }))}
-            InputLabelProps={{ shrink: true }}
-          />
-        </Stack>
+        <DateRangeFields range={range} onChange={setRange} />
       </Stack>
       {trends ? <TrendsSection trends={trends} /> : !error && loading}
     </Box>

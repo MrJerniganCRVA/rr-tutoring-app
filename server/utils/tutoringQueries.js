@@ -1,4 +1,7 @@
+const { Op } = require('sequelize');
+const sequelize = require('../config/db');
 const Teacher = require('../models/Teacher');
+const TutoringRequest = require('../models/TutoringRequest');
 const Student = require('../models/Student');
 const Enrollment = require('../models/Enrollment');
 const { TEACHER_LEAN_ATTRS, STUDENT_LEAN_ATTRS } = require('./enrollments');
@@ -90,7 +93,42 @@ const hasSubjectPriority = (teacherSubject, date) =>{
   return teacherSubject === prioritySubject;
 };
 
+// Per-student tutoring totals over a date range, broken down by the teacher
+// who did the tutoring. Backs the SPED caseload page and the admin student
+// lookup. Counts active sessions only, matching every other count in the app.
+// Every requested id gets an entry, so a student never tutored shows 0.
+async function summarizeTutoring(studentIds, from, to) {
+  const summary = new Map(studentIds.map(id => [id, { totalSessions: 0, byTeacher: [] }]));
+  if (studentIds.length === 0) return summary;
+
+  const rows = await TutoringRequest.findAll({
+    where: { StudentId: studentIds, status: 'active', date: { [Op.between]: [from, to] } },
+    attributes: ['StudentId', 'TeacherId', [sequelize.fn('COUNT', sequelize.col('TutoringRequest.id')), 'count']],
+    include: [{ model: Teacher, attributes: ['first_name', 'last_name', 'subject'] }],
+    group: ['StudentId', 'TeacherId', 'Teacher.id', 'Teacher.first_name', 'Teacher.last_name', 'Teacher.subject'],
+    raw: true
+  });
+
+  for (const row of rows) {
+    const entry = summary.get(row.StudentId);
+    if (!entry) continue;
+    const sessions = parseInt(row.count, 10);
+    entry.totalSessions += sessions;
+    entry.byTeacher.push({
+      teacherId: row.TeacherId,
+      name: `${row['Teacher.first_name']} ${row['Teacher.last_name']}`,
+      subject: row['Teacher.subject'],
+      sessions
+    });
+  }
+  for (const entry of summary.values()) {
+    entry.byTeacher.sort((a, b) => b.sessions - a.sessions || a.name.localeCompare(b.name));
+  }
+  return summary;
+}
+
 module.exports = {
+  summarizeTutoring,
   buildRequestInclude,
   toLeanRequest,
   OWN_REQUEST_INCLUDE,

@@ -6,12 +6,17 @@ const sequelize = require('../config/db');
 const TutoringRequest = require('../models/TutoringRequest');
 const Teacher = require('../models/Teacher');
 const Student = require('../models/Student');
-const { buildRequestInclude, toLeanRequest, getPrioritySubjectForDay } = require('../utils/tutoringQueries');
+const {
+  buildRequestInclude,
+  toLeanRequest,
+  getPrioritySubjectForDay,
+  summarizeTutoring
+} = require('../utils/tutoringQueries');
 const {
   RR_GROUPS,
   schoolYearStartDate,
   schoolTodayDateOnly,
-  parseDateOnly
+  resolveRange
 } = require('../utils/tutoringScope');
 
 // Everything in this file is mounted behind auth + requireAdmin in server.js.
@@ -126,13 +131,11 @@ router.get('/today', async (req, res) => {
 // on SQLite in development and Postgres in production.
 router.get('/trends', async (req, res) => {
   try {
-    const fromParam = parseDateOnly(req.query.from);
-    const toParam = parseDateOnly(req.query.to);
-    if (fromParam === undefined || toParam === undefined) {
+    const range = resolveRange(req.query);
+    if (!range) {
       return res.status(400).json({ msg: 'Dates must be formatted YYYY-MM-DD' });
     }
-    const from = fromParam || schoolYearStartDate();
-    const to = toParam || schoolTodayDateOnly();
+    const { from, to } = range;
     const dateRange = { [Op.between]: [from, to] };
     const activeInRange = { status: 'active', date: dateRange };
     const count = [sequelize.fn('COUNT', sequelize.col('TutoringRequest.id')), 'count'];
@@ -226,6 +229,32 @@ router.get('/trends', async (req, res) => {
     });
   } catch (err) {
     console.error('Admin trends error:', err);
+    res.status(500).send('Server Error');
+  }
+});
+
+// @route   GET api/admin/students/:id/tutoring
+// @desc    One student's tutoring over a date range, by tutoring teacher -
+//          the admin "Student lookup" (any student; teachers only ever see
+//          their own SPED caseload, via /api/caseload)
+// @access  Admin
+router.get('/students/:id/tutoring', async (req, res) => {
+  try {
+    const range = resolveRange(req.query);
+    if (!range) {
+      return res.status(400).json({ msg: 'Dates must be formatted YYYY-MM-DD' });
+    }
+    const student = await Student.findByPk(req.params.id, { attributes: ['id', 'first_name', 'last_name'] });
+    if (!student) {
+      return res.status(404).json({ msg: 'Student not found' });
+    }
+    const summary = await summarizeTutoring([student.id], range.from, range.to);
+    res.json({
+      ...range,
+      student: { id: student.id, first_name: student.first_name, last_name: student.last_name, ...summary.get(student.id) }
+    });
+  } catch (err) {
+    console.error('Admin student lookup error:', err);
     res.status(500).send('Server Error');
   }
 });
