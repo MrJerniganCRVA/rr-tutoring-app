@@ -64,8 +64,19 @@ const apiService = {
     return apiClient.put(`/api/students/${id}`, data);
   },
 
-  bulkUpdateRR: async (updates) => {
-    return apiClient.post('/api/students/bulk-rr', { updates });
+  // period is 'RR' or 'SPED' (case manager); updates are { studentId, teacherId }.
+  bulkUpdateEnrollment: async (period, updates) => {
+    return apiClient.post('/api/students/bulk-enrollment', { period, updates });
+  },
+
+  // SPED caseload: tutoring summary for the signed-in teacher's own caseload.
+  getCaseload: async (params = {}) => {
+    return apiClient.get('/api/caseload', { params });
+  },
+
+  // Admin student lookup: one student's tutoring summary.
+  getStudentTutoring: async (studentId, params = {}) => {
+    return apiClient.get(`/api/admin/students/${studentId}/tutoring`, { params });
   },
 
   bulkCreateStudents: async (students) => {

@@ -11,10 +11,13 @@ A comprehensive web application for managing tutoring programs in educational in
 - **Priority Scheduling** - Day-of-week subject priority with conflict detection and override. Overriding another teacher warns you first and names them; confirming it notifies them and withdraws the student from their calendar invite
 - **Teacher Analytics** - Look at data about your tutoring sessions
 - **RR Coverage** - "Are you covering today?" on the Raptor Rotation page: pick the RR you're covering to see which students are leaving it for tutoring today. Names only, today only
+- **My Caseload (SPED)** - Case managers see how many times each student on their caseload has been tutored, and by which teachers, over any date range (defaults to this school year). The tab appears only for teachers with caseload students, and only shows their own caseload
 
 ### For Admins
 - **Student & Teacher Rosters** - Add, edit, and manage student and teacher records
-- **Bulk CSV Import** - Onboard students or teachers in bulk, and bulk-update RR assignments
+- **Bulk CSV Import** - Onboard students or teachers in bulk, and bulk-update RR assignments or SPED caseloads
+- **SPED Caseloads** - A caseload is stored as a class enrollment with period `SPED` pointing at the case manager (one per student). Assign one at a time from the Student Roster (Edit → add class `SPED`) or in bulk with **Bulk Caseload Update** (`student_id,student_name,case_manager_email`)
+- **Student Lookup** - On the Admin Dashboard, look up any student's tutoring by teacher over a date range
 - **Admin Dashboard** - Today at a glance (priority day, students leaving RR, every RR's leaving list), school-wide trends over any date range, and a download of the full Excel report
 
 ### System Features
@@ -103,7 +106,7 @@ All routes below require an authenticated session (Google OAuth) unless noted; a
 ### Auth
 - `GET /auth/google` - Start Google OAuth login
 - `GET /auth/google/callback` - OAuth callback
-- `GET /auth/current` - Get the current logged-in teacher
+- `GET /auth/current` - Get the current logged-in teacher (includes `isAdmin`, and `hasCaseload` when they have SPED caseload students)
 - `GET /auth/logout` - Log out
 
 ### Teachers
@@ -119,6 +122,7 @@ All routes below require an authenticated session (Google OAuth) unless noted; a
 - `POST /api/students` - Create a new student
 - `POST /api/students/bulk-create` - Bulk-create students from a CSV import (admin only)
 - `POST /api/students/bulk-rr` - Bulk-update RR (homeroom) assignments (admin only)
+- `POST /api/students/bulk-enrollment` - Bulk-set one period's teacher per student; `period` is `RR` or `SPED` (case manager) (admin only)
 - `PUT /api/students/:id` - Update a student's class enrollments (admin only)
 
 ### Tutoring
@@ -147,7 +151,11 @@ Both routes return 403 unless `:teacherId` is the caller (admins can read any te
 - `GET /api/analytics/:teacherId` - Get a teacher's personal + school-wide session analytics
 - `GET /api/analytics/:teacherId/student/:studentId` - Get a teacher's session history with a specific student
 
+### Caseload
+- `GET /api/caseload?from&to` - The caller's own SPED caseload: per student, total active sessions and sessions by tutoring teacher (defaults to this school year)
+
 ### Admin (admin only)
+- `GET /api/admin/students/:id/tutoring?from&to` - Any one student's sessions, total and by tutoring teacher
 - `GET /api/admin/today` - Today's priority subject, number of students leaving RR, and the students leaving each RR
 - `GET /api/admin/trends?from&to` - Trends over a date range (defaults to this school year): per week, department, teacher (with percentile), day of week, grade level, status
 - `GET /api/admin/report` - Runs the Kotlin [tutoring-analytics-report](https://github.com/MrJerniganCRVA/tutoring-analytics-report) service and streams back the `.xlsx`

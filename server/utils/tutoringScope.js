@@ -64,10 +64,21 @@ function schoolTodayDateOnly(now = new Date()) {
   }).format(now);
 }
 
+// from/to query params for the report-style views (admin trends, caseload,
+// student lookup). Both optional; the default window is this school year so
+// far. Returns null when either is present but not 'YYYY-MM-DD'.
+function resolveRange(query = {}) {
+  const from = parseDateOnly(query.from);
+  const to = parseDateOnly(query.to);
+  if (from === undefined || to === undefined) return null;
+  return { from: from || schoolYearStartDate(), to: to || schoolTodayDateOnly() };
+}
+
 module.exports = {
   RR_GROUPS,
   resolveRRMainTeacherId,
   schoolYearStartDate,
   schoolTodayDateOnly,
-  parseDateOnly
+  parseDateOnly,
+  resolveRange
 };

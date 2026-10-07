@@ -2,6 +2,8 @@ const express = require('express');
 const router = express.Router();
 const passport = require('passport');
 const { oauthLimiter, sessionLimiter } = require('../middleware/rateLimiters');
+const Enrollment = require('../models/Enrollment');
+const { CASELOAD_PERIOD } = require('./caseload');
 
 const clientUrl = (process.env.CLIENT_URL || 'http://localhost:3000').replace(/\/+$/, '');
 
@@ -66,8 +68,16 @@ router.get('/logout', sessionLimiter, (req, res)=>{
 
 //@route GET /auth/current
 //@desc Get currently logged in teacher
-router.get('/current', sessionLimiter, (req, res)=>{
+router.get('/current', sessionLimiter, async (req, res)=>{
     if(req.isAuthenticated()){
+        // Unlocks the "My Caseload" tab. Driven by data rather than by
+        // subject === 'SPED', so any case manager with students gets it.
+        let hasCaseload = false;
+        try {
+            hasCaseload = (await Enrollment.count({ where: { period: CASELOAD_PERIOD, TeacherId: req.user.id } })) > 0;
+        } catch (err) {
+            console.error('Caseload check failed:', err.message);
+        }
         res.json({
             id:req.user.id,
             email:req.user.email,
@@ -75,7 +85,8 @@ router.get('/current', sessionLimiter, (req, res)=>{
             lastName: req.user.last_name,
             subject: req.user.subject,
             lunch:req.user.lunch,
-            isAdmin:req.user.is_admin
+            isAdmin:req.user.is_admin,
+            hasCaseload
         });
     } else{
         res.status(401).json({msg:'User not authenticated'});

@@ -22,19 +22,45 @@ import UploadFileIcon from '@mui/icons-material/UploadFile';
 import DownloadIcon from '@mui/icons-material/Download';
 import apiService from '../utils/apiService';
 
-function exportCSV(students) {
-  const header = 'student_id,student_name,rr_teacher';
+// The same upload flow assigns either RR homerooms or SPED case managers -
+// both are one teacher per student for a named period (see the Enrollment
+// model). Everything period-specific lives here.
+const PERIOD_CONFIG = {
+  RR: {
+    title: 'Bulk RR Update',
+    teacherLabel: 'RR',
+    column: 'rr_teacher',
+    describe: 'RR teacher assignments',
+    filename: 'rr_assignments.csv'
+  },
+  SPED: {
+    title: 'Bulk Caseload Update',
+    teacherLabel: 'Case Manager',
+    column: 'case_manager_email',
+    describe: 'SPED case manager assignments (a student can have one case manager)',
+    filename: 'sped_caseloads.csv'
+  }
+};
+
+const currentTeacherOf = (student, period) =>
+  (student.enrollments || []).find(e => e.period === period)?.teacher ?? null;
+
+function exportCSV(students, teachers, period) {
+  const { column, filename } = PERIOD_CONFIG[period];
+  const emailById = {};
+  for (const t of teachers) emailById[t.id] = t.email;
+  const header = `student_id,student_name,${column}`;
   const rows = students.map(s => {
     const name = `"${s.last_name}, ${s.first_name}"`;
-    const rr = s.RR?.email ?? '';
-    return `${s.id},${name},${rr}`;
+    const current = currentTeacherOf(s, period);
+    return `${s.id},${name},${current ? emailById[current.id] ?? '' : ''}`;
   });
   const csv = [header, ...rows].join('\n');
   const blob = new Blob([csv], { type: 'text/csv' });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
-  a.download = 'rr_assignments.csv';
+  a.download = filename;
   document.body.appendChild(a);
   a.click();
   document.body.removeChild(a);
@@ -61,7 +87,8 @@ function parseCSVLine(line) {
   return fields;
 }
 
-function parseCSV(text, students, teachers) {
+function parseCSV(text, students, teachers, period) {
+  const { teacherLabel } = PERIOD_CONFIG[period];
   const studentById = {};
   for (const s of students) studentById[String(s.id)] = s;
 
@@ -82,7 +109,7 @@ function parseCSV(text, students, teachers) {
         return { csvRowNum, status: 'error', reason: 'Invalid row format (expected 3 columns)' };
       }
       const studentId = parts[0].trim();
-      const rrEmail = parts[2].trim();
+      const email = parts[2].trim();
 
       if (!studentId) {
         return { csvRowNum, status: 'error', reason: 'Missing student ID' };
@@ -90,23 +117,24 @@ function parseCSV(text, students, teachers) {
 
       const student = studentById[studentId];
       if (!student) {
-        return { csvRowNum, studentId, rrEmail, status: 'error_student_not_found', reason: `Student ID "${studentId}" not found` };
+        return { csvRowNum, studentId, email, status: 'error_student_not_found', reason: `Student ID "${studentId}" not found` };
       }
 
-      if (!rrEmail) {
-        return { csvRowNum, studentId, student, status: 'error', reason: 'Missing RR teacher email' };
+      if (!email) {
+        return { csvRowNum, studentId, student, status: 'error', reason: `Missing ${teacherLabel} email` };
       }
 
-      const newTeacher = teacherByEmail[rrEmail.toLowerCase()];
+      const newTeacher = teacherByEmail[email.toLowerCase()];
       if (!newTeacher) {
-        return { csvRowNum, studentId, student, rrEmail, status: 'error_teacher_not_found', reason: `No teacher found with email "${rrEmail}"` };
+        return { csvRowNum, studentId, student, email, status: 'error_teacher_not_found', reason: `No teacher found with email "${email}"` };
       }
 
-      if (student.RRId !== null && String(student.RRId) === String(newTeacher.id)) {
-        return { csvRowNum, studentId, student, rrEmail, newTeacher, currentRR: student.RR, status: 'no_change' };
+      const current = currentTeacherOf(student, period);
+      if (current && String(current.id) === String(newTeacher.id)) {
+        return { csvRowNum, studentId, student, email, newTeacher, current, status: 'no_change' };
       }
 
-      return { csvRowNum, studentId, student, rrEmail, newTeacher, currentRR: student.RR, status: 'ok' };
+      return { csvRowNum, studentId, student, email, newTeacher, current, status: 'ok' };
     });
 }
 
@@ -118,7 +146,8 @@ const STATUS_CONFIG = {
   error: { label: 'Error', color: 'error' }
 };
 
-const BulkRRUpdate = ({ open, onClose, onComplete, students, teachers }) => {
+const BulkRRUpdate = ({ open, onClose, onComplete, students, teachers, period = 'RR' }) => {
+  const config = PERIOD_CONFIG[period];
   const [step, setStep] = useState(1);
   const [parsedRows, setParsedRows] = useState([]);
   const [parseError, setParseError] = useState('');
@@ -147,7 +176,7 @@ const BulkRRUpdate = ({ open, onClose, onComplete, students, teachers }) => {
     const reader = new FileReader();
     reader.onload = (evt) => {
       try {
-        const rows = parseCSV(evt.target.result, students, teachers);
+        const rows = parseCSV(evt.target.result, students, teachers, period);
         if (rows.length === 0) {
           setParseError('No data rows found in the CSV file.');
           return;
@@ -164,11 +193,11 @@ const BulkRRUpdate = ({ open, onClose, onComplete, students, teachers }) => {
   const handleConfirm = async () => {
     const updates = parsedRows
       .filter(r => r.status === 'ok')
-      .map(r => ({ studentId: r.studentId, rrTeacherId: r.newTeacher.id }));
+      .map(r => ({ studentId: r.studentId, teacherId: r.newTeacher.id }));
     setSubmitting(true);
     setParseError('');
     try {
-      const res = await apiService.bulkUpdateRR(updates);
+      const res = await apiService.bulkUpdateEnrollment(period, updates);
       setSubmitResult(res.data);
       setStep(3);
     } catch (err) {
@@ -189,22 +218,22 @@ const BulkRRUpdate = ({ open, onClose, onComplete, students, teachers }) => {
       {/* Step 1 — Upload */}
       {step === 1 && (
         <>
-          <DialogTitle>Bulk RR Update — Step 1: Upload CSV</DialogTitle>
+          <DialogTitle>{config.title} — Step 1: Upload CSV</DialogTitle>
           <DialogContent>
             <Typography variant="body2" sx={{ mb: 1.5 }}>
-              Upload a CSV file with updated RR teacher assignments. The file must have three columns:
+              Upload a CSV file with updated {config.describe}. The file must have three columns:
             </Typography>
             <Paper variant="outlined" sx={{ p: 1.5, mb: 2, fontFamily: 'monospace', fontSize: '0.8rem', bgcolor: 'grey.50', whiteSpace: 'pre' }}>
-              {'student_id,student_name,rr_teacher\n123456789,"Doe, John",smith@school.edu\n987654321,"Smith, Jane",johnson@school.edu'}
+              {`student_id,student_name,${config.column}\n123456789,"Doe, John",smith@school.edu\n987654321,"Smith, Jane",johnson@school.edu`}
             </Paper>
             <Typography variant="body2" sx={{ mb: 2 }}>
-              <strong>Tip:</strong> Export the current assignments first, update the <code>rr_teacher</code> email column in Google Sheets, then re-upload. The <code>student_name</code> column is ignored on upload.
+              <strong>Tip:</strong> Export the current assignments first, update the <code>{config.column}</code> email column in Google Sheets, then re-upload. The <code>student_name</code> column is ignored on upload.
             </Typography>
             <Box sx={{ display: 'flex', gap: 2, mb: 2, flexWrap: 'wrap' }}>
               <Button
                 variant="outlined"
                 startIcon={<DownloadIcon />}
-                onClick={() => exportCSV(students)}
+                onClick={() => exportCSV(students, teachers, period)}
               >
                 Export current assignments
               </Button>
@@ -234,7 +263,7 @@ const BulkRRUpdate = ({ open, onClose, onComplete, students, teachers }) => {
       {/* Step 2 — Preview */}
       {step === 2 && (
         <>
-          <DialogTitle>Bulk RR Update — Step 2: Review Changes</DialogTitle>
+          <DialogTitle>{config.title} — Step 2: Review Changes</DialogTitle>
           <DialogContent>
             <Box sx={{ display: 'flex', gap: 1, mb: 2, flexWrap: 'wrap' }}>
               <Chip label={`${okRows.length} will update`} color="success" size="small" />
@@ -251,8 +280,8 @@ const BulkRRUpdate = ({ open, onClose, onComplete, students, teachers }) => {
                   <TableHead>
                     <TableRow>
                       <TableCell><strong>Student</strong></TableCell>
-                      <TableCell><strong>Current RR</strong></TableCell>
-                      <TableCell><strong>New RR</strong></TableCell>
+                      <TableCell><strong>Current {config.teacherLabel}</strong></TableCell>
+                      <TableCell><strong>New {config.teacherLabel}</strong></TableCell>
                       <TableCell><strong>Status</strong></TableCell>
                     </TableRow>
                   </TableHead>
@@ -266,8 +295,8 @@ const BulkRRUpdate = ({ open, onClose, onComplete, students, teachers }) => {
                               ? `${row.student.first_name} ${row.student.last_name}`
                               : row.studentId}
                           </TableCell>
-                          <TableCell>{row.currentRR?.last_name ?? '—'}</TableCell>
-                          <TableCell>{row.newTeacher?.last_name ?? row.rrEmail ?? '—'}</TableCell>
+                          <TableCell>{row.current?.last_name ?? '—'}</TableCell>
+                          <TableCell>{row.newTeacher?.last_name ?? row.email ?? '—'}</TableCell>
                           <TableCell>
                             <Chip label={cfg.label} color={cfg.color} size="small" />
                             {row.reason && (
@@ -306,7 +335,7 @@ const BulkRRUpdate = ({ open, onClose, onComplete, students, teachers }) => {
       {/* Step 3 — Results */}
       {step === 3 && submitResult && (
         <>
-          <DialogTitle>Bulk RR Update — Done</DialogTitle>
+          <DialogTitle>{config.title} — Done</DialogTitle>
           <DialogContent>
             <Alert
               severity={submitResult.failed.length === 0 ? 'success' : 'warning'}
