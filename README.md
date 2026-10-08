@@ -18,7 +18,7 @@ A comprehensive web application for managing tutoring programs in educational in
 - **Bulk CSV Import** - Onboard students or teachers in bulk, and bulk-update RR assignments or SPED caseloads
 - **SPED Caseloads** - A caseload is stored as a class enrollment with period `SPED` pointing at the case manager (one per student). Assign one at a time from the Student Roster (Edit → add class `SPED`) or in bulk with **Bulk Caseload Update** (`student_id,student_name,case_manager_email`)
 - **Student Lookup** - On the Admin Dashboard, look up any student's tutoring by teacher over a date range
-- **Admin Dashboard** - Today at a glance (priority day, students leaving RR, every RR's leaving list), school-wide trends over any date range, and a download of the full Excel report
+- **Admin Dashboard** - Today at a glance (priority day, and a searchable list of every student leaving RR: from where, to whom, which lunch), school-wide trends over any date range, and a download of the full Excel report
 
 ### System Features
 - **Real-time Updates** - Live data synchronization
@@ -156,7 +156,7 @@ Both routes return 403 unless `:teacherId` is the caller (admins can read any te
 
 ### Admin (admin only)
 - `GET /api/admin/students/:id/tutoring?from&to` - Any one student's sessions, total and by tutoring teacher
-- `GET /api/admin/today` - Today's priority subject, number of students leaving RR, and the students leaving each RR
+- `GET /api/admin/today` - Today's priority subject, number of students leaving RR, and each student leaving: where from (RR), going to (tutoring teacher), and which lunch
 - `GET /api/admin/trends?from&to` - Trends over a date range (defaults to this school year): per week, department, teacher (with percentile), day of week, grade level, status
 - `GET /api/admin/report` - Runs the Kotlin [tutoring-analytics-report](https://github.com/MrJerniganCRVA/tutoring-analytics-report) service and streams back the `.xlsx`
 

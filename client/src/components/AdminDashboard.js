@@ -1,27 +1,24 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import {
-  Accordion,
-  AccordionDetails,
-  AccordionSummary,
   Alert,
   Autocomplete,
   Box,
   Button,
   Card,
   CardContent,
-  Chip,
   CircularProgress,
   Grid,
+  Paper,
   Stack,
   Table,
   TableBody,
   TableCell,
+  TableContainer,
   TableHead,
   TableRow,
   TextField,
   Typography
 } from '@mui/material';
-import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import DownloadIcon from '@mui/icons-material/Download';
 import {
   Chart as ChartJS,
@@ -168,61 +165,70 @@ async function blobErrorMessage(err) {
   }
 }
 
-const TodaySection = ({ today }) => (
-  <>
-    <Grid container spacing={3} sx={{ mb: 3 }}>
-      <Grid item xs={12} sm={6}>
-        <StatCard label="Priority today" value={today.prioritySubject || 'No tutoring'} color={PINK} />
-      </Grid>
-      <Grid item xs={12} sm={6}>
-        <StatCard label="Students leaving RR" value={today.uniqueStudents} color={GREEN} />
-      </Grid>
-    </Grid>
+const TodaySection = ({ today }) => {
+  const [filter, setFilter] = useState('');
+  const term = filter.trim().toLowerCase();
+  const rows = term
+    ? today.leaving.filter(r => r.studentName.toLowerCase().includes(term) || String(r.studentId).includes(term))
+    : today.leaving;
 
-    <Typography variant="h6" sx={{ mb: 1 }}>Leaving RR Today, by RR</Typography>
-    {today.leavingByRR.length === 0 && <Alert severity="info">No one is leaving RR for tutoring today.</Alert>}
-    {today.leavingByRR.map(group => {
-      const uniqueStudents = new Set(group.students.map(s => s.studentId)).size;
-      return (
-        <Accordion key={group.rrTeacher?.id ?? 'none'} disableGutters>
-          <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-            <Stack direction="row" spacing={1} alignItems="center" sx={{ flexWrap: 'wrap' }}>
-              <Typography sx={{ fontWeight: 600 }}>
-                {group.rrTeacher ? group.rrTeacher.name : 'No RR assigned'}
-              </Typography>
-              {group.sharedWith.length > 0 && (
-                <Typography variant="body2" color="text.secondary">
-                  (with {group.sharedWith.join(', ')})
-                </Typography>
-              )}
-              <Chip size="small" label={`${uniqueStudents} student${uniqueStudents === 1 ? '' : 's'}`} />
-            </Stack>
-          </AccordionSummary>
-          <AccordionDetails>
-            <Table size="small">
-              <TableHead>
-                <TableRow>
-                  <TableCell>Student</TableCell>
-                  <TableCell>Tutoring Teacher</TableCell>
-                  <TableCell>Lunch</TableCell>
+  return (
+    <>
+      <Grid container spacing={3} sx={{ mb: 3 }}>
+        <Grid item xs={12} sm={6}>
+          <StatCard label="Priority today" value={today.prioritySubject || 'No tutoring'} color={PINK} />
+        </Grid>
+        <Grid item xs={12} sm={6}>
+          <StatCard label="Students leaving RR" value={today.uniqueStudents} color={GREEN} />
+        </Grid>
+      </Grid>
+
+      {/* One row per student so an admin can check a student they meet in the
+          hall: are they supposed to be traveling, from where, to whom, when. */}
+      <Stack direction={{ xs: 'column', sm: 'row' }} justifyContent="space-between" alignItems={{ sm: 'center' }} spacing={2} sx={{ mb: 1 }}>
+        <Typography variant="h6">Leaving RR Today</Typography>
+        <TextField
+          size="small"
+          label="Find a student"
+          value={filter}
+          onChange={e => setFilter(e.target.value)}
+          sx={{ minWidth: 240 }}
+        />
+      </Stack>
+      {today.leaving.length === 0 ? (
+        <Alert severity="info">No one is leaving RR for tutoring today.</Alert>
+      ) : rows.length === 0 ? (
+        <Alert severity="info">No students match “{filter}”.</Alert>
+      ) : (
+        <TableContainer component={Paper} variant="outlined" sx={{ maxHeight: 480 }}>
+          <Table size="small" stickyHeader>
+            <TableHead>
+              <TableRow>
+                <TableCell><strong>Student</strong></TableCell>
+                <TableCell><strong>Leaving From</strong></TableCell>
+                <TableCell><strong>Going To</strong></TableCell>
+                <TableCell><strong>Lunch</strong></TableCell>
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {rows.map(r => (
+                <TableRow key={r.studentId} hover>
+                  <TableCell>
+                    {r.studentName}
+                    <Typography variant="caption" display="block" color="text.secondary">{r.studentId}</Typography>
+                  </TableCell>
+                  <TableCell>{r.leavingFrom ?? 'No RR assigned'}</TableCell>
+                  <TableCell>{r.goingTo}</TableCell>
+                  <TableCell>{r.lunches.join(', ')}</TableCell>
                 </TableRow>
-              </TableHead>
-              <TableBody>
-                {group.students.map(s => (
-                  <TableRow key={s.requestId}>
-                    <TableCell>{s.studentName}</TableCell>
-                    <TableCell>{s.tutoringTeacher}</TableCell>
-                    <TableCell>{s.lunches.join(', ')}</TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </AccordionDetails>
-        </Accordion>
-      );
-    })}
-  </>
-);
+              ))}
+            </TableBody>
+          </Table>
+        </TableContainer>
+      )}
+    </>
+  );
+};
 
 const TrendsSection = ({ trends }) => {
   const departments = Object.keys(trends.byDepartment);

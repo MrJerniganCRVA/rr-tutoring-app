@@ -73,46 +73,52 @@ router.get('/today', async (req, res) => {
     });
     const lean = requests.map(toLeanRequest);
 
-    // Group by the student's RR (the main teacher students are enrolled under).
-    const groups = new Map();
-    for (const r of lean) {
-      const rr = r.Student?.RR;
-      const key = rr ? rr.id : 'none';
-      if (!groups.has(key)) {
-        groups.set(key, { rrTeacher: rr ? { id: rr.id, name: fullName(rr) } : null, students: [] });
-      }
-      groups.get(key).students.push({
-        requestId: r.id,
-        studentId: r.StudentId,
-        studentName: fullName(r.Student),
-        tutoringTeacher: fullName(r.Teacher),
-        lunches: LUNCHES.filter(l => r[`lunch${l}`])
-      });
-    }
-
-    const memberIds = [...groups.values()]
-      .filter(g => g.rrTeacher)
-      .flatMap(g => rrGroupMemberIds(g.rrTeacher.id));
+    // One row per student, answering "should this student be out of RR, and
+    // where are they headed?" - what an admin needs when they meet a student
+    // in the hall. Shared RRs (RR_GROUPS) list every teacher in the room, so
+    // it's recognizable by whichever name the admin knows it by.
+    const mainIds = [...new Set(lean.map(r => r.Student?.RR?.id).filter(Boolean))];
+    const memberIds = mainIds.flatMap(rrGroupMemberIds);
     const members = memberIds.length
       ? await Teacher.findAll({ where: { id: memberIds }, attributes: ['id', 'first_name', 'last_name'], raw: true })
       : [];
     const memberNameById = Object.fromEntries(members.map(m => [m.id, fullName(m)]));
+    const rrLabel = (rr) => [fullName(rr), ...rrGroupMemberIds(rr.id).map(id => memberNameById[id]).filter(Boolean)].join(' / ');
 
-    const leavingByRR = [...groups.values()]
-      .map(g => ({
-        ...g,
-        sharedWith: g.rrTeacher
-          ? rrGroupMemberIds(g.rrTeacher.id).map(id => memberNameById[id]).filter(Boolean)
-          : [],
-        students: g.students.sort((a, b) => a.studentName.localeCompare(b.studentName))
-      }))
-      .sort((a, b) => (a.rrTeacher?.name || '~').localeCompare(b.rrTeacher?.name || '~'));
+    const lastFirst = (p) => (p ? `${p.last_name}, ${p.first_name}` : 'Unknown');
+
+    // A booking spanning non-adjacent lunches is stored as separate requests,
+    // so fold them into one row per student. If different teachers have them
+    // at different lunches, say which lunch is with whom.
+    const byStudent = new Map();
+    for (const r of lean) {
+      if (!byStudent.has(r.StudentId)) {
+        byStudent.set(r.StudentId, {
+          studentId: r.StudentId,
+          studentName: lastFirst(r.Student),
+          leavingFrom: r.Student?.RR ? rrLabel(r.Student.RR) : null,
+          stops: new Map() // tutoring teacher -> lunches
+        });
+      }
+      const teacher = fullName(r.Teacher);
+      const stops = byStudent.get(r.StudentId).stops;
+      stops.set(teacher, [...(stops.get(teacher) || []), ...LUNCHES.filter(l => r[`lunch${l}`])]);
+    }
+    const leaving = [...byStudent.values()]
+      .map(({ stops, ...row }) => {
+        const lunches = LUNCHES.filter(l => [...stops.values()].some(ls => ls.includes(l)));
+        const goingTo = stops.size === 1
+          ? [...stops.keys()][0]
+          : [...stops].map(([teacher, ls]) => `${teacher} (${LUNCHES.filter(l => ls.includes(l)).join(', ')})`).join(' · ');
+        return { ...row, goingTo, lunches };
+      })
+      .sort((x, y) => x.studentName.localeCompare(y.studentName));
 
     res.json({
       date: today,
       prioritySubject: getPrioritySubjectForDay(today),
       uniqueStudents: new Set(lean.map(r => r.StudentId)).size,
-      leavingByRR
+      leaving
     });
   } catch (err) {
     console.error('Admin today error:', err);
