@@ -28,10 +28,7 @@ const TutoringSummaryTable = ({ students }) => (
       <TableBody>
         {students.map(student => (
           <TableRow key={student.id}>
-            <TableCell>
-              {student.last_name}, {student.first_name}
-              <Typography variant="caption" display="block" color="text.secondary">{student.id}</Typography>
-            </TableCell>
+            <TableCell>{student.last_name}, {student.first_name}</TableCell>
             <TableCell align="right" sx={{ fontWeight: 600 }}>{student.totalSessions}</TableCell>
             <TableCell>
               {student.byTeacher.length === 0 ? (

@@ -138,9 +138,11 @@ const StudentLookup = () => {
         onOpen={loadStudents}
         value={selected}
         onChange={(_, value) => setSelected(value)}
-        getOptionLabel={s => `${s.last_name}, ${s.first_name} (${s.id})`}
+        getOptionLabel={s => `${s.last_name}, ${s.first_name}`}
         isOptionEqualToValue={(a, b) => a.id === b.id}
-        renderInput={params => <TextField {...params} label="Search by name or ID" size="small" />}
+        // Keyed by id so two students who share a name both stay selectable.
+        renderOption={(props, s) => <li {...props} key={s.id}>{s.last_name}, {s.first_name}</li>}
+        renderInput={params => <TextField {...params} label="Search by name" size="small" />}
         sx={{ maxWidth: 480, mb: 2 }}
       />
       {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
