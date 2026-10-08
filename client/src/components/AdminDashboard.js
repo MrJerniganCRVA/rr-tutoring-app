@@ -169,7 +169,7 @@ const TodaySection = ({ today }) => {
   const [filter, setFilter] = useState('');
   const term = filter.trim().toLowerCase();
   const rows = term
-    ? today.leaving.filter(r => r.studentName.toLowerCase().includes(term) || String(r.studentId).includes(term))
+    ? today.leaving.filter(r => r.studentName.toLowerCase().includes(term))
     : today.leaving;
 
   return (
@@ -213,10 +213,7 @@ const TodaySection = ({ today }) => {
             <TableBody>
               {rows.map(r => (
                 <TableRow key={r.studentId} hover>
-                  <TableCell>
-                    {r.studentName}
-                    <Typography variant="caption" display="block" color="text.secondary">{r.studentId}</Typography>
-                  </TableCell>
+                  <TableCell>{r.studentName}</TableCell>
                   <TableCell>{r.leavingFrom ?? 'No RR assigned'}</TableCell>
                   <TableCell>{r.goingTo}</TableCell>
                   <TableCell>{r.lunches.join(', ')}</TableCell>
