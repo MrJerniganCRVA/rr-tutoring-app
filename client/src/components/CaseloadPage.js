@@ -27,8 +27,7 @@ const CaseloadPage = () => {
     const term = filter.trim().toLowerCase();
     if (!data) return [];
     if (!term) return data.students;
-    return data.students.filter(s =>
-      `${s.first_name} ${s.last_name}`.toLowerCase().includes(term) || String(s.id).includes(term));
+    return data.students.filter(s => `${s.first_name} ${s.last_name}`.toLowerCase().includes(term));
   }, [data, filter]);
 
   return (
