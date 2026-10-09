@@ -5,6 +5,7 @@ const TutoringRequest = require('../models/TutoringRequest');
 const Student = require('../models/Student');
 const Enrollment = require('../models/Enrollment');
 const { TEACHER_LEAN_ATTRS, STUDENT_LEAN_ATTRS } = require('./enrollments');
+const { lunchesOf, minutesFor } = require('./lunchTimes');
 
 // Query shapes shared by routes/tutoring.js and routes/admin.js, so the admin
 // views return exactly the same request shape the teacher views do.
@@ -93,42 +94,93 @@ const hasSubjectPriority = (teacherSubject, date) =>{
   return teacherSubject === prioritySubject;
 };
 
-// Per-student tutoring totals over a date range, broken down by the teacher
-// who did the tutoring. Backs the SPED caseload page and the admin student
-// lookup. Counts active sessions only, matching every other count in the app.
-// Every requested id gets an entry, so a student never tutored shows 0.
-async function summarizeTutoring(studentIds, from, to) {
-  const summary = new Map(studentIds.map(id => [id, { totalSessions: 0, byTeacher: [] }]));
-  if (studentIds.length === 0) return summary;
-
-  const rows = await TutoringRequest.findAll({
+// The active sessions for a set of students over a date range, with the
+// tutoring teacher's name and subject. Shared by the summary and the
+// per-student session list so both count exactly the same rows.
+function findSessions(studentIds, from, to) {
+  return TutoringRequest.findAll({
     where: { StudentId: studentIds, status: 'active', date: { [Op.between]: [from, to] } },
-    attributes: ['StudentId', 'TeacherId', [sequelize.fn('COUNT', sequelize.col('TutoringRequest.id')), 'count']],
+    attributes: ['id', 'StudentId', 'TeacherId', 'date', 'lunchA', 'lunchB', 'lunchC', 'lunchD'],
     include: [{ model: Teacher, attributes: ['first_name', 'last_name', 'subject'] }],
-    group: ['StudentId', 'TeacherId', 'Teacher.id', 'Teacher.first_name', 'Teacher.last_name', 'Teacher.subject'],
+    order: [['date', 'DESC'], ['id', 'DESC']],
     raw: true
   });
+}
 
-  for (const row of rows) {
-    const entry = summary.get(row.StudentId);
-    if (!entry) continue;
-    const sessions = parseInt(row.count, 10);
-    entry.totalSessions += sessions;
-    entry.byTeacher.push({
-      teacherId: row.TeacherId,
-      name: `${row['Teacher.first_name']} ${row['Teacher.last_name']}`,
-      subject: row['Teacher.subject'],
-      sessions
-    });
+const teacherOf = (row) => ({
+  teacherId: row.TeacherId,
+  name: `${row['Teacher.first_name']} ${row['Teacher.last_name']}`,
+  subject: row['Teacher.subject'] || 'Unknown'
+});
+
+// Adds one session to a { sessions, minutes } bucket keyed in `map`.
+function tally(map, key, seed, minutes) {
+  if (!map.has(key)) map.set(key, { ...seed, sessions: 0, minutes: 0 });
+  const bucket = map.get(key);
+  bucket.sessions += 1;
+  bucket.minutes += minutes;
+}
+
+// Per-student tutoring totals over a date range: sessions and service minutes
+// (see utils/lunchTimes.js), broken down by tutoring teacher and by subject
+// (the tutoring teacher's subject). Backs the SPED caseload page and the admin
+// student lookup. Every requested id gets an entry, so a student never
+// tutored shows zeros.
+async function summarizeTutoring(studentIds, from, to) {
+  const working = new Map(studentIds.map(id => [id, { totalSessions: 0, totalMinutes: 0, teachers: new Map(), subjects: new Map() }]));
+  if (studentIds.length > 0) {
+    for (const row of await findSessions(studentIds, from, to)) {
+      const entry = working.get(row.StudentId);
+      if (!entry) continue;
+      const minutes = minutesFor(lunchesOf(row));
+      const teacher = teacherOf(row);
+      entry.totalSessions += 1;
+      entry.totalMinutes += minutes;
+      tally(entry.teachers, teacher.teacherId, teacher, minutes);
+      tally(entry.subjects, teacher.subject, { subject: teacher.subject }, minutes);
+    }
   }
-  for (const entry of summary.values()) {
-    entry.byTeacher.sort((a, b) => b.sessions - a.sessions || a.name.localeCompare(b.name));
+
+  const bySessions = (a, b) => b.minutes - a.minutes || b.sessions - a.sessions;
+  const summary = new Map();
+  for (const [id, { teachers, subjects, ...totals }] of working) {
+    summary.set(id, {
+      ...totals,
+      byTeacher: [...teachers.values()].sort((a, b) => bySessions(a, b) || a.name.localeCompare(b.name)),
+      bySubject: [...subjects.values()].sort((a, b) => bySessions(a, b) || a.subject.localeCompare(b.subject))
+    });
   }
   return summary;
 }
 
+// One student's sessions over a date range, newest first - the detail behind
+// summarizeTutoring, for reporting service minutes date by date.
+async function listSessions(studentId, from, to) {
+  const rows = await findSessions([studentId], from, to);
+  return rows.map(row => {
+    const lunches = lunchesOf(row);
+    const { name, subject } = teacherOf(row);
+    return { id: row.id, date: row.date, lunches, minutes: minutesFor(lunches), teacher: name, subject };
+  });
+}
+
+// Everything the per-student detail popup shows: name, totals (overall, by
+// subject, by teacher) and every session, for one student and date range.
+// Returns null for an unknown student. Callers enforce who may see whom.
+async function studentTutoringDetail(studentId, from, to) {
+  const student = await Student.findByPk(studentId, { attributes: ['id', 'first_name', 'last_name'], raw: true });
+  if (!student) return null;
+  const [summary, sessions] = await Promise.all([
+    summarizeTutoring([student.id], from, to),
+    listSessions(student.id, from, to)
+  ]);
+  return { from, to, student: { ...student, ...summary.get(student.id) }, sessions };
+}
+
 module.exports = {
   summarizeTutoring,
+  listSessions,
+  studentTutoringDetail,
   buildRequestInclude,
   toLeanRequest,
   OWN_REQUEST_INCLUDE,

@@ -10,7 +10,8 @@ const {
   buildRequestInclude,
   toLeanRequest,
   getPrioritySubjectForDay,
-  summarizeTutoring
+  summarizeTutoring,
+  studentTutoringDetail
 } = require('../utils/tutoringQueries');
 const {
   RR_GROUPS,
@@ -261,6 +262,27 @@ router.get('/students/:id/tutoring', async (req, res) => {
     });
   } catch (err) {
     console.error('Admin student lookup error:', err);
+    res.status(500).send('Server Error');
+  }
+});
+
+// @route   GET api/admin/students/:id/sessions
+// @desc    One student's sessions (date, lunches, minutes, teacher, subject)
+//          plus totals - the popup behind a name in Student Lookup
+// @access  Admin
+router.get('/students/:id/sessions', async (req, res) => {
+  try {
+    const range = resolveRange(req.query);
+    if (!range) {
+      return res.status(400).json({ msg: 'Dates must be formatted YYYY-MM-DD' });
+    }
+    const detail = await studentTutoringDetail(req.params.id, range.from, range.to);
+    if (!detail) {
+      return res.status(404).json({ msg: 'Student not found' });
+    }
+    res.json(detail);
+  } catch (err) {
+    console.error('Admin student detail error:', err);
     res.status(500).send('Server Error');
   }
 });

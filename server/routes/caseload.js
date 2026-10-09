@@ -3,7 +3,7 @@ const router = express.Router();
 const Enrollment = require('../models/Enrollment');
 const Student = require('../models/Student');
 const auth = require('../middleware/auth');
-const { summarizeTutoring } = require('../utils/tutoringQueries');
+const { summarizeTutoring, studentTutoringDetail } = require('../utils/tutoringQueries');
 const { resolveRange } = require('../utils/tutoringScope');
 
 // A SPED caseload is stored as an ordinary Enrollment with period 'SPED'
@@ -46,6 +46,31 @@ router.get('/', auth, async (req, res) => {
     });
   } catch (err) {
     console.error('Caseload error:', err);
+    res.status(500).send('Server Error');
+  }
+});
+
+// @route   GET api/caseload/students/:id/sessions
+// @desc    One caseload student's sessions (date, lunches, minutes, teacher,
+//          subject) plus totals - the popup behind a name on My Caseload
+// @access  Private - only students on the caller's own caseload (404 otherwise,
+//          so it can't be used to probe whether other students exist)
+router.get('/students/:id/sessions', auth, async (req, res) => {
+  try {
+    const range = resolveRange(req.query);
+    if (!range) {
+      return res.status(400).json({ msg: 'Dates must be formatted YYYY-MM-DD' });
+    }
+    const onCaseload = await Enrollment.count({
+      where: { period: CASELOAD_PERIOD, TeacherId: req.teacher.id, StudentId: req.params.id }
+    });
+    const detail = onCaseload ? await studentTutoringDetail(req.params.id, range.from, range.to) : null;
+    if (!detail) {
+      return res.status(404).json({ msg: 'Student not found on your caseload' });
+    }
+    res.json(detail);
+  } catch (err) {
+    console.error('Caseload detail error:', err);
     res.status(500).send('Server Error');
   }
 });
