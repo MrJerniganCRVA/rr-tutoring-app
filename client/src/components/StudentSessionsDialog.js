@@ -50,11 +50,14 @@ const StudentSessionsDialog = ({ student, range, loadDetail, onClose }) => {
     let cancelled = false;
     setDetail(null);
     setError(null);
-    loadDetail(student.id, range)
+    // Only the dates go on the wire. Passing a whole response object here once
+    // put the entire caseload into the query string, which the server rejects
+    // (HTTP 431) and the browser reports as a connection failure.
+    loadDetail(student.id, { from: range.from, to: range.to })
       .then(res => { if (!cancelled) setDetail(res.data); })
       .catch(err => { if (!cancelled) setError(apiService.formatError(err)); });
     return () => { cancelled = true; };
-  }, [student, range, loadDetail]);
+  }, [student, range.from, range.to, loadDetail]);
 
   const totals = detail?.student;
 

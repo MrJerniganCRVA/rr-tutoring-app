@@ -57,7 +57,7 @@ const CaseloadPage = () => {
       )}
       {data && data.students.length > 0 && (
         students.length > 0
-          ? <TutoringSummaryTable students={students} range={data} loadDetail={apiService.getCaseloadStudentSessions} />
+          ? <TutoringSummaryTable students={students} range={range} loadDetail={apiService.getCaseloadStudentSessions} />
           : <Alert severity="info">No caseload students match “{filter}”.</Alert>
       )}
     </Box>
