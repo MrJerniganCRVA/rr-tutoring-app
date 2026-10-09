@@ -1,4 +1,5 @@
 const express = require('express');
+const { LUNCH_TIMES } = require('../utils/lunchTimes');
 const router = express.Router();
 const auth = require('../middleware/auth');
 const { upsertCalendarEvent, parseEventIds, joinEventIds } = require('../utils/calendarService');
@@ -283,12 +284,7 @@ function getContiguousChunks(lunchPeriods) {
 
 // Helper: Get merged time slot spanning multiple lunch periods
 function getMergedTimeSlot(lunchPeriods, date) {
-  const times = {
-    'A': { start: '11:02', end: '11:25' },
-    'B': { start: '11:28', end: '11:51' },
-    'C': { start: '11:54', end: '12:17' },
-    'D': { start: '12:20', end: '12:44' }
-  };
+  const times = LUNCH_TIMES;
 
   // Get earliest start time
   const firstLunch = lunchPeriods[0];

@@ -34,7 +34,7 @@ const CaseloadPage = () => {
     <Box sx={{ p: { xs: 0, md: 3 }, maxWidth: 1400, mx: 'auto' }}>
       <Typography variant="h4" sx={{ fontWeight: 600, mb: 1 }}>My Caseload</Typography>
       <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-        How often each student on your caseload has been tutored, and by which teachers.
+        How often each student on your caseload has been tutored, by whom, and for how many minutes. Click a name to see each session.
       </Typography>
 
       <Stack direction={{ xs: 'column', md: 'row' }} spacing={2} justifyContent="space-between" sx={{ mb: 2 }}>
@@ -57,7 +57,7 @@ const CaseloadPage = () => {
       )}
       {data && data.students.length > 0 && (
         students.length > 0
-          ? <TutoringSummaryTable students={students} />
+          ? <TutoringSummaryTable students={students} range={data} loadDetail={apiService.getCaseloadStudentSessions} />
           : <Alert severity="info">No caseload students match “{filter}”.</Alert>
       )}
     </Box>

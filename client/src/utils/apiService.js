@@ -79,6 +79,16 @@ const apiService = {
     return apiClient.get(`/api/admin/students/${studentId}/tutoring`, { params });
   },
 
+  // Per-student session detail (dates, lunches, minutes) for the name popup:
+  // caseload-scoped for case managers, any student for admins.
+  getCaseloadStudentSessions: async (studentId, params = {}) => {
+    return apiClient.get(`/api/caseload/students/${studentId}/sessions`, { params });
+  },
+
+  getStudentSessions: async (studentId, params = {}) => {
+    return apiClient.get(`/api/admin/students/${studentId}/sessions`, { params });
+  },
+
   bulkCreateStudents: async (students) => {
     return apiClient.post('/api/students/bulk-create', { students });
   },

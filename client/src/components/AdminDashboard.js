@@ -149,7 +149,7 @@ const StudentLookup = () => {
       {selected && !result && !error && (
         <Box sx={{ display: 'flex', justifyContent: 'center', py: 2 }}><CircularProgress size={28} /></Box>
       )}
-      {result && <TutoringSummaryTable students={[result]} />}
+      {result && <TutoringSummaryTable students={[result]} range={range} loadDetail={apiService.getStudentSessions} />}
     </>
   );
 };

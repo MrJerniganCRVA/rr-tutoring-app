@@ -11,7 +11,7 @@ A comprehensive web application for managing tutoring programs in educational in
 - **Priority Scheduling** - Day-of-week subject priority with conflict detection and override. Overriding another teacher warns you first and names them; confirming it notifies them and withdraws the student from their calendar invite
 - **Teacher Analytics** - Look at data about your tutoring sessions
 - **RR Coverage** - "Are you covering today?" on the Raptor Rotation page: pick the RR you're covering to see which students are leaving it for tutoring today. Names only, today only
-- **My Caseload (SPED)** - Case managers see how many times each student on their caseload has been tutored, and by which teachers, over any date range (defaults to this school year). The tab appears only for teachers with caseload students, and only shows their own caseload
+- **My Caseload (SPED)** - Case managers see, for each student on their caseload, sessions and **service minutes** (total, by subject, and by tutoring teacher) over any date range (defaults to this school year). Click a name for every session's date, lunches, minutes, teacher and subject. Minutes are the sum of the booked lunch blocks (A/B/C 23, D 24 — see `server/utils/lunchTimes.js`; passing time between lunches isn't counted), and subject is the tutoring teacher's subject. The tab appears only for teachers with caseload students, and only shows their own caseload
 
 ### For Admins
 - **Student & Teacher Rosters** - Add, edit, and manage student and teacher records
@@ -152,10 +152,12 @@ Both routes return 403 unless `:teacherId` is the caller (admins can read any te
 - `GET /api/analytics/:teacherId/student/:studentId` - Get a teacher's session history with a specific student
 
 ### Caseload
-- `GET /api/caseload?from&to` - The caller's own SPED caseload: per student, total active sessions and sessions by tutoring teacher (defaults to this school year)
+- `GET /api/caseload?from&to` - The caller's own SPED caseload: per student, active sessions and service minutes, in total, by subject and by tutoring teacher (defaults to this school year)
+- `GET /api/caseload/students/:id/sessions?from&to` - Every session (date, lunches, minutes, teacher, subject) for one student on the caller's caseload (404 otherwise)
 
 ### Admin (admin only)
-- `GET /api/admin/students/:id/tutoring?from&to` - Any one student's sessions, total and by tutoring teacher
+- `GET /api/admin/students/:id/tutoring?from&to` - Any one student's sessions and service minutes, in total, by subject and by tutoring teacher
+- `GET /api/admin/students/:id/sessions?from&to` - Every session (date, lunches, minutes, teacher, subject) for any one student
 - `GET /api/admin/today` - Today's priority subject, number of students leaving RR, and each student leaving: where from (RR), going to (tutoring teacher), and which lunch
 - `GET /api/admin/trends?from&to` - Trends over a date range (defaults to this school year): per week, department, teacher (with percentile), day of week, grade level, status
 - `GET /api/admin/report` - Runs the Kotlin [tutoring-analytics-report](https://github.com/MrJerniganCRVA/tutoring-analytics-report) service and streams back the `.xlsx`
