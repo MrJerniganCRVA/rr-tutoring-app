@@ -38,8 +38,9 @@ const SmallTable = ({ head, children }) => (
 );
 
 // Every tutoring session for one student over the selected range: date,
-// lunches, service minutes, tutoring teacher and subject - plus the minutes
-// totalled by subject - for reporting SPED service minutes. Minutes are the
+// lunches, tutoring minutes, tutoring teacher and subject - plus the minutes
+// totalled by subject. This is RR tutoring time only - one input to a SPED
+// student's service minutes, not the total. Minutes are the
 // sum of the booked lunch blocks (A/B/C 23, D 24; passing time not counted).
 const StudentSessionsDialog = ({ student, range, loadDetail, onClose }) => {
   const [detail, setDetail] = useState(null);
@@ -76,12 +77,15 @@ const StudentSessionsDialog = ({ student, range, loadDetail, onClose }) => {
         )}
         {detail && (
           <>
-            <Typography variant="subtitle1" sx={{ fontWeight: 600, mb: 1 }}>
-              {totals.totalSessions} session{totals.totalSessions === 1 ? '' : 's'} · {totals.totalMinutes} minutes
+            <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
+              {totals.totalSessions} session{totals.totalSessions === 1 ? '' : 's'} · {totals.totalMinutes} tutoring minutes
+            </Typography>
+            <Typography variant="caption" display="block" color="text.secondary" sx={{ mb: 1.5 }}>
+              RR tutoring time only (lunch blocks booked; passing time not counted). Not a student's total service minutes.
             </Typography>
 
             {totals.bySubject.length > 0 && (
-              <SmallTable head={[['Subject'], ['Sessions', 'right'], ['Minutes', 'right']]}>
+              <SmallTable head={[['Subject'], ['Sessions', 'right'], ['Tutoring minutes', 'right']]}>
                 {totals.bySubject.map(s => (
                   <TableRow key={s.subject}>
                     <TableCell>{s.subject}</TableCell>
@@ -95,7 +99,7 @@ const StudentSessionsDialog = ({ student, range, loadDetail, onClose }) => {
             {detail.sessions.length === 0 ? (
               <Alert severity="info">No tutoring in this date range.</Alert>
             ) : (
-              <SmallTable head={[['Date'], ['Lunch'], ['Minutes', 'right'], ['Teacher'], ['Subject']]}>
+              <SmallTable head={[['Date'], ['Lunch'], ['Tutoring minutes', 'right'], ['Teacher'], ['Subject']]}>
                 {detail.sessions.map(s => (
                   <TableRow key={s.id}>
                     <TableCell>{formatDate(s.date)}</TableCell>

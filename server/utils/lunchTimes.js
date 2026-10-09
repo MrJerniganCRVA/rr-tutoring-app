@@ -22,7 +22,7 @@ const LUNCH_MINUTES = Object.fromEntries(
 // Lunches booked on a request row (lunchA..lunchD flags), in order.
 const lunchesOf = (request) => LUNCHES.filter(l => request[`lunch${l}`]);
 
-// Service minutes for a request: the sum of its booked blocks. Passing time
+// Tutoring minutes for a request: the sum of its booked blocks. Passing time
 // between back-to-back lunches is not tutoring, so A+B is 23 + 23 = 46.
 const minutesFor = (lunches) => lunches.reduce((sum, l) => sum + LUNCH_MINUTES[l], 0);
 

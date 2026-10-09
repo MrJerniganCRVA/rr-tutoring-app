@@ -121,7 +121,7 @@ function tally(map, key, seed, minutes) {
   bucket.minutes += minutes;
 }
 
-// Per-student tutoring totals over a date range: sessions and service minutes
+// Per-student tutoring totals over a date range: sessions and tutoring minutes
 // (see utils/lunchTimes.js), broken down by tutoring teacher and by subject
 // (the tutoring teacher's subject). Backs the SPED caseload page and the admin
 // student lookup. Every requested id gets an entry, so a student never
@@ -154,7 +154,8 @@ async function summarizeTutoring(studentIds, from, to) {
 }
 
 // One student's sessions over a date range, newest first - the detail behind
-// summarizeTutoring, for reporting service minutes date by date.
+// summarizeTutoring, date by date (RR tutoring time only, not a student's
+// total service minutes).
 async function listSessions(studentId, from, to) {
   const rows = await findSessions([studentId], from, to);
   return rows.map(row => {

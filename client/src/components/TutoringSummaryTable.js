@@ -14,7 +14,7 @@ import {
 } from '@mui/material';
 import StudentSessionsDialog from './StudentSessionsDialog';
 
-// Per-student tutoring totals: sessions, service minutes, minutes by subject
+// Per-student tutoring totals: sessions, tutoring minutes, minutes by subject
 // (the tutoring teacher's subject) and by teacher. Rows come straight from
 // /api/caseload or /api/admin/students/:id/tutoring.
 //
@@ -31,7 +31,7 @@ const TutoringSummaryTable = ({ students, range, loadDetail }) => {
             <TableRow>
               <TableCell><strong>Student</strong></TableCell>
               <TableCell align="right"><strong>Sessions</strong></TableCell>
-              <TableCell align="right"><strong>Minutes</strong></TableCell>
+              <TableCell align="right"><strong>Tutoring minutes</strong></TableCell>
               <TableCell><strong>By subject</strong></TableCell>
               <TableCell><strong>Tutored by</strong></TableCell>
             </TableRow>
