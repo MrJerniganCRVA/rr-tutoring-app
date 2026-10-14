@@ -3,6 +3,7 @@ import {
   Alert,
   Box,
   Button,
+  Chip,
   CircularProgress,
   Dialog,
   DialogActions,
@@ -41,6 +42,7 @@ const SmallTable = ({ head, children }) => (
 // lunches, service minutes, tutoring teacher and subject - plus the minutes
 // totalled by subject - for reporting SPED service minutes. Minutes are the
 // sum of the booked lunch blocks (A/B/C 23, D 24; passing time not counted).
+// Sessions the student was marked absent from are listed but add no minutes.
 const StudentSessionsDialog = ({ student, range, loadDetail, onClose }) => {
   const [detail, setDetail] = useState(null);
   const [error, setError] = useState(null);
@@ -78,6 +80,7 @@ const StudentSessionsDialog = ({ student, range, loadDetail, onClose }) => {
           <>
             <Typography variant="subtitle1" sx={{ fontWeight: 600, mb: 1 }}>
               {totals.totalSessions} session{totals.totalSessions === 1 ? '' : 's'} · {totals.totalMinutes} minutes
+              {totals.totalAbsences > 0 && ` · ${totals.totalAbsences} absence${totals.totalAbsences === 1 ? '' : 's'}`}
             </Typography>
 
             {totals.bySubject.length > 0 && (
@@ -97,10 +100,13 @@ const StudentSessionsDialog = ({ student, range, loadDetail, onClose }) => {
             ) : (
               <SmallTable head={[['Date'], ['Lunch'], ['Minutes', 'right'], ['Teacher'], ['Subject']]}>
                 {detail.sessions.map(s => (
-                  <TableRow key={s.id}>
+                  <TableRow key={s.id} sx={{ opacity: s.absent ? 0.7 : 1 }}>
                     <TableCell>{formatDate(s.date)}</TableCell>
-                    <TableCell>{s.lunches.join(', ')}</TableCell>
-                    <TableCell align="right">{s.minutes}</TableCell>
+                    <TableCell>
+                      {s.lunches.join(', ')}
+                      {s.absent && <Chip label="Absent" color="warning" size="small" sx={{ ml: 1 }} />}
+                    </TableCell>
+                    <TableCell align="right">{s.absent ? '—' : s.minutes}</TableCell>
                     <TableCell>{s.teacher}</TableCell>
                     <TableCell>{s.subject}</TableCell>
                   </TableRow>

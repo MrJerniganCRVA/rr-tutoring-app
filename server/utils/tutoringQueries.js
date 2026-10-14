@@ -57,6 +57,7 @@ function toLeanRequest(requestInstance) {
     lunchC: data.lunchC,
     lunchD: data.lunchD,
     invite_sent: data.invite_sent,
+    absent: data.absent,
     calendar_event_id: data.calendar_event_id,
     TeacherId: data.TeacherId,
     StudentId: data.StudentId,
@@ -96,11 +97,13 @@ const hasSubjectPriority = (teacherSubject, date) =>{
 
 // The active sessions for a set of students over a date range, with the
 // tutoring teacher's name and subject. Shared by the summary and the
-// per-student session list so both count exactly the same rows.
+// per-student session list so both count exactly the same rows. Absent rows
+// are included (flagged) so the session list can show them; the summary
+// leaves them out of sessions and minutes.
 function findSessions(studentIds, from, to) {
   return TutoringRequest.findAll({
     where: { StudentId: studentIds, status: 'active', date: { [Op.between]: [from, to] } },
-    attributes: ['id', 'StudentId', 'TeacherId', 'date', 'lunchA', 'lunchB', 'lunchC', 'lunchD'],
+    attributes: ['id', 'StudentId', 'TeacherId', 'date', 'lunchA', 'lunchB', 'lunchC', 'lunchD', 'absent'],
     include: [{ model: Teacher, attributes: ['first_name', 'last_name', 'subject'] }],
     order: [['date', 'DESC'], ['id', 'DESC']],
     raw: true
@@ -125,13 +128,18 @@ function tally(map, key, seed, minutes) {
 // (see utils/lunchTimes.js), broken down by tutoring teacher and by subject
 // (the tutoring teacher's subject). Backs the SPED caseload page and the admin
 // student lookup. Every requested id gets an entry, so a student never
-// tutored shows zeros.
+// tutored shows zeros. Sessions the student missed count only toward
+// totalAbsences - service minutes are minutes actually delivered.
 async function summarizeTutoring(studentIds, from, to) {
-  const working = new Map(studentIds.map(id => [id, { totalSessions: 0, totalMinutes: 0, teachers: new Map(), subjects: new Map() }]));
+  const working = new Map(studentIds.map(id => [id, { totalSessions: 0, totalMinutes: 0, totalAbsences: 0, teachers: new Map(), subjects: new Map() }]));
   if (studentIds.length > 0) {
     for (const row of await findSessions(studentIds, from, to)) {
       const entry = working.get(row.StudentId);
       if (!entry) continue;
+      if (row.absent) {
+        entry.totalAbsences += 1;
+        continue;
+      }
       const minutes = minutesFor(lunchesOf(row));
       const teacher = teacherOf(row);
       entry.totalSessions += 1;
@@ -160,7 +168,8 @@ async function listSessions(studentId, from, to) {
   return rows.map(row => {
     const lunches = lunchesOf(row);
     const { name, subject } = teacherOf(row);
-    return { id: row.id, date: row.date, lunches, minutes: minutesFor(lunches), teacher: name, subject };
+    const absent = Boolean(row.absent);
+    return { id: row.id, date: row.date, lunches, minutes: absent ? 0 : minutesFor(lunches), absent, teacher: name, subject };
   });
 }
 

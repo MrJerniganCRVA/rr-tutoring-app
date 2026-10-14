@@ -51,6 +51,19 @@ const TutoringRequest = sequelize.define('TutoringRequest', {
   invite_sent_at:{
     type:DataTypes.DATE,
     allowNull:true
+  },
+  // Attendance is recorded by exception: every booked student is assumed
+  // present until the tutoring teacher marks them absent. Kept separate from
+  // `status` so absences don't disturb booking, conflict or invite logic,
+  // which all key off status 'active'.
+  absent:{
+    type: DataTypes.BOOLEAN,
+    allowNull: false,
+    defaultValue: false
+  },
+  absentMarkedAt:{
+    type: DataTypes.DATE,
+    allowNull: true
   }
 });
 

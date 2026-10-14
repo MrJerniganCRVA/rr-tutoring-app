@@ -144,10 +144,12 @@ router.get('/trends', async (req, res) => {
     }
     const { from, to } = range;
     const dateRange = { [Op.between]: [from, to] };
-    const activeInRange = { status: 'active', date: dateRange };
+    // Sessions the student actually attended. Absences are counted on their own
+    // so "booked" and "showed up" can be told apart.
+    const activeInRange = { status: 'active', absent: false, date: dateRange };
     const count = [sequelize.fn('COUNT', sequelize.col('TutoringRequest.id')), 'count'];
 
-    const [perDay, perTeacher, perStudent, perStatus, activeStudentCount] = await Promise.all([
+    const [perDay, perTeacher, perStudent, perStatus, activeStudentCount, absences] = await Promise.all([
       TutoringRequest.findAll({
         where: activeInRange,
         attributes: ['date', count],
@@ -173,7 +175,8 @@ router.get('/trends', async (req, res) => {
         group: ['status'],
         raw: true
       }),
-      Student.count({ where: { active: true } })
+      Student.count({ where: { active: true } }),
+      TutoringRequest.count({ where: { status: 'active', absent: true, date: dateRange } })
     ]);
 
     const byWeek = {};
@@ -225,6 +228,7 @@ router.get('/trends', async (req, res) => {
       from,
       to,
       totalSessions,
+      absences,
       uniqueStudents: perStudent.length,
       activeStudentsWithoutSessions: activeStudentCount - activeStudentsTutored,
       byStatus: Object.fromEntries(perStatus.map(r => [r.status, parseInt(r.count, 10)])),

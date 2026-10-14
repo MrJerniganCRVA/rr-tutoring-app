@@ -7,10 +7,12 @@ import {
   TableContainer,
   TableHead,
   TableRow,
-  Alert
+  Alert,
+  Typography
 } from '@mui/material';
 import {useTutoring} from '../contexts/TutoringContext';
 import { todayDateOnly } from '../utils/dates';
+import AttendanceToggle from './AttendanceToggle';
 
 const TutoringRequestListSimple = () => {
 
@@ -29,6 +31,7 @@ const TutoringRequestListSimple = () => {
     }
     return request.date === todayDateOnly();
   });
+  const absentCount = filteredRequests.filter(r => r.absent).length;
 
   
   // Helper function to show lunch periods
@@ -51,24 +54,32 @@ const TutoringRequestListSimple = () => {
         {filteredRequests.length === 0 ? (
           <Alert severity="info">You have no students coming for tutoring today.</Alert>
         ) : (
+          <>
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+            {filteredRequests.length} coming{absentCount > 0 && ` · ${absentCount} absent`}
+            {' '}— students are counted present unless you mark them absent.
+          </Typography>
           <TableContainer>
             <Table>
               <TableHead>
                 <TableRow>
                   <TableCell>Student</TableCell>
                   <TableCell>Lunch Periods</TableCell>
+                  <TableCell>Attendance</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
                 {filteredRequests.map((request) => (
                   <TableRow key={request.id}>
-                    <TableCell>{getFullName(request.Student) || 'Unknown'}</TableCell>
-                    <TableCell>{getLunchPeriods(request)}</TableCell>
+                    <TableCell sx={{ opacity: request.absent ? 0.6 : 1 }}>{getFullName(request.Student) || 'Unknown'}</TableCell>
+                    <TableCell sx={{ opacity: request.absent ? 0.6 : 1 }}>{getLunchPeriods(request)}</TableCell>
+                    <TableCell><AttendanceToggle request={request} /></TableCell>
                   </TableRow>
                 ))}
               </TableBody>
             </Table>
           </TableContainer>
+          </>
         )}
       </Paper>
     </Box>

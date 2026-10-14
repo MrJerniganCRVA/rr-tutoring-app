@@ -127,6 +127,24 @@ export const TutoringProvider = ({children}) => {
         } 
     };
 
+    // Optimistic: the row flips immediately so a teacher taking attendance at
+    // lunch isn't waiting on the network, and flips back if the save fails.
+    const setAttendance = async (sessionId, absent) => {
+        const flip = (value) => setSessions(prev => prev.map(session =>
+            session.id === sessionId ? { ...session, absent: value } : session
+        ));
+        setError(null);
+        flip(absent);
+        try {
+            await apiService.setAttendance(sessionId, absent);
+        } catch (e) {
+            flip(!absent);
+            const errorMessage = apiService.formatError(e);
+            setError(errorMessage);
+            console.error('error saving attendance', e);
+        }
+    };
+
     // Active bookings for one student from today forward, across every teacher -
     // the scheduling form needs other teachers' requests to spot a conflict.
     // Fetched on demand rather than filtered out of `sessions`, which only ever
@@ -194,6 +212,7 @@ export const TutoringProvider = ({children}) => {
         confirmOverride,
         dismissOverride,
         cancelSession,
+        setAttendance,
         fetchStudentSessions,
         checkPriorityForDate,
         refreshSessions: fetchSessions,
