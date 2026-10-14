@@ -68,7 +68,7 @@ const barData = (labels, values, color, label = 'Sessions') => ({
   datasets: [{ label, data: values, backgroundColor: withAlpha(color, 0.8), borderColor: color, borderWidth: 2 }]
 });
 
-const StatCard = ({ label, value, color }) => (
+const StatCard = ({ label, value, color, caption }) => (
   <Card sx={{ borderTop: 4, borderColor: color, height: '100%' }}>
     <CardContent sx={{ textAlign: 'center' }}>
       <Typography variant="overline" color="text.secondary" sx={{ fontWeight: 600 }}>
@@ -77,6 +77,7 @@ const StatCard = ({ label, value, color }) => (
       <Typography variant="h3" sx={{ color, fontWeight: 'bold', my: 1 }}>
         {value}
       </Typography>
+      {caption && <Typography variant="caption" color="text.secondary">{caption}</Typography>}
     </CardContent>
   </Card>
 );
@@ -237,20 +238,33 @@ const TrendsSection = ({ trends }) => {
     return new Date(y, m - 1, d).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
   };
   const cancelled = trends.byStatus.cancelled || 0;
+  // totalSessions counts attended sessions only; absences are booked sessions
+  // the tutoring teacher marked as a no-show.
+  const absences = trends.absences || 0;
+  const booked = trends.totalSessions + absences;
+  const absenceRate = booked > 0 ? Math.round((absences / booked) * 100) : 0;
 
   return (
     <>
       <Grid container spacing={3} sx={{ mb: 3 }}>
-        <Grid item xs={6} md={3}>
-          <StatCard label="Total sessions" value={trends.totalSessions} color={BLUE} />
+        <Grid item xs={6} md>
+          <StatCard label="Sessions attended" value={trends.totalSessions} color={BLUE} />
         </Grid>
-        <Grid item xs={6} md={3}>
+        <Grid item xs={6} md>
+          <StatCard
+            label="Absences"
+            value={absences}
+            color="warning.main"
+            caption={`${absenceRate}% of booked sessions`}
+          />
+        </Grid>
+        <Grid item xs={6} md>
           <StatCard label="Students tutored" value={trends.uniqueStudents} color={GREEN} />
         </Grid>
-        <Grid item xs={6} md={3}>
+        <Grid item xs={6} md>
           <StatCard label="Student never tutored" value={trends.activeStudentsWithoutSessions} color={PINK} />
         </Grid>
-        <Grid item xs={6} md={3}>
+        <Grid item xs={12} md>
           <StatCard label="Cancelled / overridden" value={cancelled} color={LIGHT_BLUE} />
         </Grid>
       </Grid>

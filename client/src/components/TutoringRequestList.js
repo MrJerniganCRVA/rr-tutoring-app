@@ -15,7 +15,9 @@ import {
   InputAdornment,
   Alert,
   IconButton,
-  Tooltip
+  Tooltip,
+  ToggleButton,
+  ToggleButtonGroup
 } from '@mui/material';
 import { Search as SearchIcon, CheckCircleOutline as CheckCircleOutlineIcon, Undo as UndoIcon } from '@mui/icons-material';
 import { format, parseISO } from 'date-fns';
@@ -23,10 +25,14 @@ import {useTutoring} from '../contexts/TutoringContext';
 import { useAuth } from '../contexts/AuthContext';
 import { toDateOnly, todayDateOnly } from '../utils/dates';
 import CalendarInviteButton from './CalendarInviteButton';
+import AttendanceToggle from './AttendanceToggle';
 
 const TutoringRequestList = () => {
   const [filterDate, setFilterDate] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
+  // 'upcoming' = today and later; 'past' = earlier this school year, which is
+  // where a teacher catches up on attendance they didn't take on the day.
+  const [view, setView] = useState('upcoming');
 
   const { currentUser } = useAuth();
   const teacherId = currentUser?.id;
@@ -41,7 +47,7 @@ const TutoringRequestList = () => {
 
   // sessions is already scoped to this teacher for the current school year, so
   // the date/search filters below are all that's left. Searching still reaches
-  // back over the year; clearing it returns to today-and-later.
+  // back over the year; clearing it returns to the Upcoming/Past view.
   const filteredRequests = sessions.filter(request => {
     if(request.status==='cancelled'){
       return false;
@@ -62,11 +68,17 @@ const TutoringRequestList = () => {
     }
 
     if(!filterDate && !searchTerm){
-      return request.date >= todayDateOnly();
+      return view === 'past'
+        ? request.date < todayDateOnly()
+        : request.date >= todayDateOnly();
     }
 
     return true;
   });
+  // Past sessions read newest first, so yesterday is at the top.
+  if (view === 'past' && !filterDate && !searchTerm) {
+    filteredRequests.reverse();
+  }
 
   // Helper function to format date
   const formatDate = (dateString) => {
@@ -109,6 +121,16 @@ const TutoringRequestList = () => {
             }}
             sx={{ flexGrow: 1 }}
           />
+          <ToggleButtonGroup
+            size="small"
+            exclusive
+            value={view}
+            onChange={(e, next) => { if (next) setView(next); }}
+            aria-label="Which sessions to show"
+          >
+            <ToggleButton value="upcoming">Upcoming</ToggleButton>
+            <ToggleButton value="past">Past</ToggleButton>
+          </ToggleButtonGroup>
           
           {/* <LocalizationProvider dateAdapter={AdapterDateFns}>
             <DatePicker
@@ -148,6 +170,7 @@ const TutoringRequestList = () => {
                   <TableCell>Lunch Periods</TableCell>
                   <TableCell>Status</TableCell>
                   <TableCell>Invite Status</TableCell>
+                  <TableCell>Attendance</TableCell>
                   <TableCell align="right">Cancel Event?</TableCell>
                 </TableRow>
               </TableHead>
@@ -188,6 +211,9 @@ const TutoringRequestList = () => {
                           </Tooltip>
                         )}
                       </Box>
+                    </TableCell>
+                    <TableCell>
+                      <AttendanceToggle request={request} />
                     </TableCell>
                     <TableCell align="right">
                       {request.status === 'active' && 

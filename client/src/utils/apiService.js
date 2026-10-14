@@ -146,6 +146,11 @@ const apiService = {
   cancelTutoringRequest: async (requestId) => {
     return apiClient.put(`/api/tutoring/cancel/${requestId}`);
   },
+
+  // Mark a session's student absent (true) or back to present (false).
+  setAttendance: async (requestId, absent) => {
+    return apiClient.patch(`/api/tutoring/${requestId}/attendance`, { absent });
+  },
   
   // Enhanced error formatting to handle conflict responses
   formatError: (error) => {

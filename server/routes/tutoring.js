@@ -503,6 +503,39 @@ router.get('/priority/:date', (req, res) => {
 });
 
 
+// @route   PATCH api/tutoring/:id/attendance
+// @desc    Mark a session's student absent ({ absent: true }) or back to
+//          present ({ absent: false })
+// @access  Private - only the teacher who booked it, and only for today or
+//          earlier (you can't miss a session that hasn't happened)
+router.patch('/:id/attendance', auth, async (req, res) => {
+  try {
+    const { absent } = req.body || {};
+    if (typeof absent !== 'boolean') {
+      return res.status(400).json({ msg: 'absent must be true or false' });
+    }
+
+    const request = await TutoringRequest.findOne({
+      where: { id: req.params.id, TeacherId: req.teacher.id, status: 'active' }
+    });
+    if (!request) {
+      return res.status(404).json({ msg: 'Request not found' });
+    }
+    // DATEONLY strings compare correctly as strings.
+    if (request.date > schoolTodayDateOnly()) {
+      return res.status(400).json({ msg: 'Attendance can only be marked on or after the session date' });
+    }
+
+    await request.update({ absent, absentMarkedAt: absent ? new Date() : null });
+
+    const updated = await TutoringRequest.findByPk(request.id, { include: OWN_REQUEST_INCLUDE });
+    res.json(toLeanRequest(updated));
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).send('Server Error');
+  }
+});
+
 // @route   PUT api/tutoring/cancel/:id
 // @desc    Cancel a tutoring request
 // @access  Private

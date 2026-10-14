@@ -14,8 +14,9 @@ import {
 } from '@mui/material';
 import StudentSessionsDialog from './StudentSessionsDialog';
 
-// Per-student tutoring totals: sessions, service minutes, minutes by subject
-// (the tutoring teacher's subject) and by teacher. Rows come straight from
+// Per-student tutoring totals: sessions attended, service minutes, absences,
+// minutes by subject (the tutoring teacher's subject) and by teacher. Absent
+// sessions count only toward Absences. Rows come straight from
 // /api/caseload or /api/admin/students/:id/tutoring.
 //
 // Clicking a name opens StudentSessionsDialog with every session in `range`;
@@ -32,6 +33,7 @@ const TutoringSummaryTable = ({ students, range, loadDetail }) => {
               <TableCell><strong>Student</strong></TableCell>
               <TableCell align="right"><strong>Sessions</strong></TableCell>
               <TableCell align="right"><strong>Minutes</strong></TableCell>
+              <TableCell align="right"><strong>Absences</strong></TableCell>
               <TableCell><strong>By subject</strong></TableCell>
               <TableCell><strong>Tutored by</strong></TableCell>
             </TableRow>
@@ -46,9 +48,17 @@ const TutoringSummaryTable = ({ students, range, loadDetail }) => {
                 </TableCell>
                 <TableCell align="right" sx={{ fontWeight: 600 }}>{student.totalSessions}</TableCell>
                 <TableCell align="right" sx={{ fontWeight: 600 }}>{student.totalMinutes}</TableCell>
+                <TableCell
+                  align="right"
+                  sx={{ fontWeight: 600, color: student.totalAbsences > 0 ? 'warning.main' : 'text.secondary' }}
+                >
+                  {student.totalAbsences || 0}
+                </TableCell>
                 {student.totalSessions === 0 ? (
                   <TableCell colSpan={2}>
-                    <Typography variant="body2" color="text.secondary">No tutoring in this date range</Typography>
+                    <Typography variant="body2" color="text.secondary">
+                      {student.totalAbsences > 0 ? 'No sessions attended in this date range' : 'No tutoring in this date range'}
+                    </Typography>
                   </TableCell>
                 ) : (
                   <>
