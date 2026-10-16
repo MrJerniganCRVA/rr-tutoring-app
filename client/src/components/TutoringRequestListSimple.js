@@ -7,8 +7,7 @@ import {
   TableContainer,
   TableHead,
   TableRow,
-  Alert,
-  Typography
+  Alert
 } from '@mui/material';
 import {useTutoring} from '../contexts/TutoringContext';
 import { todayDateOnly } from '../utils/dates';
@@ -31,7 +30,6 @@ const TutoringRequestListSimple = () => {
     }
     return request.date === todayDateOnly();
   });
-  const absentCount = filteredRequests.filter(r => r.absent).length;
 
   
   // Helper function to show lunch periods
@@ -54,11 +52,6 @@ const TutoringRequestListSimple = () => {
         {filteredRequests.length === 0 ? (
           <Alert severity="info">You have no students coming for tutoring today.</Alert>
         ) : (
-          <>
-          <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-            {filteredRequests.length} coming{absentCount > 0 && ` · ${absentCount} absent`}
-            {' '}— students are counted present unless you mark them absent.
-          </Typography>
           <TableContainer>
             <Table>
               <TableHead>
@@ -79,7 +72,6 @@ const TutoringRequestListSimple = () => {
               </TableBody>
             </Table>
           </TableContainer>
-          </>
         )}
       </Paper>
     </Box>
