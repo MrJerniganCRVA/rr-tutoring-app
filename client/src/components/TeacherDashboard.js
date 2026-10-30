@@ -155,7 +155,7 @@ const MyStudents = React.forwardRef(({ teacherId, range, show, onShowChange }, r
                     </Stack>
                 </Stack>
                 <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                    Students in your classes and anyone you tutored in this date range. Counts are your sessions only. Click a name to see each session's date and time.
+                    Students in your classes (not RR) and anyone you tutored in this date range. Counts are your sessions only. Click a name to see each session's date and time.
                 </Typography>
 
                 {error && <Alert severity="error">{error}</Alert>}
