@@ -203,11 +203,16 @@ const apiService = {
     return null;
   },
 
-  getTeacherAnalytics: async (teacherId) => {
-    return await apiClient.get(`/api/analytics/${teacherId}`);
+  // Teacher analytics: the teacher's own tutoring over a from/to range.
+  getTeacherAnalytics: async (teacherId, params = {}) => {
+    return apiClient.get(`/api/analytics/${teacherId}`, { params });
   },
-  getStudentHistory: async (teacherId, studentId) => {
-    return await apiClient.get(`/api/analytics/${teacherId}/student/${studentId}`);
+  // Students the teacher teaches or tutored, with their own sessions/minutes.
+  getTeacherStudents: async (teacherId, params = {}) => {
+    return apiClient.get(`/api/analytics/${teacherId}/students`, { params });
+  },
+  getTeacherStudentSessions: async (teacherId, studentId, params = {}) => {
+    return apiClient.get(`/api/analytics/${teacherId}/students/${studentId}/sessions`, { params });
   },
   getPendingInviteCount: async () => {
     return await apiClient.get('/api/calendar/pending-count');
