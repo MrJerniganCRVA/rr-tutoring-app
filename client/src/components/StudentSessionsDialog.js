@@ -39,7 +39,7 @@ const SmallTable = ({ head, children }) => (
 );
 
 // Every tutoring session for one student over the selected range: date,
-// lunches, service minutes, tutoring teacher and subject - plus the minutes
+// lunches (with clock times), service minutes, tutoring teacher and subject - plus the minutes
 // totalled by subject - for reporting SPED service minutes. Minutes are the
 // sum of the booked lunch blocks (A/B/C 23, D 24; passing time not counted).
 // Sessions the student was marked absent from are listed but add no minutes.
@@ -103,7 +103,7 @@ const StudentSessionsDialog = ({ student, range, loadDetail, onClose }) => {
                   <TableRow key={s.id} sx={{ opacity: s.absent ? 0.7 : 1 }}>
                     <TableCell>{formatDate(s.date)}</TableCell>
                     <TableCell>
-                      {s.lunches.join(', ')}
+                      {s.lunches.map((l, i) => `${l}${s.times ? ` (${s.times[i]})` : ''}`).join(', ')}
                       {s.absent && <Chip label="Absent" color="warning" size="small" sx={{ ml: 1 }} />}
                     </TableCell>
                     <TableCell align="right">{s.absent ? '—' : s.minutes}</TableCell>

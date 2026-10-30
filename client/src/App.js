@@ -11,7 +11,6 @@ import RosterPage from './components/RosterPage';
 import AdminDashboard from './components/AdminDashboard';
 import CaseloadPage from './components/CaseloadPage';
 import {TutoringProvider } from './contexts/TutoringContext';
-import { AnalyticsProvider } from './contexts/AnalyticsContext';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import Footer from './components/Footer';
 
@@ -68,20 +67,18 @@ function App() {
 
         <Container maxWidth="lg" sx={{ mt: 4, mb: 4, minHeight:'65vh', flex: 1}}>
         <TutoringProvider>
-          <AnalyticsProvider>
-            <Routes>
-              <Route path="/select-teacher" element={<Login />} />
-              <Route path="/dashboard" element={<RaptorRotation />} />
-              <Route path="/tutoring" element={<Scheduling />} />
-              <Route path="/calendar" element={<TutoringEvents />} />
-              <Route path="/analytics" element={<TeacherDashboard />} />
-              <Route path="/roster" element={<AdminRoute><RosterPage /></AdminRoute>} />
-              <Route path="/admin" element={<AdminRoute><AdminDashboard /></AdminRoute>} />
-              <Route path="/caseload" element={<CaseloadRoute><CaseloadPage /></CaseloadRoute>} />
-              <Route path="/" element={<Navigate to="/select-teacher" replace />} />
-              <Route path="*" element={<div>Page Not Found</div>} />
-            </Routes>
-          </AnalyticsProvider>
+          <Routes>
+            <Route path="/select-teacher" element={<Login />} />
+            <Route path="/dashboard" element={<RaptorRotation />} />
+            <Route path="/tutoring" element={<Scheduling />} />
+            <Route path="/calendar" element={<TutoringEvents />} />
+            <Route path="/analytics" element={<TeacherDashboard />} />
+            <Route path="/roster" element={<AdminRoute><RosterPage /></AdminRoute>} />
+            <Route path="/admin" element={<AdminRoute><AdminDashboard /></AdminRoute>} />
+            <Route path="/caseload" element={<CaseloadRoute><CaseloadPage /></CaseloadRoute>} />
+            <Route path="/" element={<Navigate to="/select-teacher" replace />} />
+            <Route path="*" element={<div>Page Not Found</div>} />
+          </Routes>
           </TutoringProvider>
         </Container>
        <Footer />

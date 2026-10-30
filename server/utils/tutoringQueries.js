@@ -5,7 +5,7 @@ const TutoringRequest = require('../models/TutoringRequest');
 const Student = require('../models/Student');
 const Enrollment = require('../models/Enrollment');
 const { TEACHER_LEAN_ATTRS, STUDENT_LEAN_ATTRS } = require('./enrollments');
-const { lunchesOf, minutesFor } = require('./lunchTimes');
+const { LUNCH_TIMES, lunchesOf, minutesFor } = require('./lunchTimes');
 
 // Query shapes shared by routes/tutoring.js and routes/admin.js, so the admin
 // views return exactly the same request shape the teacher views do.
@@ -100,9 +100,15 @@ const hasSubjectPriority = (teacherSubject, date) =>{
 // per-student session list so both count exactly the same rows. Absent rows
 // are included (flagged) so the session list can show them; the summary
 // leaves them out of sessions and minutes.
-function findSessions(studentIds, from, to) {
+//
+// `teacherId` narrows to one tutoring teacher's sessions - the teacher
+// analytics page, where a teacher only ever sees their own sessions with a
+// student (the same rule GET /api/tutoring applies to past sessions).
+function findSessions(studentIds, from, to, { teacherId } = {}) {
+  const where = { StudentId: studentIds, status: 'active', date: { [Op.between]: [from, to] } };
+  if (teacherId) where.TeacherId = teacherId;
   return TutoringRequest.findAll({
-    where: { StudentId: studentIds, status: 'active', date: { [Op.between]: [from, to] } },
+    where,
     attributes: ['id', 'StudentId', 'TeacherId', 'date', 'lunchA', 'lunchB', 'lunchC', 'lunchD', 'absent'],
     include: [{ model: Teacher, attributes: ['first_name', 'last_name', 'subject'] }],
     order: [['date', 'DESC'], ['id', 'DESC']],
@@ -130,10 +136,10 @@ function tally(map, key, seed, minutes) {
 // student lookup. Every requested id gets an entry, so a student never
 // tutored shows zeros. Sessions the student missed count only toward
 // totalAbsences - service minutes are minutes actually delivered.
-async function summarizeTutoring(studentIds, from, to) {
-  const working = new Map(studentIds.map(id => [id, { totalSessions: 0, totalMinutes: 0, totalAbsences: 0, teachers: new Map(), subjects: new Map() }]));
+async function summarizeTutoring(studentIds, from, to, { teacherId } = {}) {
+  const working = new Map(studentIds.map(id => [id, { totalSessions: 0, totalMinutes: 0, totalAbsences: 0, lastSession: null, teachers: new Map(), subjects: new Map() }]));
   if (studentIds.length > 0) {
-    for (const row of await findSessions(studentIds, from, to)) {
+    for (const row of await findSessions(studentIds, from, to, { teacherId })) {
       const entry = working.get(row.StudentId);
       if (!entry) continue;
       if (row.absent) {
@@ -144,6 +150,8 @@ async function summarizeTutoring(studentIds, from, to) {
       const teacher = teacherOf(row);
       entry.totalSessions += 1;
       entry.totalMinutes += minutes;
+      // Rows arrive newest first, so the first attended one is the latest.
+      if (!entry.lastSession) entry.lastSession = row.date;
       tally(entry.teachers, teacher.teacherId, teacher, minutes);
       tally(entry.subjects, teacher.subject, { subject: teacher.subject }, minutes);
     }
@@ -161,27 +169,41 @@ async function summarizeTutoring(studentIds, from, to) {
   return summary;
 }
 
+// Clock times for booked lunches, e.g. ['11:28–11:51'], so the client never
+// keeps its own copy of the bell schedule.
+const lunchTimesOf = (lunches) => lunches.map(l => `${LUNCH_TIMES[l].start}–${LUNCH_TIMES[l].end}`);
+
 // One student's sessions over a date range, newest first - the detail behind
 // summarizeTutoring, for reporting service minutes date by date.
-async function listSessions(studentId, from, to) {
-  const rows = await findSessions([studentId], from, to);
+async function listSessions(studentId, from, to, { teacherId } = {}) {
+  const rows = await findSessions([studentId], from, to, { teacherId });
   return rows.map(row => {
     const lunches = lunchesOf(row);
     const { name, subject } = teacherOf(row);
     const absent = Boolean(row.absent);
-    return { id: row.id, date: row.date, lunches, minutes: absent ? 0 : minutesFor(lunches), absent, teacher: name, subject };
+    return {
+      id: row.id,
+      date: row.date,
+      lunches,
+      times: lunchTimesOf(lunches),
+      minutes: absent ? 0 : minutesFor(lunches),
+      absent,
+      teacher: name,
+      subject
+    };
   });
 }
 
 // Everything the per-student detail popup shows: name, totals (overall, by
 // subject, by teacher) and every session, for one student and date range.
 // Returns null for an unknown student. Callers enforce who may see whom.
-async function studentTutoringDetail(studentId, from, to) {
+// `teacherId` limits everything to that tutoring teacher's sessions.
+async function studentTutoringDetail(studentId, from, to, { teacherId } = {}) {
   const student = await Student.findByPk(studentId, { attributes: ['id', 'first_name', 'last_name'], raw: true });
   if (!student) return null;
   const [summary, sessions] = await Promise.all([
-    summarizeTutoring([student.id], from, to),
-    listSessions(student.id, from, to)
+    summarizeTutoring([student.id], from, to, { teacherId }),
+    listSessions(student.id, from, to, { teacherId })
   ]);
   return { from, to, student: { ...student, ...summary.get(student.id) }, sessions };
 }
@@ -189,6 +211,7 @@ async function studentTutoringDetail(studentId, from, to) {
 module.exports = {
   summarizeTutoring,
   listSessions,
+  lunchTimesOf,
   studentTutoringDetail,
   buildRequestInclude,
   toLeanRequest,
