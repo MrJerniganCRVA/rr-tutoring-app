@@ -12,6 +12,11 @@ const { resolveRange, schoolTodayDateOnly } = require('../utils/tutoringScope');
 const { lunchesOf } = require('../utils/lunchTimes');
 const { CASELOAD_PERIOD } = require('./caseload');
 
+// Enrollments that don't make a student one of the teacher's class students:
+// a SPED caseload isn't a class (that lives on the Caseload page), and RR
+// students aren't usually tutored by their RR teacher.
+const NON_CLASS_PERIODS = [CASELOAD_PERIOD, 'RR'];
+
 // Everything here is one teacher's own tutoring: sessions they ran, with the
 // students they teach or have tutored. Sessions are counted the same way the
 // caseload and admin views count them (utils/tutoringQueries.js): absent
@@ -68,11 +73,11 @@ function weekBuckets(from, to) {
 
 const studentName = (row) => `${row['Student.first_name']} ${row['Student.last_name']}`;
 
-// Active students enrolled in any of the teacher's periods. A SPED caseload
-// isn't a class - that lives on the Caseload page.
+// Active students enrolled in one of the teacher's class periods (see
+// NON_CLASS_PERIODS).
 async function classStudentIds(teacherId) {
     const rows = await Enrollment.findAll({
-        where: { TeacherId: teacherId, period: { [Op.ne]: CASELOAD_PERIOD } },
+        where: { TeacherId: teacherId, period: { [Op.notIn]: NON_CLASS_PERIODS } },
         attributes: ['StudentId'],
         include: [{ model: Student, attributes: [], where: { active: true } }],
         raw: true
@@ -103,7 +108,7 @@ async function rosterIds(teacherId, range) {
 // student tutored last year can still be opened with an older date range.
 async function isRosterStudent(teacherId, studentId) {
     const [enrolled, tutored] = await Promise.all([
-        Enrollment.count({ where: { TeacherId: teacherId, StudentId: studentId, period: { [Op.ne]: CASELOAD_PERIOD } } }),
+        Enrollment.count({ where: { TeacherId: teacherId, StudentId: studentId, period: { [Op.notIn]: NON_CLASS_PERIODS } } }),
         TutoringRequest.count({ where: { TeacherId: teacherId, StudentId: studentId, status: 'active' } })
     ]);
     return enrolled > 0 || tutored > 0;
