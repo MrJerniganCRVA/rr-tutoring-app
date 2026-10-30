@@ -9,7 +9,7 @@ const auth = require('../middleware/auth');
 const { isAdmin } = require('../middleware/requireAdmin');
 const { summarizeTutoring, studentTutoringDetail, lunchTimesOf } = require('../utils/tutoringQueries');
 const { resolveRange, schoolTodayDateOnly } = require('../utils/tutoringScope');
-const { lunchesOf, minutesFor } = require('../utils/lunchTimes');
+const { lunchesOf } = require('../utils/lunchTimes');
 const { CASELOAD_PERIOD } = require('./caseload');
 
 // Everything here is one teacher's own tutoring: sessions they ran, with the
@@ -68,16 +68,23 @@ function weekBuckets(from, to) {
 
 const studentName = (row) => `${row['Student.first_name']} ${row['Student.last_name']}`;
 
-// The students a teacher may look up here: anyone enrolled in one of their
-// periods (a SPED caseload isn't a class - that lives on the Caseload page)
-// or anyone they tutored in the range.
+// Active students enrolled in any of the teacher's periods. A SPED caseload
+// isn't a class - that lives on the Caseload page.
+async function classStudentIds(teacherId) {
+    const rows = await Enrollment.findAll({
+        where: { TeacherId: teacherId, period: { [Op.ne]: CASELOAD_PERIOD } },
+        attributes: ['StudentId'],
+        include: [{ model: Student, attributes: [], where: { active: true } }],
+        raw: true
+    });
+    return new Set(rows.map(r => r.StudentId));
+}
+
+// The students a teacher may look up here: their class students plus anyone
+// they tutored in the range (even if since withdrawn).
 async function rosterIds(teacherId, range) {
-    const [enrolled, tutored] = await Promise.all([
-        Enrollment.findAll({
-            where: { TeacherId: teacherId, period: { [Op.ne]: CASELOAD_PERIOD } },
-            attributes: ['StudentId', 'period'],
-            raw: true
-        }),
+    const [classIds, tutored] = await Promise.all([
+        classStudentIds(teacherId),
         TutoringRequest.findAll({
             where: {
                 TeacherId: teacherId,
@@ -89,12 +96,7 @@ async function rosterIds(teacherId, range) {
             raw: true
         })
     ]);
-    const periods = new Map();
-    for (const { StudentId, period } of enrolled) {
-        if (!periods.has(StudentId)) periods.set(StudentId, []);
-        periods.get(StudentId).push(period);
-    }
-    return { periods, tutoredIds: new Set(tutored.map(r => r.StudentId)) };
+    return { classIds, tutoredIds: new Set(tutored.map(r => r.StudentId)) };
 }
 
 // Same rule as rosterIds for one student, but over every session ever, so a
@@ -116,7 +118,7 @@ router.get('/:teacherId', auth, ownOrAdmin, withRange, async (req, res) => {
     const { from, to } = req.range;
     try {
         const sessionAttrs = ['id', 'StudentId', 'date', 'lunchA', 'lunchB', 'lunchC', 'lunchD', 'absent'];
-        const [rows, upcomingRows] = await Promise.all([
+        const [rows, upcomingRows, classIds] = await Promise.all([
             TutoringRequest.findAll({
                 where: { TeacherId: teacherId, status: 'active', date: { [Op.between]: [from, to] } },
                 attributes: sessionAttrs,
@@ -129,11 +131,11 @@ router.get('/:teacherId', auth, ownOrAdmin, withRange, async (req, res) => {
                 order: [['date', 'ASC'], ['id', 'ASC']],
                 limit: 10,
                 raw: true
-            })
+            }),
+            classStudentIds(teacherId)
         ]);
 
         let sessions = 0;
-        let minutes = 0;
         let absences = 0;
         const students = new Set();
         const weeks = weekBuckets(from, to);
@@ -144,7 +146,6 @@ router.get('/:teacherId', auth, ownOrAdmin, withRange, async (req, res) => {
                 continue;
             }
             sessions += 1;
-            minutes += minutesFor(lunchesOf(row));
             students.add(row.StudentId);
             const week = mondayOf(row.date);
             if (weeks.has(week)) weeks.set(week, weeks.get(week) + 1);
@@ -156,9 +157,12 @@ router.get('/:teacherId', auth, ownOrAdmin, withRange, async (req, res) => {
             from,
             to,
             sessions,
-            minutes,
             absences,
             uniqueStudents: students.size,
+            // Class students with no attended session with this teacher in
+            // the range - who they haven't reached yet.
+            classStudents: classIds.size,
+            notYetTutored: [...classIds].filter(id => !students.has(id)).length,
             weekly: [...weeks].map(([weekOf, count]) => ({ weekOf, sessions: count })),
             dayOfWeek: [...days].map(([day, count]) => ({ day, sessions: count })),
             upcoming: upcomingRows.map(row => {
@@ -181,20 +185,20 @@ router.get('/:teacherId', auth, ownOrAdmin, withRange, async (req, res) => {
 
 // @route   GET api/analytics/:teacherId/students
 // @desc    Every student the teacher teaches or tutored in the range, with the
-//          teacher's own sessions, minutes, absences and last session, plus
+//          teacher's own sessions, absences and last session, plus
 //          the student's SPED case manager when they have one
 // @access  Private - own analytics, or any teacher's for admins
 router.get('/:teacherId/students', auth, ownOrAdmin, withRange, async (req, res) => {
     const { teacherId } = req.params;
     const { from, to } = req.range;
     try {
-        const { periods, tutoredIds } = await rosterIds(teacherId, req.range);
-        const ids = [...new Set([...periods.keys(), ...tutoredIds])];
+        const { classIds, tutoredIds } = await rosterIds(teacherId, req.range);
+        const ids = [...new Set([...classIds, ...tutoredIds])];
 
         const [students, summary, caseloads] = await Promise.all([
             Student.findAll({
                 where: { id: ids },
-                attributes: ['id', 'first_name', 'last_name', 'active'],
+                attributes: ['id', 'first_name', 'last_name'],
                 order: [['last_name', 'ASC'], ['first_name', 'ASC']],
                 raw: true
             }),
@@ -215,19 +219,17 @@ router.get('/:teacherId/students', auth, ownOrAdmin, withRange, async (req, res)
         res.json({
             from,
             to,
-            students: students
-                // A withdrawn student only stays on the list while they still
-                // have tutoring in the range.
-                .filter(s => s.active || tutoredIds.has(s.id))
-                .map(({ active, ...s }) => {
-                    const { byTeacher, ...totals } = summary.get(s.id);
-                    return {
-                        ...s,
-                        ...totals,
-                        periods: periods.get(s.id) || [],
-                        caseManager: caseManagers.get(s.id) || null
-                    };
-                })
+            students: students.map(s => {
+                const { totalSessions, totalAbsences, lastSession } = summary.get(s.id);
+                return {
+                    ...s,
+                    totalSessions,
+                    totalAbsences,
+                    lastSession,
+                    inClass: classIds.has(s.id),
+                    caseManager: caseManagers.get(s.id) || null
+                };
+            })
         });
     } catch (error) {
         console.error('Analytics roster error:', error);
@@ -237,7 +239,7 @@ router.get('/:teacherId/students', auth, ownOrAdmin, withRange, async (req, res)
 
 // @route   GET api/analytics/:teacherId/students/:studentId/sessions
 // @desc    The teacher's own sessions with one student (date, lunches and
-//          times, minutes, absences) - the popup behind a name in My Students
+//          times, absences) - the popup behind a name in My Students
 // @access  Private - only students the teacher teaches or has ever tutored
 //          (404 otherwise, so it can't be used to probe other students)
 router.get('/:teacherId/students/:studentId/sessions', auth, ownOrAdmin, withRange, async (req, res) => {

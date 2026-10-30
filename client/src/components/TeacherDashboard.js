@@ -1,17 +1,16 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
     Alert,
     Box,
     Card,
+    CardActionArea,
     CardContent,
     Chip,
     CircularProgress,
-    FormControlLabel,
     Grid,
     Link,
     Paper,
     Stack,
-    Switch,
     Table,
     TableBody,
     TableCell,
@@ -20,6 +19,8 @@ import {
     TableRow,
     TableSortLabel,
     TextField,
+    ToggleButton,
+    ToggleButtonGroup,
     Typography
 } from '@mui/material';
 import { Chart as ChartJS, CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend } from 'chart.js';
@@ -51,15 +52,20 @@ const chartOptions = {
     scales: { y: { beginAtZero: true, ticks: { precision: 0 } } }
 };
 
-const StatCard = ({ label, value, color, caption }) => (
-    <Card sx={{ borderTop: 4, borderColor: color, height: '100%' }}>
+const StatCard = ({ label, value, color, caption, onClick }) => {
+    const content = (
         <CardContent sx={{ textAlign: 'center' }}>
             <Typography variant="overline" color="text.secondary" sx={{ fontWeight: 600 }}>{label}</Typography>
             <Typography variant="h3" sx={{ color, fontWeight: 'bold', my: 1 }}>{value}</Typography>
             {caption && <Typography variant="body2" color="text.secondary">{caption}</Typography>}
         </CardContent>
-    </Card>
-);
+    );
+    return (
+        <Card sx={{ borderTop: 4, borderColor: color, height: '100%' }}>
+            {onClick ? <CardActionArea onClick={onClick} sx={{ height: '100%' }}>{content}</CardActionArea> : content}
+        </Card>
+    );
+};
 
 const ChartCard = ({ title, children }) => (
     <Card sx={{ height: '100%' }}>
@@ -80,20 +86,26 @@ const barData = (labels, data, color) => ({
 const SORTS = {
     name: { label: 'Student', compare: () => 0 },
     totalSessions: { label: 'Sessions', compare: (a, b) => a.totalSessions - b.totalSessions },
-    totalMinutes: { label: 'Minutes', compare: (a, b) => a.totalMinutes - b.totalMinutes },
     totalAbsences: { label: 'Absences', compare: (a, b) => a.totalAbsences - b.totalAbsences },
     lastSession: { label: 'Last session', compare: (a, b) => (a.lastSession || '').localeCompare(b.lastSession || '') }
+};
+
+// Which students My Students shows. 'notTutored' is class students with no
+// attended session in the range - the "Not yet tutored" card links here.
+const SHOW = {
+    all: { label: 'All', match: () => true },
+    tutored: { label: 'Tutored', match: s => s.totalSessions > 0 || s.totalAbsences > 0 },
+    notTutored: { label: 'Not yet tutored', match: s => s.inClass && s.totalSessions === 0 }
 };
 
 // Every student the teacher teaches (any period) or tutored in the range,
 // with only this teacher's sessions counted. Clicking a name lists each of
 // those sessions with its date and lunch times. Students on a SPED caseload
 // are flagged with their case manager, since their minutes are being tracked.
-const MyStudents = ({ teacherId, range }) => {
+const MyStudents = React.forwardRef(({ teacherId, range, show, onShowChange }, ref) => {
     const [data, setData] = useState(null);
     const [error, setError] = useState(null);
     const [filter, setFilter] = useState('');
-    const [tutoredOnly, setTutoredOnly] = useState(false);
     const [sort, setSort] = useState({ by: 'totalSessions', desc: true });
     const [selected, setSelected] = useState(null);
 
@@ -111,7 +123,7 @@ const MyStudents = ({ teacherId, range }) => {
         if (!data) return [];
         const term = filter.trim().toLowerCase();
         const rows = data.students.filter(s =>
-            (!tutoredOnly || s.totalSessions > 0 || s.totalAbsences > 0) &&
+            SHOW[show].match(s) &&
             (!term || `${s.first_name} ${s.last_name}`.toLowerCase().includes(term))
         );
         const { compare } = SORTS[sort.by];
@@ -119,7 +131,7 @@ const MyStudents = ({ teacherId, range }) => {
             .map((s, i) => ({ s, i }))
             .sort((a, b) => (sort.desc ? -1 : 1) * compare(a.s, b.s) || a.i - b.i)
             .map(({ s }) => s);
-    }, [data, filter, tutoredOnly, sort]);
+    }, [data, filter, show, sort]);
 
     const loadDetail = useMemo(
         () => (studentId, params) => apiService.getTeacherStudentSessions(teacherId, studentId, params),
@@ -129,20 +141,21 @@ const MyStudents = ({ teacherId, range }) => {
     const sortBy = (by) => setSort(prev => ({ by, desc: prev.by === by ? !prev.desc : by !== 'name' }));
 
     return (
-        <Card sx={{ mt: 3 }}>
+        <Card sx={{ mt: 3 }} ref={ref}>
             <CardContent>
                 <Stack direction={{ xs: 'column', md: 'row' }} justifyContent="space-between" alignItems={{ md: 'center' }} spacing={2} sx={{ mb: 2, pb: 1, borderBottom: 2, borderColor: '#D0E9FA' }}>
                     <Typography variant="h6">My Students</Typography>
                     <Stack direction="row" spacing={2} alignItems="center">
-                        <FormControlLabel
-                            control={<Switch checked={tutoredOnly} onChange={e => setTutoredOnly(e.target.checked)} />}
-                            label="Only students I've tutored"
-                        />
+                        <ToggleButtonGroup size="small" exclusive value={show} onChange={(_, value) => value && onShowChange(value)}>
+                            {Object.entries(SHOW).map(([key, { label }]) => (
+                                <ToggleButton key={key} value={key}>{label}</ToggleButton>
+                            ))}
+                        </ToggleButtonGroup>
                         <TextField size="small" label="Find a student" value={filter} onChange={e => setFilter(e.target.value)} sx={{ minWidth: 220 }} />
                     </Stack>
                 </Stack>
                 <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                    Students in your classes and anyone you tutored in this date range. Counts are your sessions only; absences don't add minutes. Click a name to see each session's date and time.
+                    Students in your classes and anyone you tutored in this date range. Counts are your sessions only. Click a name to see each session's date and time.
                 </Typography>
 
                 {error && <Alert severity="error">{error}</Alert>}
@@ -161,7 +174,6 @@ const MyStudents = ({ teacherId, range }) => {
                                             </TableSortLabel>
                                         </TableCell>
                                     ))}
-                                    <TableCell><strong>Your periods</strong></TableCell>
                                 </TableRow>
                             </TableHead>
                             <TableBody>
@@ -182,14 +194,12 @@ const MyStudents = ({ teacherId, range }) => {
                                             )}
                                         </TableCell>
                                         <TableCell align="right" sx={{ fontWeight: 600 }}>{s.totalSessions}</TableCell>
-                                        <TableCell align="right" sx={{ fontWeight: 600 }}>{s.totalMinutes}</TableCell>
                                         <TableCell align="right" sx={{ fontWeight: 600, color: s.totalAbsences > 0 ? 'warning.main' : 'text.secondary' }}>
                                             {s.totalAbsences}
                                         </TableCell>
                                         <TableCell>
                                             {s.lastSession ? formatDate(s.lastSession) : <Typography variant="body2" color="text.secondary">—</Typography>}
                                         </TableCell>
-                                        <TableCell>{s.periods.join(', ') || <Typography variant="body2" color="text.secondary">—</Typography>}</TableCell>
                                     </TableRow>
                                 ))}
                             </TableBody>
@@ -197,10 +207,10 @@ const MyStudents = ({ teacherId, range }) => {
                     </TableContainer>
                 )}
             </CardContent>
-            <StudentSessionsDialog student={selected} range={range} loadDetail={loadDetail} onClose={() => setSelected(null)} />
+            <StudentSessionsDialog student={selected} range={range} loadDetail={loadDetail} onClose={() => setSelected(null)} ownSessions />
         </Card>
     );
-};
+});
 
 // A teacher's own tutoring over a date range (default: this school year so
 // far): what they delivered, when, what's coming up, and every student they
@@ -210,6 +220,13 @@ const TeacherDashboard = () => {
     const [range, setRange] = useState(defaultRange);
     const [overview, setOverview] = useState(null);
     const [error, setError] = useState(null);
+    const [show, setShow] = useState('all');
+    const studentsRef = useRef(null);
+
+    const showNotTutored = () => {
+        setShow('notTutored');
+        studentsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    };
 
     useEffect(() => {
         if (!teacherId) return;
@@ -243,7 +260,13 @@ const TeacherDashboard = () => {
                             <StatCard label="Sessions delivered" value={overview.sessions} color={BLUE} />
                         </Grid>
                         <Grid item xs={12} sm={6} md={3}>
-                            <StatCard label="Minutes delivered" value={overview.minutes} color={GREEN} />
+                            <StatCard
+                                label="Not yet tutored"
+                                value={overview.notYetTutored}
+                                color={GREEN}
+                                caption={overview.classStudents > 0 ? `of ${overview.classStudents} class students` : null}
+                                onClick={overview.notYetTutored > 0 ? showNotTutored : undefined}
+                            />
                         </Grid>
                         <Grid item xs={12} sm={6} md={3}>
                             <StatCard label="Students tutored" value={overview.uniqueStudents} color={PINK} />
@@ -313,7 +336,7 @@ const TeacherDashboard = () => {
                 </>
             )}
 
-            <MyStudents teacherId={teacherId} range={range} />
+            <MyStudents ref={studentsRef} teacherId={teacherId} range={range} show={show} onShowChange={setShow} />
         </Box>
     );
 };
