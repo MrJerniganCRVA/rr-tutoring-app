@@ -43,7 +43,11 @@ const SmallTable = ({ head, children }) => (
 // totalled by subject - for reporting SPED service minutes. Minutes are the
 // sum of the booked lunch blocks (A/B/C 23, D 24; passing time not counted).
 // Sessions the student was marked absent from are listed but add no minutes.
-const StudentSessionsDialog = ({ student, range, loadDetail, onClose }) => {
+//
+// `ownSessions` is for a teacher looking at their own sessions with a student
+// (Analytics): teacher and subject are always theirs and minutes don't matter
+// there, so only the date, lunch and attendance are shown.
+const StudentSessionsDialog = ({ student, range, loadDetail, onClose, ownSessions = false }) => {
   const [detail, setDetail] = useState(null);
   const [error, setError] = useState(null);
 
@@ -79,11 +83,12 @@ const StudentSessionsDialog = ({ student, range, loadDetail, onClose }) => {
         {detail && (
           <>
             <Typography variant="subtitle1" sx={{ fontWeight: 600, mb: 1 }}>
-              {totals.totalSessions} session{totals.totalSessions === 1 ? '' : 's'} · {totals.totalMinutes} minutes
+              {totals.totalSessions} session{totals.totalSessions === 1 ? '' : 's'}
+              {!ownSessions && ` · ${totals.totalMinutes} minutes`}
               {totals.totalAbsences > 0 && ` · ${totals.totalAbsences} absence${totals.totalAbsences === 1 ? '' : 's'}`}
             </Typography>
 
-            {totals.bySubject.length > 0 && (
+            {!ownSessions && totals.bySubject.length > 0 && (
               <SmallTable head={[['Subject'], ['Sessions', 'right'], ['Minutes', 'right']]}>
                 {totals.bySubject.map(s => (
                   <TableRow key={s.subject}>
@@ -98,7 +103,7 @@ const StudentSessionsDialog = ({ student, range, loadDetail, onClose }) => {
             {detail.sessions.length === 0 ? (
               <Alert severity="info">No tutoring in this date range.</Alert>
             ) : (
-              <SmallTable head={[['Date'], ['Lunch'], ['Minutes', 'right'], ['Teacher'], ['Subject']]}>
+              <SmallTable head={ownSessions ? [['Date'], ['Lunch']] : [['Date'], ['Lunch'], ['Minutes', 'right'], ['Teacher'], ['Subject']]}>
                 {detail.sessions.map(s => (
                   <TableRow key={s.id} sx={{ opacity: s.absent ? 0.7 : 1 }}>
                     <TableCell>{formatDate(s.date)}</TableCell>
@@ -106,9 +111,13 @@ const StudentSessionsDialog = ({ student, range, loadDetail, onClose }) => {
                       {s.lunches.map((l, i) => `${l}${s.times ? ` (${s.times[i]})` : ''}`).join(', ')}
                       {s.absent && <Chip label="Absent" color="warning" size="small" sx={{ ml: 1 }} />}
                     </TableCell>
-                    <TableCell align="right">{s.absent ? '—' : s.minutes}</TableCell>
-                    <TableCell>{s.teacher}</TableCell>
-                    <TableCell>{s.subject}</TableCell>
+                    {!ownSessions && (
+                      <>
+                        <TableCell align="right">{s.absent ? '—' : s.minutes}</TableCell>
+                        <TableCell>{s.teacher}</TableCell>
+                        <TableCell>{s.subject}</TableCell>
+                      </>
+                    )}
                   </TableRow>
                 ))}
               </SmallTable>
