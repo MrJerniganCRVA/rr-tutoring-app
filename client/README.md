@@ -11,7 +11,7 @@ npm start
 
 The app runs at http://localhost:3000 and expects the server running at http://localhost:5000 by default — override with `REACT_APP_API_BASE_URL` if needed.
 
-Sign-in uses Google OAuth (restricted to `@coderva.org` accounts) — there's no separate teacher-selection screen; the server must already have a matching Teacher record for login to succeed (see the root README's `admin:bootstrap` note for a brand-new database).
+Sign-in uses Google OAuth, restricted to your school's Google Workspace domain. The server must already have a Teacher record with your email for sign-in to succeed (see "Create your first admin" in the root README for a brand-new database).
 
 ## Building for Production
 
@@ -19,4 +19,4 @@ Sign-in uses Google OAuth (restricted to `@coderva.org` accounts) — there's no
 npm run build
 ```
 
-Produces a static `build/` folder. In production this is deployed on Railway as its own service, served by Caddy (see `Caddyfile`) — not manually via `serve` or a Raspberry Pi/PM2 setup. `REACT_APP_API_BASE_URL` is baked in at build time (Create React App inlines `REACT_APP_*` vars into the bundle), so it must be set correctly *before* building, not just at runtime.
+Produces a static `build/` folder. Serve it as a single-page app, with unknown paths falling back to `index.html`; `Caddyfile` and `nixpacks.toml` are a ready-made Caddy setup for this. `REACT_APP_API_BASE_URL` is baked in at build time (Create React App inlines `REACT_APP_*` vars into the bundle), so it must be set correctly *before* building, not just at runtime.
